@@ -369,12 +369,14 @@ RUN ansible-galaxy collection install -r requirements.yml</span></pre>
           <tr><td class="mono">k8s/oidc-rbac.yml</td><td>幫 OIDC 身份配 RBAC(唯讀預設 + 個別 email cluster-admin)</td></tr>
           <tr><td class="mono">bastion/ssh-tunnel.yml</td><td>在 bastion 上裝獨立的 Cloudflare Tunnel,給瀏覽器內建 web SSH 用</td></tr>
           <tr><td class="mono">bastion/nfs-server.yml</td><td>把 bastion 上 cloud-init 已格式化/掛好的資料碟(<code>/srv/nfs/k8s</code>)裝成 NFS server,給叢集內 csi-driver-nfs 當 StorageClass 後端</td></tr>
+          <tr><td class="mono">bastion/vault.yml</td><td>在 bastion 上裝 HashiCorp Vault,資料放在持久化的 <code>/userap/vault</code>,見 <a href="role-vault.html">Role: vault</a></td></tr>
           <tr><td class="mono">bastion/kubeconfig.yml</td><td>從第一台 master 抓 admin kubeconfig、在 bastion 上裝 kubectl——這兩樣只存在 bastion 的 ephemeral 開機碟上,重建後會不見,需要重跑</td></tr>
           <tr><td class="mono">bastion/apiserver-dns.yml</td><td>在 bastion 上寫 <code>/etc/hosts</code> 的 <code>k8s-api.internal</code> 記錄,跟 <code>k8s/apiserver-lb.yml</code> 背後同一個 <code>roles/apiserver_dns</code>,只是刻意只對 bastion 跑</td></tr>
           <tr><td class="mono">bastion/github-runner.yml</td><td>把 bastion 註冊成 doughops org 共用的 GitHub Actions self-hosted runner,見 <a href="role-github-runner.html">Role: github_runner</a></td></tr>
           <tr><td class="mono">kubeadm-reset.yml</td><td>危險操作:整個叢集狀態清空,只在要改「初始化時就固定死」的參數才用,刻意不放進 <code>k8s.yml</code> 的 import 鏈</td></tr>
           <tr><td class="mono">k8s/smoke-test.yml</td><td>驗證整個 k8s + Cilium + FRR native routing 是不是真的在動</td></tr>
           <tr><td class="mono">k8s/nfs-csi.yml</td><td>部署 csi-driver-nfs,提供 <code>nfs-csi</code>/<code>nfs-csi-retain</code> 兩個 RWX StorageClass,背後接 <code>bastion/nfs-server.yml</code> 的 NFS export</td></tr>
+          <tr><td class="mono">k8s/vault-secrets-operator.yml</td><td>裝 vault-secrets-operator,讓任何 namespace 都能用 <code>VaultStaticSecret</code> 掛載 <code>bastion/vault.yml</code> 裝的 Vault,見 <a href="role-vault.html">Role: vault</a>。前置條件是 <code>bastion/vault.yml</code> 已經跑過</td></tr>
         </tbody>
       </table>
     </div>
@@ -435,7 +437,7 @@ RUN ansible-galaxy collection install -r requirements.yml</span></pre>
 
     <footer class="page-footer">
       <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
-      <span>最後更新:2026-07-30</span>
+      <span>最後更新:2026-08-06</span>
     </footer>
   </div>
 </div>

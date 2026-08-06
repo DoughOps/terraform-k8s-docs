@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Role: vault — k8s + BGP Lab 技術詳解</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <a class="sidebar-logo-link" href="index.html">
+      <h1>🛰️ k8s + BGP Lab</h1>
+      <span>OpenStack Lab · 技術詳解 v15</span>
+    </a>
+  </div>
+  <nav>
+    <div class="nav-group">
+      <div class="nav-group-label">總覽</div>
+      <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
+      <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
+      <a class="nav-link" href="user-guide.html"><span class="icon">🧑‍💻</span> 叢集使用手冊</a>
+      <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">網路架構</div>
+      <a class="nav-link" href="network-architecture.html"><span class="icon">🌐</span> 網路架構總覽</a>
+      <a class="nav-link" href="packet-flows.html"><span class="icon">🔀</span> 封包路徑實例</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">基礎設施</div>
+      <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
+      <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Ansible 自動化</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
+      <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
+      <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
+      <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
+      <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
+      <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
+      <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link active" href="role-vault.html"><span class="icon">🔒</span> Role: vault</a>
+      <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Cloudflare 手動設定</div>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">專案紀錄</div>
+      <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+    </div>
+  </nav>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" aria-label="Toggle menu">☰</button>
+      <span class="topbar-crumb">Lab Docs / <strong>Role: vault</strong></span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">cloudnative.tw · AS 65000</span>
+      <button class="theme-toggle" id="themeToggle" aria-label="切換主題">
+        <span class="icon-moon">🌙</span><span class="icon-sun">☀️</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <h2><span class="eyebrow">Ansible 自動化</span>Role: vault</h2>
+    <p class="lede">HashiCorp Vault,當整個叢集共用的 secrets backend。跟這個專案其他
+      服務不一樣的地方是<strong>它跑在 bastion 上,不是叢集內的 workload</strong>
+      ——兩個獨立的 role 分工:<code>roles/vault_server</code> 在 bastion 裝
+      Vault 本身,<code>roles/vault_secrets_operator</code> 在叢集裡裝
+      vault-secrets-operator(VSO),讓任何 namespace 都能把 Vault 的 secret
+      同步成一般的 k8s <code>Secret</code>。實際怎麼用見
+      <a href="user-guide.html">叢集使用手冊</a>,這頁專注在<strong>怎麼做到、
+      過程中撞到的三個 bug</strong>。</p>
+
+    <h3>為什麼 Vault 跑在 bastion,不是叢集內</h3>
+    <p>這是刻意的選擇,不是預設值——資料要能在 <strong>bastion 重建之後自動
+      復原</strong>,而 bastion 剛好已經有一顆完全符合這個需求的資源:
+      <code>user-data</code> 這顆持久化 Cinder volume(<code>prevent_destroy</code>
+      + <code>delete_on_termination = false</code>,bind mount 到
+      <code>/userap</code>,見 CLAUDE.md「Bastion 的兩個資料 volume 存活」
+      那段)。Vault 的 storage backend 直接指到
+      <code>/userap/vault/data</code>——bastion 被 <code>terraform destroy</code>/
+      <code>apply</code> 重建之後,這個 role 重跑會偵測到「storage 裡已經有
+      init 過的資料」,直接 unseal 接回去,<strong>不會重新 init</strong>。</p>
+
+    <h3>單一 unseal key:換完全自動化,不是隨便放寬安全性</h3>
+    <p>Vault 預設用 Shamir secret-sharing 把 unseal key 拆成 5 把、湊齊 3 把
+      才能 unseal——這個信任模型假設「多個人各自保管一把,任何單一個人都
+      不能單獨解鎖」。這個 lab 只有單一 operator,這個假設沒有對應的受益者,
+      換來的只是「每次重開機/重建都要手動貼 3 把 key」的麻煩。</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/vault_server/defaults/main.yml</span></div>
+      <pre><span class="out">vault_key_shares: 1
+vault_key_threshold: 1</span></pre>
+    </div>
+    <p>換成單一 key 之後,<code>vault operator init</code>/<code>unseal</code>
+      整段都能安全自動化——這個 role 每次執行都會檢查目前是不是
+      <code>sealed</code>,是的話就自動用存下來的 key unseal 一次,重開機/
+      重建之後不需要人介入。</p>
+
+    <div class="callout callout-warn">
+      <p><strong>unseal key + root token 存在跟資料同一顆 volume 上
+      (<code>/userap/vault/init.json</code>,root-only)</strong>——這不是
+      分開存放的最佳實務(一般建議 key 要跟它解鎖的資料分開放),是刻意
+      的取捨:如果分開放,bastion 重建之後資料雖然還在,但沒有 key 就永遠
+      打不開,直接牴觸「重建可以還原」這個要求。這個 lab 只有單一
+      operator,分開存放換來的安全性沒有實際受益者。</p>
+    </div>
+
+    <h3>Bug #1:HashiCorp 的 GPG key 沒有 dearmor</h3>
+    <p>裝 <code>vault</code> 這個 apt 套件要先加 HashiCorp 的官方 repo +
+      簽章金鑰。第一版直接把 <code>curl .../gpg</code> 的輸出存成
+      <code>.gpg</code> 檔案:</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">錯誤版本</span></div>
+      <pre><span class="bad">curl -fsSL https://apt.releases.hashicorp.com/gpg \
+  -o /usr/share/keyrings/hashicorp-archive-keyring.gpg</span></pre>
+    </div>
+    <div class="callout callout-danger">
+      <p><strong>實測直接炸開</strong>:<code>apt-get update</code> 報
+      <code>NO_PUBKEY</code>、<code>the repository is not signed</code>。
+      HashiCorp 的 <code>/gpg</code> 端點回傳的是 ASCII-armored 的公鑰
+      (<code>-----BEGIN PGP PUBLIC KEY BLOCK-----</code>),不是已經
+      dearmor 過的二進位 keyring——apt 的 <code>signed-by=</code> 讀不出
+      有效的 key。</p>
+    </div>
+    <p>修法是比照 <a href="role-kubeadm.html">roles/kubectl_cli</a> 裝
+      Kubernetes apt repo 那份已經寫對的做法,先 pipe 給
+      <code>gpg --dearmor</code>:</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">修復後</span></div>
+      <pre><span class="out">curl -fsSL https://apt.releases.hashicorp.com/gpg \
+  | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg</span></pre>
+    </div>
+
+    <h3>Bug #2:handler 排在 unseal 之後,把 unseal 結果蓋回 sealed</h3>
+    <p>Vault 的設定檔(<code>vault.hcl</code>)改了要重啟服務,用 ansible
+      標準的 <code>notify: 重啟 vault</code> handler 模式。問題是
+      <strong>Ansible 的 handler 預設要等整個 play 全部 task 跑完才會
+      執行</strong>,不是緊接在觸發它的那個 task 後面——這個 role 的第一次
+      執行(設定檔本來不存在,一定會觸發這個 handler),task 順序是:</p>
+    <div class="flow">
+      <div class="flow-step"><div class="flow-box">寫設定檔<br><small>notify: 重啟(排進佇列)</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box accent">init + unseal<br><small>成功,sealed: false</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box purple">開 KV v2</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box danger">handler 這時才執行<br><small>重啟 → 回到 sealed!</small></div></div>
+    </div>
+    <p>實測結果:整個 play 跑完、<code>failed=0</code>,但直接查
+      <code>vault status</code> 卻是 <code>sealed: true</code>——unseal
+      明明成功過,卻被排在後面才執行的 restart 蓋掉。修法是在寫完設定檔
+      後立刻強制 flush:</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/vault_server/tasks/main.yml</span></div>
+      <pre><span class="out">- name: 寫 vault 的 server 設定
+  ansible.builtin.template: ...
+  notify: 重啟 vault
+
+- name: 如果上面設定檔真的換了,現在就重啟(不要拖到整個 play 跑完)
+  ansible.builtin.meta: flush_handlers</span></pre>
+    </div>
+    <p>這樣「這次設定檔有沒有換」永遠是這個 role 裡<strong>最先</strong>
+      處理完的事,之後才判斷 init/unseal——不會有「先 unseal 成功、後面又
+      被重啟蓋回去」的順序問題。</p>
+
+    <h3>Bug #3:VSO 的「共用身份」不是想像中的那樣</h3>
+    <p>目標是讓所有 namespace 共用同一組 Vault 身份/政策,不用每個
+      namespace 各自申請。用 VSO chart 內建的
+      <code>defaultVaultConnection</code>/<code>defaultAuthMethod</code>
+      建一個共用的 VaultAuth,<code>kubernetes.serviceAccount: default</code>
+      ——第一版直覺假設,這個 <code>default</code> 是
+      <strong>vault-secrets-operator 這個 namespace 底下的
+      default</strong>,所以 Vault 那邊的 kubernetes-auth role 寫死
+      <code>bound_service_account_namespaces=vault-secrets-operator</code>。</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">實測:VSO controller log</span></div>
+      <pre><span class="bad">Failed to get NewClientWithLogin ... auth/kubernetes/login
+Code: 403. Errors: * namespace not authorized</span></pre>
+    </div>
+    <p>查了 <a href="https://github.com/hashicorp/vault-secrets-operator/issues/827" target="_blank">hashicorp/vault-secrets-operator#827</a>
+      才確認實際行為:<code>defaultAuthMethod.kubernetes.serviceAccount</code>
+      這個名字,是拿去<strong>消費這個 VaultAuth 的那個資源
+      (<code>VaultStaticSecret</code>……)自己所在的 namespace</strong>
+      裡面找同名 SA,不是去 VaultAuth 自己的 namespace 找——每個
+      namespace 其實都是拿<strong>自己的</strong> <code>default</code> SA
+      去登入 Vault,不是全部借用 operator 的身份。這樣反而更符合「所有
+      namespace 都可以用」的字面意思,所以 Vault 那邊的 role 要放行萬用
+      字元 namespace,不能寫死:</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">修復後</span></div>
+      <pre><span class="out">vault write auth/kubernetes/role/k8s-shared \
+  bound_service_account_names=default \
+  bound_service_account_namespaces=* \
+  policies=k8s-shared-read</span></pre>
+    </div>
+    <p>修完之後端對端驗證:在一個全新建立的 namespace 建
+      <code>VaultStaticSecret</code>,一個 reconcile 週期內同步出正確內容
+      的 k8s <code>Secret</code>,<code>SecretSynced: True</code>。</p>
+
+    <h3>對外曝露:借用既有的 bastion-ssh tunnel,不是另開一條</h3>
+    <p>Vault 監聽在 <code>fabric_ip:8200</code>(k8s-net,<code>tls_disable
+      = true</code>——跟 <a href="role-cilium.html">roles/nfs_server</a>
+      的 NFS export 同一套「網段本身當信任邊界」的既有安全模型)。要讓
+      <code>vault.dough-ops.com</code> 對外可達,不需要在 bastion 上另外裝
+      第二個 cloudflared 實例——<code>bastion-ssh</code> 這條 tunnel
+      本來就跑在 bastion 上,<code>config_src = "cloudflare"</code> 代表
+      它的 ingress 規則是從 Cloudflare 那邊即時抓的,直接在 Terraform 幫
+      它多加一條 ingress 規則就生效,bastion 上完全不用動:</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">cloudflare/tunnels.tf(新增的規則)</span></div>
+      <pre><span class="out">{
+  hostname = "vault.dough-ops.com"
+  service  = "http://10.10.0.11:8200"
+}</span></pre>
+    </div>
+    <p><code>vault.dough-ops.com</code> 沒有另外建專屬的 Cloudflare Access
+      Application——它自動落在既有的萬用字元 Application
+      (<code>*.dough-ops.com</code>)底下,跟 dashboard/grafana/prometheus
+      這些工具是同一個模式,見 <a href="internal-tools.html">內部工具</a>。</p>
+
+    <h3>OIDC 登入:仿 Grafana,不是仿 Dashboard</h3>
+    <p>Vault 沒辦法比照 <a href="internal-tools.html">Dashboard 那套</a>
+      被動驗證 <code>Cf-Access-Jwt-Assertion</code> header 的做法——
+      Dashboard 能這樣做,是因為 kube-apiserver 本身有
+      <code>--oidc-issuer-url</code> 這種「被動驗證任意 bearer JWT」的
+      內建能力,<strong>Vault 的 API 沒有對應機制</strong>,一律要求自己
+      發的 <code>X-Vault-Token</code>。改仿 Grafana 那套真正的 OIDC
+      relying party(<code>auth/oidc</code>),對應 Cloudflare 這邊獨立的
+      「Access for SaaS」OIDC application(<code>vault-sso</code>,跟
+      <code>grafana-sso</code> 同一個機制,不同 app)。</p>
+
+    <div class="callout callout-warn">
+      <p><strong>使用者明確要求:OIDC 登入之後直接有完整權限</strong>
+      ——不像 Dashboard/Grafana 那樣分「預設唯讀 + <code>oidc_admin_emails</code>
+      才有完整權限」兩層。任何通過邊緣 Cloudflare Access(doughops org
+      成員)、OIDC 登入 Vault 的人,都拿到
+      <code>oidc-admin</code> 這個自訂政策(<code>path "*"</code>,
+      全部 capability)——不是綁 Vault 內建的 <code>root</code> policy
+      名稱(技術上可以,但那個名字有特殊含義,寫一個效果等價、獨立可
+      撤銷/可稽核的政策比較乾淨)。這是刻意的選擇,風險自負,不是這個
+      role 自己的預設值。</p>
+    </div>
+
+    <p>Vault UI 登入頁自動選中 OIDC(不用先點方法選單),靠兩個條件湊滿:
+      掛載路徑等於 <code>oidc</code>(跟 auth method 的 type 同名)+
+      <code>listing_visibility=unauth</code>:</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/vault_server/tasks/main.yml</span></div>
+      <pre><span class="out">vault auth enable oidc
+vault auth tune -listing-visibility=unauth oidc/</span></pre>
+    </div>
+    <p>效果等同 Grafana 的 <code>auto_login: true</code>——瀏覽器開
+      <code>vault.dough-ops.com</code>,先過邊緣萬用字元 Access(用掉既有
+      team session,免重新登入),Vault UI 自動跳 OIDC,再過一次
+      <code>vault-sso</code> 這個 SaaS Application(同一個 team session,
+      一樣免重新登入),直接進 Vault。</p>
+    <p><code>redirect_uris</code> 兩條,UI 登入跟 CLI 登入(<code>vault
+      login -method=oidc</code>)分開列:</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">cloudflare/access.tf(vault_sso Application)</span></div>
+      <pre><span class="out">redirect_uris = [
+  "https://vault.dough-ops.com/ui/vault/auth/oidc/oidc/callback",
+  "http://localhost:8250/oidc/callback",
+]</span></pre>
+    </div>
+
+    <h3>驗證方式</h3>
+    <ul>
+      <li>Vault 健康狀態:<code>curl http://&lt;fabric_ip&gt;:8200/v1/sys/health</code>
+        確認 <code>sealed: false</code>。</li>
+      <li>OIDC discovery:<code>curl &lt;oidc_discovery_url&gt;/.well-known/openid-configuration</code>
+        確認回傳合法的 <code>authorization_endpoint</code>/<code>token_endpoint</code>/<code>jwks_uri</code>。</li>
+      <li>端對端 secret 同步:建一個測試 namespace + <code>VaultStaticSecret</code>,
+        確認同步出來的 <code>Secret</code> 內容正確、事後清乾淨。</li>
+      <li>外部曝露:<code>curl -I https://vault.dough-ops.com/ui/</code> 確認
+        302 導去 <code>doughops.cloudflareaccess.com</code> 的登入頁。</li>
+    </ul>
+
+    <div class="page-nav">
+      <a class="prev" href="role-cert-manager.html"><span class="dir">上一頁</span><span class="ttl">← Role: cert_manager</span></a>
+      <a class="next" href="role-github-runner.html"><span class="dir">下一頁</span><span class="ttl">Role: github_runner →</span></a>
+    </div>
+
+    <footer class="page-footer">
+      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
+      <span>最後更新:2026-08-06</span>
+    </footer>
+  </div>
+</div>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

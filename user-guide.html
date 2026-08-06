@@ -243,6 +243,37 @@ spec:
           <code>nfs-csi</code>(PVC 刪掉資料跟著刪)跟 <code>nfs-csi-retain</code>
           (PVC 刪掉資料保留)。挑哪個看你要不要「誤刪 PVC 也不會真的丟資料」這層保險。</p>
       </div>
+      <div class="card">
+        <div class="card-icon">🔑</div>
+        <h4>需要密鑰就用 Vault,不要寫死進 manifest</h4>
+        <p>叢集裝了 <a href="role-vault.html">vault-secrets-operator</a>,任何
+          namespace 建一個 <code>VaultStaticSecret</code>(見下方範例),就會
+          自動同步出一個一般的 k8s <code>Secret</code>,跟平常
+          <code>envFrom</code>/<code>volumeMounts</code> 掛法完全一樣。不需要
+          額外指定 <code>vaultConnectionRef</code>/<code>vaultAuthRef</code>
+          ——已經幫全部 namespace 接好共用的預設值。</p>
+      </div>
+    </div>
+
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">先在 Vault 裡放一筆(從 bastion,或用 vault.dough-ops.com 的 UI)</span></div>
+      <pre><span class="prompt">$</span> <span class="cmd">vault kv put secret/&lt;your-name&gt;/db-password value=hunter2</span></pre>
+    </div>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">在你的 namespace 裡建 VaultStaticSecret</span></div>
+      <pre><span class="out">apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: db-password
+  namespace: &lt;your-name&gt;
+spec:
+  type: kv-v2
+  mount: secret
+  path: &lt;your-name&gt;/db-password
+  destination:
+    name: db-password-secret   </span><span class="dim"># 同步出來的 k8s Secret 名稱</span><span class="out">
+    create: true
+  refreshAfter: 1h              </span><span class="dim"># Vault 裡改了值,最晚等這麼久會自動重新同步</span></pre>
     </div>
 
     <h3>3. 目前有哪些服務可以用</h3>
@@ -260,6 +291,7 @@ spec:
           <tr><td>Prometheus</td><td class="mono">prometheus.dough-ops.com</td><td>metrics 查詢/PromQL</td><td>Cloudflare Access</td></tr>
           <tr><td>Alertmanager</td><td class="mono">alertmanager.dough-ops.com</td><td>告警規則/靜音管理</td><td>Cloudflare Access</td></tr>
           <tr><td>Hubble UI</td><td class="mono">hubble.dough-ops.com</td><td>Cilium eBPF 資料平面的即時流量觀測</td><td>Cloudflare Access</td></tr>
+          <tr><td>HashiCorp Vault</td><td class="mono">vault.dough-ops.com</td><td>秘密管理——網頁 UI/API,跑在 bastion 上,不是叢集內服務,見 <a href="role-vault.html">Role: vault</a></td><td>Cloudflare Access,登入後直接 OIDC 免密碼進 Vault(任何 doughops org 成員都是完整權限,見該頁說明)</td></tr>
           <tr><td>技術文件站(這個網站)</td><td class="mono">docs.dough-ops.com</td><td>跟你現在看的內容一樣,部署在叢集內的版本</td><td>Cloudflare Access</td></tr>
           <tr><td>展示頁 demo</td><td class="mono">test.dough-ops.com</td><td>驗證 ingress 路徑用的最小 nginx 範例(見上面「部署一個網頁」抄的就是它)</td><td>Cloudflare Access</td></tr>
           <tr><td>對外成果展示頁</td><td class="mono">showcase.dough-ops.com</td><td>成果展示頁</td><td>Cloudflare Access</td></tr>
