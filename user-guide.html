@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>叢集使用手冊 — k8s + BGP Lab 技術詳解</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <a class="sidebar-logo-link" href="index.html">
+      <h1>🛰️ k8s + BGP Lab</h1>
+      <span>OpenStack Lab · 技術詳解 v15</span>
+    </a>
+  </div>
+  <nav>
+    <div class="nav-group">
+      <div class="nav-group-label">總覽</div>
+      <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
+      <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
+      <a class="nav-link active" href="user-guide.html"><span class="icon">🧑‍💻</span> 叢集使用手冊</a>
+      <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">網路架構</div>
+      <a class="nav-link" href="network-architecture.html"><span class="icon">🌐</span> 網路架構總覽</a>
+      <a class="nav-link" href="packet-flows.html"><span class="icon">🔀</span> 封包路徑實例</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">基礎設施</div>
+      <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
+      <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Ansible 自動化</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
+      <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
+      <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
+      <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
+      <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
+      <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
+      <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Cloudflare 手動設定</div>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">專案紀錄</div>
+      <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+    </div>
+  </nav>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" aria-label="Toggle menu">☰</button>
+      <span class="topbar-crumb">Lab Docs / <strong>叢集使用手冊</strong></span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">cloudnative.tw · AS 65000</span>
+      <button class="theme-toggle" id="themeToggle" aria-label="切換主題">
+        <span class="icon-moon">🌙</span><span class="icon-sun">☀️</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <h2><span class="eyebrow">叢集使用手冊</span>我只是想用這個叢集,不是想重建它</h2>
+    <p class="lede">這頁跟其他頁不一樣——其他頁在講「這個系統為什麼長這樣、怎麼從零建出來」,這頁只講
+      <strong>叢集已經活著的情況下,一個使用者實際會做的三件事</strong>:連進去、部署一個網頁、
+      知道現在有哪些東西可以用。想理解底層原理,每一節都有連到對應深入頁面的連結。</p>
+
+    <h3>1. 連線到 Cluster</h3>
+    <p><strong>bastion 是唯一的入口</strong>——其他所有節點(tor、master、worker、L4LB)都在
+      沒有對外路由的 <code>k8s-net</code> 上,沒有辦法從外部直接連。想操作叢集,一律先連上
+      bastion。</p>
+
+    <h4>方法一:<code>make ssh</code>(需要 repo + vault 密碼)</h4>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">在你自己的機器上(repo 根目錄)</span></div>
+      <pre><span class="prompt">$</span> <span class="cmd">make ssh</span>
+<span class="dim"># 解密共用私鑰 → 讀 terraform output 拿 bastion 的 floating IP → ssh 進去
+# 直接落地是 ubuntu 這個使用者,不是 root</span></pre>
+    </div>
+    <p>前提是你已經 clone 這個 repo,而且拿到 <code>.env</code> 裡的
+      <code>ANSIBLE_VAULT_PASSWORD</code>(跟你的專案管理者要,這個檔案本身不進版控)。
+      私鑰本身不是明碼檔案,是 <code>ansible/inventory/group_vars/all/vault.yml</code> 裡
+      vault 加密過的內容,<code>make ssh</code> 會自動處理解密,你不需要手動做任何事。
+      進去之後就是一個正常的 shell,細節見
+      <a href="ansible-framework.html">Ansible 框架設計</a>的「私鑰處理」一節。</p>
+
+    <h4>方法二:瀏覽器內建終端機(<code>ssh.dough-ops.com</code>)</h4>
+    <p>如果你是 <code>doughops</code> GitHub org 成員、但沒有 repo/vault 存取權,可以改用
+      這條路:瀏覽器直接開 <a href="https://ssh.dough-ops.com/" target="_blank">https://ssh.dough-ops.com/</a>,
+      Cloudflare Access 驗證你的 GitHub 身份後,直接在瀏覽器裡渲染出一個終端機。</p>
+    <div class="callout callout-warn">
+      <p><strong>注意:這條路只是換一個網路入口,不是另外一套身份系統</strong>——Cloudflare
+        Access 在這裡只負責「要不要讓你的連線抵達 bastion 的 22 port、要不要在瀏覽器裡渲染
+        終端機介面」,實際的 SSH 認證(哪把 key 才能登入)完全沒有改變,還是同一把
+        <code>ansible/files/ssh/id_ed25519</code> 共用私鑰。換句話說:光是「doughops org
+        成員」這個身份,還不足以讓你透過這條路真的登入 bastion——你的 SSH client 仍然需要
+        持有那把私鑰(或已經被信任的其他 key)。目前這個叢集<strong>沒有</strong>「每個人各自
+        一把 key」的機制,見 <a href="cloudflare-manual-setup.html">Cloudflare 手動設定清單</a>
+        了解這條 tunnel 的完整設定。</p>
+    </div>
+
+    <h4>連進去之後</h4>
+    <p>bastion 上已經幫你裝好、設定好這些東西(見
+      <a href="role-kubeadm.html">Role: kubeadm</a>/<a href="ansible-framework.html">框架設計</a>),
+      不需要再自己裝:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>工具</th><th>說明</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">kubectl</td><td>kubeconfig 已經放在 <code>~/.kube/config</code>,直接用,不用另外 <code>export KUBECONFIG</code></td></tr>
+          <tr><td class="mono">k</td><td><code>kubectl</code> 的 alias,加上 tab 自動補全,少打幾個字</td></tr>
+          <tr><td class="mono">k9s</td><td>互動式的 terminal UI,瀏覽 pod/log/exec 比純 <code>kubectl get</code> 直覺</td></tr>
+          <tr><td class="mono">helm</td><td>裝在 <code>/usr/local/bin</code>,叢集內每個 helm-based 元件都是用它裝的,版本跟叢集元件對齊</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>2. 部署一個網頁</h3>
+    <p>最小可行的流程:寫一個 manifest(Namespace + Deployment + Service +
+      VirtualService)、<code>kubectl apply</code>、等 rollout 完成、開瀏覽器看結果。下面這份
+      直接照抄 <a href="role-istio.html">roles/demo_app</a> 的模式,不用自己準備 container
+      image(用 ConfigMap 掛一個 nginx 靜態頁面進去),換掉 <code>&lt;your-name&gt;</code>
+      就能跑。</p>
+
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">~/my-app.yaml(在 bastion 上)</span></div>
+      <pre><span class="out">apiVersion: v1
+kind: Namespace
+metadata:
+  name: &lt;your-name&gt;
+  labels:
+    istio-injection: enabled   </span><span class="dim"># 要走 Istio Gateway 就一定要這個 label</span><span class="out">
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-html
+  namespace: &lt;your-name&gt;
+data:
+  index.html: |
+    &lt;html&gt;&lt;body&gt;&lt;h1&gt;Hello from &lt;your-name&gt;&lt;/h1&gt;&lt;/body&gt;&lt;/html&gt;
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: &lt;your-name&gt;
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: web }
+  template:
+    metadata:
+      labels: { app: web }
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.27-alpine
+          ports: [{ containerPort: 80 }]
+          volumeMounts:
+            - { name: html, mountPath: /usr/share/nginx/html }
+      volumes:
+        - name: html
+          configMap: { name: web-html }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: &lt;your-name&gt;
+spec:
+  selector: { app: web }
+  ports: [{ name: http, port: 80, targetPort: 80 }]
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: web
+  namespace: &lt;your-name&gt;
+spec:
+  hosts: ["&lt;your-name&gt;.dough-ops.com"]
+  gateways: ["istio/k8s-gateway"]   </span><span class="dim"># 整個叢集共用的 Gateway,跨 namespace 引用</span><span class="out">
+  http:
+    - route:
+        - destination:
+            host: web.&lt;your-name&gt;.svc.cluster.local
+            port: { number: 80 }</span></pre>
+    </div>
+
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">部署</span></div>
+      <pre><span class="prompt">$</span> <span class="cmd">kubectl apply -f ~/my-app.yaml</span>
+<span class="prompt">$</span> <span class="cmd">kubectl -n &lt;your-name&gt; rollout status deployment/web --timeout=120s</span>
+<span class="dim"># 成功之後開瀏覽器:https://&lt;your-name&gt;.dough-ops.com/</span></pre>
+    </div>
+
+    <h4>幾件會影響你的事,先知道比較不會卡關</h4>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-icon">🔑</div>
+        <h4>網址自動被 Cloudflare Access 擋住</h4>
+        <p><code>*.dough-ops.com</code> 掛在同一個萬用字元 Access Application 下面——你的新
+          網址<strong>不需要額外設定</strong>就會自動套用同一個規則:只有登入
+          doughops GitHub org 的人看得到(showcase 頁面目前也是刻意維持這個預設,沒有另外
+          放行)。想開放給所有人看,需要另外在 Cloudflare 手動建一個
+          <code>decision: bypass</code> 的精確匹配規則,不是 ansible 管的範圍,見
+          <a href="cloudflare-manual-setup.html">Cloudflare 手動設定清單</a>。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🌐</div>
+        <h4>hostname 一定要在 *.dough-ops.com 底下</h4>
+        <p>共用 Gateway(<code>istio/k8s-gateway</code>)只監聽這個萬用字元——用其他網域完全
+          連不進來,見 <a href="role-istio.html">Role: istio</a>。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📦</div>
+        <h4>image pull 不用另外設定</h4>
+        <p>節點走 <code>mgmt-net</code> 有 SNAT 出口,一般公開 image(Docker Hub、GHCR……)
+          直接拉得到。私有 registry 就照 Kubernetes 標準做法帶
+          <code>imagePullSecrets</code>,這個叢集沒有額外限制。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">💾</div>
+        <h4>需要持久化儲存就掛 PVC</h4>
+        <p>兩個 StorageClass 可以直接用,都是 ReadWriteMany、同一個 NFS 後端:
+          <code>nfs-csi</code>(PVC 刪掉資料跟著刪)跟 <code>nfs-csi-retain</code>
+          (PVC 刪掉資料保留)。挑哪個看你要不要「誤刪 PVC 也不會真的丟資料」這層保險。</p>
+      </div>
+    </div>
+
+    <h3>3. 目前有哪些服務可以用</h3>
+    <p>全部走同一條路徑:<code>*.dough-ops.com</code> → Cloudflare Tunnel → Istio ingress
+      gateway → 各自的 VirtualService。<strong>除了下表特別標「公開」的兩個,其餘全部只有
+      doughops GitHub org 成員登入後看得到</strong>——這是整個叢集的預設行為,不是每個服務各自
+      決定的。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>服務</th><th>網址</th><th>用途</th><th>存取</th></tr></thead>
+        <tbody>
+          <tr><td>Kubernetes Dashboard</td><td class="mono">dashboard.dough-ops.com</td><td>圖形化瀏覽/操作叢集資源</td><td>Cloudflare Access,登入後依 <a href="internal-tools.html">RBAC</a> 決定讀寫權限</td></tr>
+          <tr><td>Grafana</td><td class="mono">grafana.dough-ops.com</td><td>監控儀表板</td><td>Cloudflare Access(原生 SSO)</td></tr>
+          <tr><td>Prometheus</td><td class="mono">prometheus.dough-ops.com</td><td>metrics 查詢/PromQL</td><td>Cloudflare Access</td></tr>
+          <tr><td>Alertmanager</td><td class="mono">alertmanager.dough-ops.com</td><td>告警規則/靜音管理</td><td>Cloudflare Access</td></tr>
+          <tr><td>Hubble UI</td><td class="mono">hubble.dough-ops.com</td><td>Cilium eBPF 資料平面的即時流量觀測</td><td>Cloudflare Access</td></tr>
+          <tr><td>技術文件站(這個網站)</td><td class="mono">docs.dough-ops.com</td><td>跟你現在看的內容一樣,部署在叢集內的版本</td><td>Cloudflare Access</td></tr>
+          <tr><td>展示頁 demo</td><td class="mono">test.dough-ops.com</td><td>驗證 ingress 路徑用的最小 nginx 範例(見上面「部署一個網頁」抄的就是它)</td><td>Cloudflare Access</td></tr>
+          <tr><td>對外成果展示頁</td><td class="mono">showcase.dough-ops.com</td><td>成果展示頁</td><td>Cloudflare Access</td></tr>
+          <tr><td>公開文件站鏡像</td><td class="mono"><a href="https://doughops.github.io/terraform-k8s-docs/" target="_blank">doughops.github.io/terraform-k8s-docs</a></td><td>docs/ 的公開鏡像,GitHub Actions 自動同步(見 <a href="ansible-framework.html">框架設計</a>)</td><td><strong>公開,不需要登入</strong></td></tr>
+          <tr><td>公開展示頁鏡像</td><td class="mono"><a href="https://doughops.github.io/terraform-k8s-docs/showcase/" target="_blank">doughops.github.io/terraform-k8s-docs/showcase</a></td><td>showcase 頁面的公開副本,跟叢集內版本並存</td><td><strong>公開,不需要登入</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>想知道每個工具實際怎麼裝、SSO 怎麼接的完整故事,看
+      <a href="internal-tools.html">內部工具(Dashboard/Hubble/監控)</a>那頁——這頁只講
+      「有什麼、在哪裡、要不要登入」。</p>
+
+    <div class="page-nav">
+      <a class="prev" href="getting-started.html"><span class="dir">上一頁</span><span class="ttl">← 從零開始建置</span></a>
+      <a class="next" href="teardown.html"><span class="dir">下一頁</span><span class="ttl">全部拆除 →</span></a>
+    </div>
+
+    <footer class="page-footer">
+      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
+      <span>最後更新:2026-08-06</span>
+    </footer>
+  </div>
+</div>
+
+<script src="assets/site.js"></script>
+</body>
+</html>
