@@ -377,6 +377,7 @@ RUN ansible-galaxy collection install -r requirements.yml</span></pre>
           <tr><td class="mono">k8s/smoke-test.yml</td><td>驗證整個 k8s + Cilium + FRR native routing 是不是真的在動</td></tr>
           <tr><td class="mono">k8s/nfs-csi.yml</td><td>部署 csi-driver-nfs,提供 <code>nfs-csi</code>/<code>nfs-csi-retain</code> 兩個 RWX StorageClass,背後接 <code>bastion/nfs-server.yml</code> 的 NFS export</td></tr>
           <tr><td class="mono">k8s/vault-secrets-operator.yml</td><td>裝 vault-secrets-operator,讓任何 namespace 都能用 <code>VaultStaticSecret</code> 掛載 <code>bastion/vault.yml</code> 裝的 Vault,見 <a href="role-vault.html">Role: vault</a>。前置條件是 <code>bastion/vault.yml</code> 已經跑過</td></tr>
+          <tr><td class="mono">k8s/argocd.yml</td><td>裝 ArgoCD(GitOps),內建 <code>in-cluster</code> target,見 <a href="internal-tools.html">內部工具</a></td></tr>
         </tbody>
       </table>
     </div>

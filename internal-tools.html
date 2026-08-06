@@ -78,13 +78,16 @@
 
   <div class="content">
 
-    <h2><span class="eyebrow">Ansible 自動化</span>內部工具:Kubernetes Dashboard / Hubble UI / kube-prometheus-stack</h2>
-    <p class="lede">三組跟叢集本身的網路/運算架構無關,純粹是「裝好、
+    <h2><span class="eyebrow">Ansible 自動化</span>內部工具:Kubernetes Dashboard / Hubble UI / kube-prometheus-stack / ArgoCD</h2>
+    <p class="lede">四組跟叢集本身的網路/運算架構無關,純粹是「裝好、
       透過同一條 <a href="role-istio.html">Istio Gateway</a> + <a
       href="role-cert-manager.html">Origin CA 憑證</a> expose 出去、擋在
       <a href="role-cert-manager.html">Cloudflare Access</a> 後面」的
-      維運/觀測工具。三個都遵循同一個模式,所以放在同一頁,不是各自獨立
-      成頁。</p>
+      維運/觀測/部署工具。前三組(Hubble/Dashboard/kube-prometheus-stack)
+      共用同一個模式,所以放在同一頁,不是各自獨立成頁;ArgoCD
+      (<a href="ansible-framework.html">roles/argocd</a>)也是同一個
+      「helm 裝 + VirtualService」模式,一起收在這頁,細節見下方獨立
+      一節。</p>
 
     <div class="table-wrap">
       <table>
@@ -95,6 +98,7 @@
           <tr><td>Grafana</td><td class="mono">grafana.dough-ops.com</td><td class="mono">roles/kube_prometheus_stack</td><td class="mono">kube-prometheus-stack-grafana.monitoring:80</td><td>Cloudflare Access 原生 OIDC SSO,帳密登入仍保留當備援(見下方)</td></tr>
           <tr><td>Prometheus</td><td class="mono">prometheus.dough-ops.com</td><td class="mono">roles/kube_prometheus_stack</td><td class="mono">kube-prometheus-stack-prometheus.monitoring:9090</td><td>無</td></tr>
           <tr><td>Alertmanager</td><td class="mono">alertmanager.dough-ops.com</td><td class="mono">roles/kube_prometheus_stack</td><td class="mono">kube-prometheus-stack-alertmanager.monitoring:9093</td><td>無</td></tr>
+          <tr><td>ArgoCD</td><td class="mono">argocd.dough-ops.com</td><td class="mono">roles/argocd</td><td class="mono">argocd-server.argocd:80</td><td>Cloudflare Access OIDC SSO(登入即 admin,見下方)+ ArgoCD 自己的 admin/密碼當備援</td></tr>
         </tbody>
       </table>
       </div>
@@ -423,6 +427,121 @@ end</span></pre>
       <strong>加裝</strong>一種登入方式,不是取代原本的帳密登入),保留
       當作 SSO 出問題時的備援登入路徑。</p>
 
+    <h3>ArgoCD:in-cluster target,裝完自動能管自己</h3>
+    <p>ArgoCD(GitOps 持續部署)裝在叢集自己裡面,管理它自己所在的這個
+      叢集——ArgoCD 天生支援這種部署方式,裝完會自動帶一個內建的
+      <code>in-cluster</code> target(<code>server: https://kubernetes.default.svc</code>,
+      用 in-cluster ServiceAccount 認證),不需要額外手動註冊 cluster。</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/argocd/tasks/main.yml(helm values 節錄)</span></div>
+      <pre><span class="out">fullnameOverride: argocd   </span><span class="dim"># 見下方說明</span><span class="out">
+dex:
+  enabled: false            </span><span class="dim"># 還沒接 SSO,先不裝這個可選元件</span><span class="out">
+configs:
+  params:
+    server.insecure: true   </span><span class="dim"># TLS 已經在 Istio Gateway 那層終止過,見 Role: cert_manager</span></pre>
+    </div>
+    <p><code>fullnameOverride: argocd</code> 是必要的,不是講究命名習慣
+      而已——官方 <code>argo-cd</code> chart 的 fullname helper 邏輯是
+      「release name 包含 chart name 才收斂成乾淨名稱」,這裡 release
+      name 取 <code>argocd</code>(沒有連字號)並不包含 chart name
+      <code>argo-cd</code>(有連字號)這個字串,兩者字面不同,不覆寫的話
+      Service/Deployment 名稱會變成 <code>argocd-argo-cd-server</code>
+      這種重複又醜的名字。</p>
+    <p><code>dex.enabled: false</code>——dex 是 ArgoCD 內建、可選的 SSO
+      federation 元件,專門用來讓 ArgoCD 接不支援原生 OIDC 的來源
+      (LDAP、SAML……)。Cloudflare Access 本身已經是合格的 OIDC
+      provider(跟 Grafana/Vault 用的是同一種「Access for SaaS」機制),
+      ArgoCD 自己的 <code>auth/oidc</code> 可以直接對它講 OIDC,不需要
+      Dex 這層轉譯,裝著不用純粹多一個 pod、多一分攻擊面。ArgoCD 自己的
+      <code>admin</code> 帳號 + 隨機產生的初始密碼(存在
+      <code>argocd-initial-admin-secret</code> 這個 Secret)保留當 SSO
+      出問題時的備援登入路徑,跟這個專案處理 Grafana admin 密碼是同一種
+      謹慎程度:role 執行完只印一段「怎麼自己查」的說明,不會把密碼
+      實際印出來。</p>
+
+    <h4>argocd_applications:讓 Application 撐過叢集重建</h4>
+    <p>ArgoCD 的 <code>Application</code>/<code>AppProject</code>
+      本質上是一般的 Kubernetes CRD,存在 etcd 裡——這個叢集除了
+      bastion 以外的節點都沒有掛任何持久化 volume(見
+      <code>openstack/terraform.tfvars</code>),叢集重建
+      (<code>kubeadm-reset.yml</code> 或整個 <code>openstack/</code>
+      重新 <code>apply</code>)etcd 就是全新的,透過 ArgoCD 網頁 UI/CLI
+      手動建的 Application 會全部消失。<code>roles/argocd</code> 的
+      <code>argocd_applications</code> 是這個問題的解法:一份清單,
+      列出「ArgoCD 裡應該有哪些 Application」,每次跑這個 role 都會
+      重新套用——加一個 Application,只要在清單多加一項、重跑
+      <code>playbooks/k8s/argocd.yml</code>,不用去 ArgoCD UI 手動建,
+      這樣它才會在下次叢集重建後自動回來。</p>
+    <p>預設清單只有一項:ArgoCD 官方文件/教學長期在用的
+      <a href="https://github.com/argoproj/argocd-example-apps" target="_blank">guestbook</a>
+      範例——一個帶 <code>syncPolicy.automated</code> +
+      <code>CreateNamespace=true</code> 的 <code>Application</code>,不用
+      手動點 Sync 就會自動同步、自動建 <code>guestbook</code>
+      namespace,跟 <a href="role-istio.html">roles/demo_app</a>
+      證明 Istio ingress 路徑真的通是同一個用意——證明「裝好的這個
+      ArgoCD 真的能同步/部署東西」,不是只有裝好一個空殼。</p>
+    <p>這份清單<strong>只會新增/更新</strong>,使用者明確要求不要自動
+      清掉「清單裡拿掉、但叢集上還留著」的 Application——單向套用,
+      移除一個 Application 要自己手動 <code>kubectl delete
+      application</code>,不會因為改清單、重跑 playbook 就意外被清掉。
+      (中途試過「清單刪掉,重跑就自動清掉叢集上的」這個更嚴格的版本,
+      實測驗證過兩個方向都正確運作,但使用者不想要這種每次重跑都可能
+      觸發刪除的行為,改回單向。)</p>
+
+    <h4>ArgoCD OIDC:仿 Vault(登入即 admin),不是仿 Grafana</h4>
+    <p>使用者明確要求:任何通過邊緣 Cloudflare Access(doughops org
+      成員)、OIDC 登入 ArgoCD 的人,直接有完整權限——不是 Dashboard/
+      Grafana 那種「預設唯讀 + <code>oidc_admin_emails</code> 才有完整
+      權限」的分層模式,是跟 <a href="role-vault.html">Vault 的
+      oidc-admin policy</a> 同一個決定。ArgoCD 這邊對應的設定是
+      <code>configs.rbac.policy.default: role:admin</code>——RBAC 的
+      預設 fallback role,用 ArgoCD 內建角色,不用另外定義
+      <code>policy.csv</code>。redirect_uri 用 ArgoCD 直連 OIDC(非
+      Dex)固定的回呼路徑 <code>/auth/callback</code>,跟 Dex 模式的
+      <code>/api/dex/callback</code> 不一樣。</p>
+
+    <div class="callout callout-danger">
+      <p><strong>Bug:Jinja 字串串接塞 <code>\n</code>,在 <code>&gt;-</code>
+      折疊純量裡不會變成真正的換行</strong>——第一版想用
+      <code>'name: ...\n' ~ 'issuer: ...' ~ ...</code> 這種字串串接,湊出
+      <code>oidc.config</code>(ArgoCD ConfigMap 裡一個值本身是多行
+      YAML 的 key)的內容,整個 <code>set_fact</code> 包在 <code>&gt;-</code>
+      折疊純量裡。部署前先在本機用 <code>ansible-playbook</code> 單獨
+      測這段(沒有直接套到叢集上賭運氣)才發現:結果字串裡的換行是照
+      字面呈現的兩個字元 <code>\</code> + <code>n</code>,不是真正的
+      換行字元——套進 ArgoCD 會直接把 <code>oidc.config</code> 解析成一坨
+      壞掉的 YAML。改成用一般的 YAML <code>|</code> 區塊純量(裡面直接
+      放真正的換行)組這段字串,搭配 <code>vars:</code> + 一般 YAML dict
+      +
+      <code>combine(..., recursive=True)</code> 組完整的 helm values,
+      本機重新測過確認結果是 <code>dict</code> 型別、換行是真正的換行,
+      才套用到叢集。</p>
+    </div>
+
+    <div class="callout callout-danger">
+      <p><strong>Bug:沒設 <code>configs.cm.url</code>,登入時被 Cloudflare
+      拒絕「Invalid redirect URL」</strong>——本機測完 Jinja/YAML 那段、
+      叢集上 <code>argocd-cm</code>/<code>argocd-rbac-cm</code> 的內容也
+      逐項核對過都對,以為沒事了,結果使用者實際登入時被
+      Cloudflare 那邊擋下來,錯誤訊息是
+      「Invalid redirect URL: the protocol and host (including port)
+      must match and the path must be within allowed URLs if
+      provided」。根因是 ArgoCD 組 OIDC(跟 Dex)的
+      <code>redirect_uri</code> 時,是拿 <code>argocd-cm</code> 的
+      <code>url</code> 這個欄位當底組出來的,<strong>不是</strong>從
+      瀏覽器實際請求的 Host header 動態推——這個欄位當時完全沒設,
+      ArgoCD 送出去的 <code>redirect_uri</code> 跟
+      <code>argocd_sso</code> 這個 Access Application 登記的
+      <code>https://argocd.dough-ops.com/auth/callback</code> 兜不起來。
+      補上 <code>configs.cm.url: https://argocd.dough-ops.com</code>
+      解決——這個值不只 OIDC 需要,ArgoCD 的 UI/CLI/通知連結一般情況下
+      也要靠它才能組出正確的對外網址,所以放進 base values,不是只有
+      OIDC 設定才加。這個 bug 的教訓是:內部逐項核對設定值「看起來都對」
+      不能取代「真的登入一次」——redirect_uri 匹配是 IdP 那一側的邏輯,
+      光看 ArgoCD 這邊的 ConfigMap 內容看不出問題所在。</p>
+    </div>
+
     <h3>驗證方式:內部用真憑證驗證,外部確認被 Access 擋住</h3>
     <p>每個工具都用跟 <a href="role-cert-manager.html">Role:
       cert_manager</a> 一樣的兩段式驗證:先在叢集內部開一個臨時
@@ -442,7 +561,7 @@ end</span></pre>
 
     <footer class="page-footer">
       <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
-      <span>最後更新:2026-07-27</span>
+      <span>最後更新:2026-08-06</span>
     </footer>
   </div>
 </div>

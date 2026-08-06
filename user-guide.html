@@ -292,6 +292,7 @@ spec:
           <tr><td>Alertmanager</td><td class="mono">alertmanager.dough-ops.com</td><td>告警規則/靜音管理</td><td>Cloudflare Access</td></tr>
           <tr><td>Hubble UI</td><td class="mono">hubble.dough-ops.com</td><td>Cilium eBPF 資料平面的即時流量觀測</td><td>Cloudflare Access</td></tr>
           <tr><td>HashiCorp Vault</td><td class="mono">vault.dough-ops.com</td><td>秘密管理——網頁 UI/API,跑在 bastion 上,不是叢集內服務,見 <a href="role-vault.html">Role: vault</a></td><td>Cloudflare Access,登入後直接 OIDC 免密碼進 Vault(任何 doughops org 成員都是完整權限,見該頁說明)</td></tr>
+          <tr><td>ArgoCD</td><td class="mono">argocd.dough-ops.com</td><td>GitOps 持續部署,內建 <code>in-cluster</code> target,裝完就能管理這個叢集自己</td><td>Cloudflare Access,登入頁有 OIDC 選項(免密碼、直接 admin)+ 備援用的 ArgoCD 自己 admin 帳密(見 <a href="internal-tools.html">內部工具</a>怎麼查初始密碼)</td></tr>
           <tr><td>技術文件站(這個網站)</td><td class="mono">docs.dough-ops.com</td><td>跟你現在看的內容一樣,部署在叢集內的版本</td><td>Cloudflare Access</td></tr>
           <tr><td>展示頁 demo</td><td class="mono">test.dough-ops.com</td><td>驗證 ingress 路徑用的最小 nginx 範例(見上面「部署一個網頁」抄的就是它)</td><td>Cloudflare Access</td></tr>
           <tr><td>對外成果展示頁</td><td class="mono">showcase.dough-ops.com</td><td>成果展示頁</td><td>Cloudflare Access</td></tr>
