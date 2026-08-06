@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Role: cert_manager — k8s + BGP Lab 技術詳解</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <a class="sidebar-logo-link" href="index.html">
+      <h1>🛰️ k8s + BGP Lab</h1>
+      <span>OpenStack Lab · 技術詳解 v15</span>
+    </a>
+  </div>
+  <nav>
+    <div class="nav-group">
+      <div class="nav-group-label">總覽</div>
+      <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
+      <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
+      <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">網路架構</div>
+      <a class="nav-link" href="network-architecture.html"><span class="icon">🌐</span> 網路架構總覽</a>
+      <a class="nav-link" href="packet-flows.html"><span class="icon">🔀</span> 封包路徑實例</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">基礎設施</div>
+      <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
+      <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Ansible 自動化</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
+      <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
+      <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
+      <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
+      <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
+      <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
+      <a class="nav-link active" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Cloudflare 手動設定</div>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">專案紀錄</div>
+      <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+    </div>
+  </nav>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" aria-label="Toggle menu">☰</button>
+      <span class="topbar-crumb">Lab Docs / <strong>Role: cert_manager</strong></span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">cloudnative.tw · AS 65000</span>
+      <button class="theme-toggle" id="themeToggle" aria-label="切換主題">
+        <span class="icon-moon">🌙</span><span class="icon-sun">☀️</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <h2><span class="eyebrow">Ansible 自動化</span>Role: cert_manager</h2>
+    <p class="lede">在 <a href="role-cloudflare-tunnel.html">Role: cloudflare_tunnel</a>
+      把 TLS 完全交給 Cloudflare 邊緣終止之後,這個 role 把「Full
+      (strict)」等級的端對端加密補上——裝 cert-manager +
+      Cloudflare 的 <code>origin-ca-issuer</code>,簽出一張真正被
+      Cloudflare 信任的 <code>*.dough-ops.com</code> wildcard 憑證,讓
+      Istio Gateway 也用真憑證終止 HTTPS,而不是自簽憑證或乾脆不加密。
+      這頁也一併記錄同一批工作做的 Cloudflare Access 設定
+      ——兩者合起來才是「這些服務真的可以安全對外」的完整故事。</p>
+
+    <h3>為什麼不能只用 Cloudflare 免費的 Universal SSL 就好</h3>
+    <p>Universal SSL(見 <a href="role-cloudflare-tunnel.html">Role:
+      cloudflare_tunnel</a> 提到的網域選擇)只解決「瀏覽器 ↔ Cloudflare
+      邊緣」這一段。<code>cloudflared</code> 到 <code>istio-ingressgateway</code>
+      這一段,在裝這個 role 之前是 plain HTTP(見
+      <a href="role-istio.html">Role: istio</a>)——這代表 cluster 內部
+      的流量(cloudflared pod 到 ingressgateway pod 之間,雖然都在
+      k8s-net 上,但畢竟經過好幾個節點)完全沒有加密。要補上這一段,
+      Istio Gateway 得自己也講 HTTPS,而且這張憑證最好是
+      Cloudflare<strong>信任</strong>的,不然只能用
+      <code>noTLSVerify: true</code> 關掉驗證,等於白裝。</p>
+
+    <h3>Cloudflare Origin CA:專門給這個場景設計的憑證系統</h3>
+    <p>Cloudflare 提供一套獨立於一般公開 CA 的 Origin CA:簽出來的憑證
+      只有 Cloudflare 自己信任(不是給瀏覽器直接看的,一般瀏覽器不認得
+      這張憑證),但正好符合「Cloudflare 邊緣 ↔ origin 伺服器」這段的
+      需求——不用求助 Let's Encrypt 之類的公開 CA(還要處理 HTTP-01/
+      DNS-01 challenge 怎麼過 Cloudflare Tunnel 這一層),也不是自簽
+      憑證(自簽的話 <code>cloudflared</code> 沒有辦法驗證,只能
+      <code>noTLSVerify</code>)。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>元件</th><th>角色</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><a href="https://github.com/cert-manager/cert-manager" target="_blank">cert-manager</a></td>
+            <td>Kubernetes 通用的憑證生命週期管理(簽發/續期/存進
+              Secret),本身<strong>不知道</strong>怎麼講 Cloudflare
+              Origin CA 的 API——這是下面 origin-ca-issuer 的工作。</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/cloudflare/origin-ca-issuer" target="_blank">origin-ca-issuer</a></td>
+            <td>cert-manager 的 external issuer 外掛(<code>cert-manager.k8s.cloudflare.com</code>
+              這個 API group)——真正呼叫 Cloudflare Origin CA API
+              (<code>POST /certificates</code>)簽發憑證的地方,官方專案,
+              不是自己刻的。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>裝法:CRD → RBAC → controller,pin 死版本的原始 manifest</h3>
+    <p>cert-manager 本身用 helm(jetstack 官方 repo,
+      <code>cert_manager_chart_version</code> = v1.21.0,
+      <code>crds.enabled: true</code> 一起裝 CRD)。
+      <code>origin-ca-issuer</code> 沒有發佈到任何 helm repo(chart 只
+      放在原始碼裡,GitHub Pages 沒有對應的 index.yaml),所以這裡直接
+      <code>kubectl apply -f</code> 官方 release tag(<code>v0.14.4</code>)
+      底下三組固定的 manifest——這樣選是因為官方文件本身就是教你這樣裝,
+      沒有必要為了套進 helm 模式而自己重包一個 chart。</p>
+
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/cert_manager/tasks/main.yml(順序)</span></div>
+      <pre><span class="out">1. helm 裝 cert-manager(cert-manager namespace)
+2. 等 cert-manager-webhook ready(下面幾步的 CRD/資源都要靠它驗證)
+3. kubectl apply origin-ca-issuer 的 CRD(2 個)
+4. kubectl apply origin-ca-issuer 的 RBAC(3 個)
+5. kubectl apply origin-ca-issuer 的 controller(namespace/sa/deployment)
+6. 等 origin-ca-issuer controller ready
+7. apply OriginIssuer + wildcard Certificate(放在 istio namespace)
+8. kubectl wait --for=condition=Ready certificate/dough-ops-com-wildcard</span></pre>
+    </div>
+    <p>第 8 步是<strong>真的等憑證簽發完成</strong>,不是 apply 完就假設
+      成功——第一次跑的時候就是靠這一步,配合 <code>openssl x509</code>
+      實際印出簽出來的憑證內容(見下方驗證)才確認整條鏈路是通的。</p>
+
+    <h3>為什麼 OriginIssuer 放在 <code>istio</code> namespace,不是 <code>cert-manager</code></h3>
+    <p><code>OriginIssuer</code>(不是 <code>ClusterOriginIssuer</code>)
+      是 namespace-scoped 的——它簽出來的 <code>Certificate</code>
+      跟對應的 TLS <code>Secret</code> 也要跟它同一個 namespace。這個
+      Secret 最終要給 <a href="role-istio.html">Role: istio</a> 的
+      Gateway 用(<code>tls.credentialName</code>),而 Istio Gateway
+      只能讀<strong>跟自己同一個 namespace</strong> 的 Secret——所以
+      OriginIssuer/Certificate 只能放在 <code>istio</code> namespace,
+      不能圖方便放在 <code>cert-manager</code> 或
+      <code>origin-ca-issuer</code> namespace 裡。</p>
+
+    <h3>認證:scoped API token,不是已棄用的 Origin CA Key</h3>
+    <p>Cloudflare 在 2026-03-19 棄用了舊版的 Origin CA Key(<code>v1.0-</code>
+      開頭的帳號等級金鑰),官方建議全面改用一般的 API token,只要帶
+      <strong>「Zone → SSL and Certificates → Edit」</strong>權限就夠
+      (<code>origin-ca-issuer</code> README 明確寫了兩種認證方式都支援,
+      但 Origin CA Key 那條路已經是文件裡特別標警告的過時做法)。這裡
+      用 Cloudflare API 直接建了一個新 token,權限<strong>只限定在
+      dough-ops.com 這一個 zone</strong>,不是帳號等級的萬用 token
+      ——最小權限原則,就算這個 token 外洩,能做的事也只有「幫這個 zone
+      簽 Origin CA 憑證」,連 DNS 都改不了。</p>
+
+    <div class="callout callout-tip">
+      <p><strong>token 值一樣走 <code>group_vars/all/secrets.yml</code>
+      這條路</strong>——跟 <code>cloudflare_tunnel_token</code> 同一個
+      約定,gitignored,git 裡只留
+      <code>secrets.yml.example</code> 範本,見
+      <a href="role-cloudflare-tunnel.html">Role: cloudflare_tunnel</a>
+      的說明。</p>
+    </div>
+
+    <h3>wildcard Certificate:一張憑證,涵蓋所有子網域</h3>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/cert_manager/templates/origin-issuer.yaml.j2(Certificate 部分)</span></div>
+      <pre><span class="out">apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: dough-ops-com-wildcard
+  namespace: istio
+spec:
+  secretName: dough-ops-com-tls
+  dnsNames:
+    - "dough-ops.com"
+    - "*.dough-ops.com"
+  duration: 2160h     </span><span class="dim"># 90 天,Origin CA 允許的天數選項之一</span><span class="out">
+  renewBefore: 360h   </span><span class="dim"># 提早 15 天續期</span><span class="out">
+  issuerRef:
+    group: cert-manager.k8s.cloudflare.com
+    kind: OriginIssuer
+    name: cloudflare-origin-ca</span></pre>
+    </div>
+    <p>只簽<strong>一張</strong>涵蓋 <code>*.dough-ops.com</code> 的
+      wildcard 憑證,不是每個子網域(<code>hubble.</code>、
+      <code>dashboard.</code>、<code>grafana.</code>……)各簽一張——因為
+      TLS 是在<strong>共用的</strong> Istio Gateway 那一層一次終止的
+      (見 <a href="role-istio.html">Role: istio</a>),不管請求要去哪個
+      子網域,終止 TLS 用的都是同一張憑證,VirtualService 只負責 TLS
+      解密之後的 HTTP 層路由。這跟 kunchiee.com 時代「每個服務各自一筆
+      exact-match DNS 紀錄」的 workaround 是完全不同層次的問題,兩者
+      沒有關聯。</p>
+
+    <h3>Gateway 補上 443,Cloudflare Tunnel 改講 HTTPS</h3>
+    <p>憑證簽出來之後,兩邊各自要串起來,細節在各自的頁面:</p>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-icon">🕸️</div>
+        <h4><a href="role-istio.html">Role: istio</a></h4>
+        <p>Gateway 新增一個 443 server block,<code>tls.mode: SIMPLE</code>
+          +  <code>credentialName: dough-ops-com-tls</code>,80 保留但
+          已經沒有對外流量會經過。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">☁️</div>
+        <h4><a href="role-cloudflare-tunnel.html">Role: cloudflare_tunnel</a></h4>
+        <p>tunnel ingress 的 <code>service</code> 從
+          <code>http://...:80</code> 改成 <code>https://...:443</code>,
+          <code>originRequest.caPool</code> 指到掛進
+          <code>cloudflared</code> 的 Origin CA root cert(ConfigMap
+          掛成檔案,不是機密,公開值)。</p>
+      </div>
+    </div>
+
+    <h3>Bug:<code>originServerName</code> 設成 apex 網域,cloudflared 對<strong>所有</strong>子網域的請求全部連線失敗</h3>
+    <p>第一版把 <code>originRequest.originServerName</code> 設成
+      <code>dough-ops.com</code>(zone apex,沒有任何子網域)——邏輯上
+      像是「反正憑證的 SAN 也有涵蓋 <code>dough-ops.com</code> 這個
+      名字,用它當 SNI 應該沒問題」。實際套用之後,用真實瀏覽器/curl
+      連 <code>hubble.dough-ops.com</code>、<code>dashboard.dough-ops.com</code>
+      這些子網域,Cloudflare 邊緣回應一個<strong>自己品牌的</strong>
+      503 錯誤頁(不是 Envoy 或 Hubble 產生的),但從叢集內部直接對
+      <code>istio-ingressgateway</code> 送請求(用真實子網域當 SNI)
+      每次都成功——兩邊的差異就是問題所在的線索。</p>
+
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">cloudflared 的錯誤日誌(症狀)</span></div>
+      <pre><span class="bad">ERR error="Unable to reach the origin service. The service may be down or it
+may not be responding to traffic from cloudflared: read tcp
+172.16.6.161:45672-&gt;172.18.84.180:443: read: connection reset by peer"
+dest=https://hubble.dough-ops.com/</span></pre>
+    </div>
+
+    <p>關鍵的除錯步驟是<strong>刻意重現 cloudflared 實際的行為</strong>
+      ,而不是照著自己以為的行為去測:cloudflared 對整條
+      <code>*.dough-ops.com</code> wildcard ingress 規則<strong>只有
+      一個</strong> <code>originRequest</code> 設定,不管瀏覽器實際請求
+      的是哪個子網域,TLS handshake 送出的 SNI 永遠是同一個固定值
+      (<code>originServerName</code>)——但 HTTP 層的
+      <code>Host</code> header 會照實際請求帶。用一個臨時的
+      <code>curl</code> pod,故意讓 SNI 跟 Host header 不一致(模擬
+      cloudflared 的真實行為),就重現出同樣的失敗:</p>
+
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">實測重現:SNI=dough-ops.com(apex),Host header=hubble.dough-ops.com</span></div>
+      <pre><span class="dim">$ curl --resolve dough-ops.com:443:&lt;ingressgateway ClusterIP&gt; --cacert origin-ca-root.pem \
+    -H "Host: hubble.dough-ops.com" https://dough-ops.com/</span>
+<span class="bad">curl: (35) OpenSSL SSL_connect: Connection reset by peer</span>   <span class="bad">← TLS handshake 直接失敗,連 HTTP 層都還沒到</span></pre>
+    </div>
+
+    <div class="callout callout-danger">
+      <p><strong>根因</strong>:Istio Gateway 的 443 server block
+      設定 <code>hosts: ["*.dough-ops.com"]</code>,Istio 把這個轉成
+      Envoy 的 TLS filter chain <code>server_names</code> 比對規則
+      ——這是<strong>子網域萬用字元</strong>的語意(至少要有一段
+      label),跟憑證 SAN 的萬用字元比對規則<strong>看起來像但不一樣</strong>:
+      <code>*.dough-ops.com</code> 這個 SNI 比對規則能匹配
+      <code>hubble.dough-ops.com</code>,但<strong>不匹配</strong>
+      不帶任何子網域的 <code>dough-ops.com</code> 本身。cloudflared
+      送出 SNI=<code>dough-ops.com</code> 時,Envoy 找不到任何一個
+      filter chain 願意接手這個 TLS handshake,直接斷線——這件事發生在
+      TLS 層,比 HTTP 層的 <code>Host</code> header 路由（VirtualService
+      怎麼決定要轉給哪個 Service)還要早,所以就算 Host header 完全正確
+      也救不回來。</p>
+    </div>
+
+    <p>修法很單純:把 <code>originServerName</code> 改成<strong>任何一個
+      帶子網域的名字</strong>——不需要是真的有 Service 在服務的名字,
+      純粹用來滿足 SNI 比對規則,這裡選
+      <code>gateway.dough-ops.com</code>。用同樣的方式重現測試,確認
+      TLS handshake 成功、而且 HTTP 層真的照 <code>Host</code> header
+      路由到正確的服務(不是照 SNI):</p>
+
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">修好之後:SNI=gateway.dough-ops.com,Host header=hubble.dough-ops.com,兩者不一致但都成功</span></div>
+      <pre><span class="dim">$ curl --resolve gateway.dough-ops.com:443:&lt;ingressgateway ClusterIP&gt; --cacert origin-ca-root.pem \
+    -H "Host: hubble.dough-ops.com" https://gateway.dough-ops.com/</span>
+<span class="ok">HTTP/2 200</span>   <span class="ok">← TLS 用 SNI 過了 filter chain,HTTP 路由用 Host header 送到 hubble-ui</span></pre>
+    </div>
+
+    <p>這個 bug 影響的<strong>不只是 Hubble</strong>——Dashboard、
+      Grafana、原本的 demo app,任何掛在同一條 wildcard ingress 規則下
+      的服務全部受影響,只是使用者實際點開的是 Hubble UI,先撞到才回報。
+      修好之後(改 Cloudflare Tunnel 的 <code>originRequest</code>,這一步
+      跟其他 Cloudflare 側設定一樣不是 ansible 管的,直接用 API 改),
+      六個子網域(<code>test</code>、<code>hubble</code>、
+      <code>dashboard</code>、<code>grafana</code>、<code>prometheus</code>、
+      <code>alertmanager</code>)全部重新驗證過一輪,cloudflared 的錯誤
+      日誌也確認不再出現。</p>
+
+    <h3>驗證:真的檢查憑證鏈,不是只看回應碼</h3>
+    <p>先在叢集內部用 <code>openssl x509</code> 直接印出簽出來的憑證:</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">實測</span></div>
+      <pre><span class="dim">$ kubectl -n istio get secret dough-ops-com-tls -o jsonpath='{.data.tls\.crt}' \
+    | base64 -d | openssl x509 -noout -subject -issuer -dates -ext subjectAltName</span>
+<span class="out">subject=O = "CloudFlare, Inc.", OU = CloudFlare Origin CA, CN = CloudFlare Origin Certificate
+issuer=C = US, ST = California, L = San Francisco, O = "CloudFlare, Inc.",
+       OU = CloudFlare Origin SSL ECC Certificate Authority
+notBefore=Jul 27 02:49:00 2026 GMT
+notAfter=Oct 25 02:49:00 2026 GMT
+X509v3 Subject Alternative Name:
+    DNS:*.dough-ops.com, DNS:dough-ops.com</span></pre>
+    </div>
+    <p>再從叢集內部(不是外部,外部這時候會先被下面提到的 Cloudflare
+      Access 擋掉,測不到後端這一段)開一個臨時的 <code>curl</code> pod,
+      指定 <code>--cacert</code> 用同一份 Origin CA root cert,直接對
+      <code>istio-ingressgateway</code> 的 443 port 打:</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">實測:憑證驗證通過,HTTP/2 200</span></div>
+      <pre><span class="dim">$ curl -sv --resolve test.dough-ops.com:443:&lt;ingressgateway ClusterIP&gt; \
+    --cacert origin-ca-root.pem https://test.dough-ops.com/</span>
+<span class="out">* subjectAltName: "test.dough-ops.com" matches cert's "*.dough-ops.com"
+* OpenSSL verify result: 0
+* SSL certificate verified via OpenSSL.
+* using HTTP/2
+&lt; HTTP/2 200
+&lt; server: istio-envoy</span></pre>
+    </div>
+    <p>這證明了整條「cloudflared 用 caPool 驗證 → Envoy 用 Origin CA
+      憑證回應 → 憑證鏈驗證通過」的路徑真的是<strong>加密且經過驗證</strong>
+      的,不是表面上看起來有 HTTPS,實際上還是關掉驗證放行。</p>
+
+    <h3>Cloudflare Access:doughops GitHub org 才能連到任何 *.dough-ops.com</h3>
+    <p>跟這批工作同一時間設定的,雖然嚴格說不是 cert-manager 的責任範圍,
+      但邏輯上是同一件事的下一步——裝了這麼多內部工具
+      (見 <a href="internal-tools.html">內部工具</a>頁面:Kubernetes
+      Dashboard、Hubble UI、Prometheus/Alertmanager 完全沒有內建登入),
+      光有 HTTPS 加密還不夠,還要有身份驗證擋在前面。使用者已經把
+      GitHub 接成 Cloudflare Zero Trust 的 identity provider,這裡直接
+      建一個涵蓋整個 <code>*.dough-ops.com</code> 的 Access
+      Application,policy 只放行 <code>doughops</code> 這個 GitHub org
+      的成員。</p>
+
+    <div class="callout callout-info">
+      <p><strong>這個 Access Application 是透過 Cloudflare API 手動建的
+      ,不是 ansible 管的</strong>——跟 DNS/Tunnel ingress 規則一樣的
+      道理(見 <a href="role-cloudflare-tunnel.html">Role:
+      cloudflare_tunnel</a>),Cloudflare 那一側的設定不屬於這個 repo
+      的 ansible 範圍。用一個 self-hosted Access app、
+      <code>destinations: [{type: public, uri: "*.dough-ops.com"}]</code>
+      涵蓋整個萬用字元,policy 用 <code>github-organization</code> 規則
+      (<code>{name: "doughops", identity_provider_id: ...}</code>)——
+      建立時 Cloudflare API 回應裡帶了一個解析出來的 GitHub 數字
+      org id,代表這個 org 名稱是真的存在、經過驗證的,不是打錯字也不會
+      發現的隱性 bug。這個 app 涵蓋<strong>所有</strong>子網域,新增一個
+      服務(像下方的 Dashboard/Hubble/Grafana)完全不用回來加任何
+      Cloudflare 設定,一次設定永久涵蓋。</p>
+    </div>
+
+    <p>效果:任何 <code>*.dough-ops.com</code> 的請求,不管走到哪個
+      VirtualService,只要沒有先過 Cloudflare Access 的登入,都會在
+      Cloudflare 邊緣被攔截、302 導去 GitHub OAuth 登入頁,連叢集內部
+      都不會收到請求——跟前面「叢集內部驗證」用的方法刻意不同(見上面
+      為什麼要另外開一個臨時 pod 測後端這一段),因為 Access 生效之後
+      外部 curl 永遠只會看到 302,測不到後端。</p>
+
+    <div class="page-nav">
+      <a class="prev" href="role-cloudflare-tunnel.html"><span class="dir">上一頁</span><span class="ttl">← Role: cloudflare_tunnel</span></a>
+      <a class="next" href="role-github-runner.html"><span class="dir">下一頁</span><span class="ttl">Role: github_runner →</span></a>
+    </div>
+
+    <footer class="page-footer">
+      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
+      <span>最後更新:2026-07-27</span>
+    </footer>
+  </div>
+</div>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

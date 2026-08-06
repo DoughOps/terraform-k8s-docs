@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>從零開始建置 — k8s + BGP Lab 技術詳解</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <a class="sidebar-logo-link" href="index.html">
+      <h1>🛰️ k8s + BGP Lab</h1>
+      <span>OpenStack Lab · 技術詳解 v15</span>
+    </a>
+  </div>
+  <nav>
+    <div class="nav-group">
+      <div class="nav-group-label">總覽</div>
+      <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
+      <a class="nav-link active" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
+      <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">網路架構</div>
+      <a class="nav-link" href="network-architecture.html"><span class="icon">🌐</span> 網路架構總覽</a>
+      <a class="nav-link" href="packet-flows.html"><span class="icon">🔀</span> 封包路徑實例</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">基礎設施</div>
+      <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
+      <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Ansible 自動化</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
+      <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
+      <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
+      <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
+      <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
+      <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
+      <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Cloudflare 手動設定</div>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">專案紀錄</div>
+      <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+    </div>
+  </nav>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" aria-label="Toggle menu">☰</button>
+      <span class="topbar-crumb">Lab Docs / <strong>從零開始建置</strong></span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">cloudnative.tw · AS 65000</span>
+      <button class="theme-toggle" id="themeToggle" aria-label="切換主題">
+        <span class="icon-moon">🌙</span><span class="icon-sun">☀️</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <h2><span class="eyebrow">總覽</span>從零開始建置</h2>
+    <p class="lede">這頁是整個專案唯一一份「從什麼都沒有,到一個完整能用的叢集」的
+      操作清單,把散落在 <code>CLAUDE.md</code>、<a href="infrastructure.html">Terraform
+      / OpenStack</a>、<code>ansible/README.md</code>、<code>cloudflare/README.md</code>
+      裡的片段收斂成一條照著做就能走完的路。<strong>請照這頁操作,不要照 repo
+      根目錄的 <code>README.md</code>。</strong></p>
+
+    <div class="callout callout-tip">
+      <p><strong>整條路徑分四段,順序不能跳:</strong> ① 本機的 Terraform 建
+      OpenStack VM/網路 → ② 本機的 Terraform(獨立的 <code>cloudflare/</code>
+      目錄)建 Cloudflare 的 DNS/Tunnel/Access → ③ 把 ② 的輸出值填進 ansible
+      變數 → ④ 透過 <code>scripts/ansible.sh</code> 觸發跑在 <strong>bastion 上
+      Docker 裡</strong>的 Ansible,依序把 k8s + 所有周邊裝起來。你的筆電只直接跑
+      Terraform 和 <code>scripts/ansible.sh</code>,不需要在筆電上裝 Ansible、
+      kubectl、helm。</p>
+    </div>
+
+    <h3>前置需求</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>項目</th><th>用途</th></tr></thead>
+        <tbody>
+          <tr><td>本機裝 Terraform(&gt;= 1.5)</td><td>建 OpenStack 資源跟 Cloudflare 資源都要用,兩個獨立目錄各自 <code>init</code>。</td></tr>
+          <tr><td>一個 OpenStack 專案帳號</td><td>要有建 VM/網路/浮動 IP 的權限。這個 lab 假設的是「一般權限 tenant」,沒有 LBaaS/routed public prefix 也能跑(見 <a href="index.html">總覽</a>的核心命題)。</td></tr>
+          <tr><td>一個網域 + 接進 Cloudflare</td><td>免費方案就夠(Universal SSL 涵蓋第一層萬用字元)。對外入口是 Cloudflare Tunnel,不需要在 OpenStack 開任何 inbound port。</td></tr>
+          <tr><td>一個 Cloudflare API Token</td><td>給 <code>cloudflare/</code> 這個 Terraform module 用,見下面第 4 步的權限範圍。</td></tr>
+          <tr><td>一個 GitHub organization</td><td>Cloudflare Access 的登入身份來源(<code>github-organization</code> policy)——也可以換成其他 IdP,但這個 lab 的既有設定是 GitHub。</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Step 1 · OpenStack 認證(<code>clouds.yaml</code>)</h3>
+    <p><code>openstack/main.tf</code> 的 <code>provider "openstack" { cloud = "openstack" }</code>
+      讀的是標準 OpenStack SDK 的 <code>clouds.yaml</code>,不是
+      <code>os_username</code>/<code>os_password</code> 這種 variable——
+      這個檔案放在 <code>openstack/</code> 目錄,被 <code>.gitignore</code> 排除,不會進版控。
+      向你的 OpenStack 服務商要一份 <code>clouds.yaml</code>(通常在 Horizon
+      dashboard 的「API Access → Download OpenStack RC File / clouds.yaml」),
+      放到 <code>openstack/</code> 目錄,並確認頂層的 cloud 名稱是 <code>openstack</code>
+      (不是的話要嘛改檔案裡的 key,要嘛改 <code>openstack/main.tf</code> 的
+      <code>cloud = "..."</code>):</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">clouds.yaml(結構示意,值換成你自己的)</span></div>
+      <pre><span class="out">clouds:
+  openstack:
+    auth:
+      auth_url: https://&lt;your-openstack&gt;:5000
+      username: &lt;you&gt;
+      password: &lt;your-password&gt;
+      project_id: &lt;project-id&gt;
+      project_name: &lt;project-name&gt;
+      user_domain_name: Default
+    region_name: RegionOne
+    interface: public
+    identity_api_version: 3</span></pre>
+    </div>
+
+    <h3>Step 2 · SSH Keypair</h3>
+    <p>repo 裡已經有一組 <code>.ssh/id_ed25519.pub</code>(被 <code>.gitignore</code>
+      排除,不是因為內容敏感,純粹跟著整個 <code>.ssh/</code> 目錄一起)——這是
+      <strong>所有節點(包含 bastion)共用的唯一一把私鑰</strong>的公鑰,沒有另外的
+      「內部 key」,這是刻意的設計決定(這把 key 只給這個 lab 使用,私鑰之後也會
+      落地在 bastion 上,外流風險可接受)。私鑰本身<strong>不是檔案</strong>,只有
+      一份加密來源:<code>ansible/inventory/group_vars/all/vault.yml</code> 裡的
+      <code>vault_ssh_private_key</code> 這個 ansible-vault 加密變數,密碼放進
+      <code>.env</code> 的 <code>ANSIBLE_VAULT_PASSWORD</code>(同樣被
+      <code>.gitignore</code> 排除)。如果是全新環境,自己產一組新的:</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">產生 keypair、寫進密碼、加密</span></div>
+      <pre><span class="prompt">$</span> <span class="cmd">ssh-keygen -t ed25519 -f /tmp/id_ed25519 -N ""</span>
+<span class="prompt">$</span> <span class="cmd">echo 'ANSIBLE_VAULT_PASSWORD="'"$(openssl rand -base64 32)"'"' >> .env</span>
+<span class="prompt">$</span> <span class="cmd">make key-encrypt KEY=/tmp/id_ed25519</span>
+<span class="prompt">$</span> <span class="cmd">rm /tmp/id_ed25519 /tmp/id_ed25519.pub</span></pre>
+    </div>
+    <p><code>make key-encrypt</code> 把明碼私鑰包裝進
+      <code>vault_ssh_private_key</code>、加密寫進 <code>vault.yml</code>,同時
+      重新產生 <code>.ssh/id_ed25519.pub</code>(給下面 Step 4 用)——加密之後
+      <code>/tmp</code> 底下那份明碼副本就用不到了,可以刪掉。反過來要看私鑰內容
+      (除錯、或想手動 <code>ssh-add</code>)用 <code>make key-decrypt</code>,
+      私鑰會印到 stdout。</p>
+    <p>這唯一一份加密來源之後被兩條完全獨立的路徑消費——筆電直接 ssh 到 bastion
+      (<code>scripts/ansible.sh</code>、<code>make ssh</code>)解密出用完即丟的
+      暫存拷貝;ansible 內部連任何節點另外走一條完全不同的路,不會用到前者解密出來
+      的暫存檔。細節見 <a href="ansible-framework.html">Ansible 框架設計</a>的
+      「私鑰處理」一節。不需要手動上傳到 OpenStack——<code>openstack/main.tf</code> 的
+      <code>openstack_compute_keypair_v2.k8s</code> 這個 resource 會在
+      Step 4 跑 <code>terraform apply</code> 時自動把公鑰註冊進去,
+      名稱固定是 <code>k8s</code>,對應 <code>terraform.tfvars</code>
+      裡每個 VM 的 <code>keypair_name</code>。</p>
+
+    <h3>Step 3 · <code>terraform.tfvars</code>:定義要建哪些 VM</h3>
+    <p><code>openstack/terraform.tfvars</code>(這個檔案本身<strong>有</strong>進版控,
+      跟一般「tfvars 含密鑰不能進版控」的慣例不同——這裡面沒有任何密鑰,只有拓樸定義)
+      已經是目前這個 lab 實際在跑的拓樸(見 <a href="index.html">總覽</a>的表格:
+      1 台 <code>tor</code>、1 台 <code>bastion</code>、3 台 <code>ms-*</code>、
+      2 台 <code>l4-*</code>、2 台 <code>ap-*</code>)。全新環境的話,檢查/調整每個
+      VM 的 <code>vm_flavor_name</code>/<code>vm_image_name</code> 對不對得上你的
+      OpenStack 專案有的 flavor/image,<code>keypair_name</code> 維持
+      <code>"k8s"</code>(對到 <code>openstack/main.tf</code> 裡
+      <code>openstack_compute_keypair_v2.k8s</code> 的名稱,見 Step 2),
+      其餘欄位照抄即可。新增/刪除節點只要改這個檔案裡的 <code>vms</code>
+      map,細節見 <a href="infrastructure.html">Terraform / OpenStack</a>。</p>
+
+    <h3>Step 4 · 跑 Terraform,建出 OpenStack 資源</h3>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">openstack/ 目錄</span></div>
+      <pre><span class="prompt">$</span> <span class="cmd">cd openstack</span>
+<span class="prompt">$</span> <span class="cmd">terraform init</span>
+<span class="prompt">$</span> <span class="cmd">terraform plan</span>
+<span class="prompt">$</span> <span class="cmd">terraform apply</span></pre>
+    </div>
+    <p>建出網路(<code>k8s-net</code>/<code>mgmt-net</code>)、每台 VM、bastion 的
+      floating ip。跑完之後 <code>terraform output bastion_floating_ip</code>
+      應該有值——這是唯一的 SSH 進入點,後面 <code>make ssh</code>/
+      <code>scripts/ansible.sh</code> 都靠 <code>terraform output</code> 動態拿
+      這個值,不用自己記 IP。</p>
+
+    <h3>Step 5 · Cloudflare 那一側:網域 + Identity Provider(手動,兩件事,只做一次)</h3>
+    <p>這兩件事沒有自動化工具能繞過(原因見下方),要先手動做完,Step 6 的
+      Terraform 才有東西可以接。但這<strong>不影響 CI/CD 自動建環境</strong>
+      ——兩件事都是綁在網域/GitHub org 本身、不是綁在單次環境建置的
+      <strong>一次性 bootstrap</strong>:人工做一次,把拿到的 ID 存進 CI 的
+      secret store,之後每次自動建置只是讀取既有值餵給 Terraform variable,
+      不用重做。</p>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-icon">🌐</div>
+        <h4>1. 網域接進 Cloudflare</h4>
+        <p>Cloudflare dashboard 加入你的網域這個 zone → 把註冊商的 nameserver
+          改成 Cloudflare 指定的兩個 → 等 zone 狀態變成 <code>active</code>。這是
+          註冊商那邊的操作,不在 Cloudflare API 管得到的範圍,而且改一次之後
+          不會再變。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔑</div>
+        <h4>2. 連接 GitHub Identity Provider</h4>
+        <p>Zero Trust dashboard → Settings → Authentication → 新增 GitHub
+          登入方式,跑一次瀏覽器 OAuth 授權流程,拿到一組 <code>github_idp_id</code>。
+          GitHub OAuth App 的 client secret 本來就只能在瀏覽器裡跑一次授權拿到,
+          不是 Terraform provider 刻意不支援,是 GitHub 平台本身沒有 API-only
+          的路。</p>
+      </div>
+    </div>
+
+    <h3>Step 6 · <code>cloudflare/</code> Terraform:建 DNS/Tunnel/Access</h3>
+    <p>獨立目錄、獨立 state,跟 OpenStack 的 <code>main.tf</code> 完全分開(不同
+      provider,互不影響)。先填 <code>cloudflare/terraform.tfvars</code>(account_id、
+      zone_id、zone_name、Step 5 拿到的 <code>github_idp_id</code>、GitHub org
+      名稱、team name、你要用的子網域),再匯出一個<strong>只有必要權限</strong>的
+      API Token(不要用 Global API Key):</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Permission</th><th>Scope</th></tr></thead>
+        <tbody>
+          <tr><td>Account → Access: Apps and Policies → Edit</td><td>整個帳號</td></tr>
+          <tr><td>Account → Access: Organizations, Identity Providers, and Groups → Edit</td><td>整個帳號</td></tr>
+          <tr><td>Account → Cloudflare Tunnel → Edit</td><td>整個帳號</td></tr>
+          <tr><td>Zone → DNS → Edit</td><td>限定你的 zone(不要給全部 zone)</td></tr>
+          <tr><td>User → API Tokens → Edit</td><td>這顆 token 自己</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>最後一個權限(User → API Tokens → Edit)是給 <code>cloudflare/api_token.tf</code>
+      用的——讓這顆 token 自己建出 Step 7 需要的
+      <code>cloudflare_origin_ca_api_token</code>,不用另外再去 dashboard 手動點一個
+      scoped token,CI/CD 無人值守建環境才不會卡在這一步。這是刻意的取捨,細節見
+      <code>cloudflare/api_token.tf</code> 開頭的說明。</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">cloudflare/ 目錄</span></div>
+      <pre><span class="prompt">$</span> <span class="cmd">export CLOUDFLARE_API_TOKEN="&lt;上面那組 token&gt;"</span>
+<span class="dim"># 只放進環境變數,不要寫進任何 .tf/.tfvars 檔案</span>
+<span class="prompt">$</span> <span class="cmd">cd cloudflare</span>
+<span class="prompt">$</span> <span class="cmd">terraform init</span>
+<span class="prompt">$</span> <span class="cmd">terraform plan</span>
+<span class="prompt">$</span> <span class="cmd">terraform apply</span></pre>
+    </div>
+    <p>建出 2 條 Cloudflare Tunnel(cluster 內用的 + bastion SSH 用的)、對應的
+      Access Application/Policy、DNS CNAME、Zero Trust org 設定。完整的變數說明、
+      resource 對照表見 <code>cloudflare/README.md</code>。</p>
+
+    <h3>Step 7 · 把 Terraform 的輸出接回 Ansible 變數</h3>
+    <p>先複製範本建立 <code>secrets.yml</code>(這個檔案不進版控):</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">repo 根目錄</span></div>
+      <pre><span class="prompt">$</span> <span class="cmd">cp ansible/inventory/group_vars/all/secrets.yml.example ansible/inventory/group_vars/all/secrets.yml</span></pre>
+    </div>
+    <p>這 6 個 Terraform output 名稱刻意跟要填入的 ansible 變數名稱完全一致
+      (見 <code>cloudflare/outputs.tf</code> 開頭的說明),可以直接跑
+      <code>scripts/sync-cloudflare-secrets.sh</code> 自動讀值寫回去
+      ——敏感值全程只留在 shell 變數裡,不印到終端機/貼進聊天記錄:</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">repo 根目錄</span></div>
+      <pre><span class="prompt">$</span> <span class="cmd">scripts/sync-cloudflare-secrets.sh</span></pre>
+    </div>
+    <p>不想用 script、想手動個別貼的話,也可以自己在 <code>cloudflare/</code>
+      目錄下用 <code>terraform output -raw &lt;name&gt;</code> 個別讀出來貼進檔案:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Terraform output</th><th>填進哪個檔案的哪個變數</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">cloudflare_tunnel_token</td><td class="mono">secrets.yml → cloudflare_tunnel_token</td></tr>
+          <tr><td class="mono">cloudflare_bastion_ssh_tunnel_token</td><td class="mono">secrets.yml → cloudflare_bastion_ssh_tunnel_token</td></tr>
+          <tr><td class="mono">grafana_oidc_client_secret</td><td class="mono">secrets.yml → grafana_oidc_client_secret</td></tr>
+          <tr><td class="mono">cloudflare_origin_ca_api_token</td><td class="mono">secrets.yml → cloudflare_origin_ca_api_token</td></tr>
+          <tr><td class="mono">cloudflare_access_oidc_client_id</td><td class="mono">main.yml → cloudflare_access_oidc_client_id</td></tr>
+          <tr><td class="mono">grafana_oidc_client_id</td><td class="mono">main.yml → grafana_oidc_client_id</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><code>cloudflare_origin_ca_api_token</code> 是由
+      <code>cloudflare/api_token.tf</code> 自動建出來的 scoped token(只有
+      「Zone → SSL and Certificates → Edit」、範圍限定你的 zone),給
+      <code>roles/cert_manager</code> 簽 wildcard 憑證用——不是上面 Step 6
+      那個 <code>CLOUDFLARE_API_TOKEN</code>,是另一個,但現在不用再去
+      dashboard 手動點,CI/CD 無人值守建環境也能拿到。</p>
+    <p>另外幾個值目前<strong>不</strong>在 <code>cloudflare/</code> 這個 Terraform
+      module 的範圍裡(script 也不會動它們),要另外手動建:</p>
+    <ul>
+      <li><code>secrets.yml → oidc_admin_emails</code>:哪些 email 登入後拿
+        <code>cluster-admin</code>(其他人自動唯讀),自己列一份清單。</li>
+      <li><code>secrets.yml → github_app_id</code> /
+        <code>github_app_installation_id</code> /
+        <code>github_app_private_key</code>:<code>bastion.yml</code> 最後一步
+        <code>bastion/github-runner.yml</code> 一開始就會檢查這三個值,沒填
+        (還是 <code>REPLACE_ME</code>)Step 9 執行到那一步會直接 fail。逐欄位
+        的完整建立步驟(Webhook/Permissions/去哪裡找 Installation ID……)見
+        <a href="role-github-runner.html">Role: github_runner</a>,這裡不重複一份
+        避免兩邊寫的步驟之後對不上。跟 Step 5 的 GitHub Identity Provider 一樣,
+        GitHub App 建立本來就要跑一次瀏覽器授權,沒有自動化工具能繞過——這是
+        <strong>一次性 bootstrap</strong>,綁在 GitHub org 本身,不是每次建環境
+        都要重做:人工建一次,把這三個值存進 CI 的 secret store,之後自動建
+        環境只要讀取既有值就好。</li>
+    </ul>
+    <p><code>main.yml</code> 裡的 <code>cloudflare_access_team_domain</code>、
+      各服務的 hostname(<code>dashboard_hostname</code>、<code>grafana_hostname</code>
+      等)也要跟 Step 6 <code>cloudflare/terraform.tfvars</code> 填的值對上,細節見
+      <code>cloudflare/README.md</code>。</p>
+
+    <h3>Step 8 · 確認全部節點連得到</h3>
+    <p>因為只有一把 key(見 Step 2),而且 Nova 開機時就已經把它的公鑰埋進
+      每一台節點(包含 bastion)的 <code>authorized_keys</code>,這裡不需要
+      額外的 bootstrap 步驟——直接確認連得到就好:</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">repo 根目錄</span></div>
+      <pre><span class="prompt">$</span> <span class="cmd">scripts/ansible.sh ansible all -m ping</span></pre>
+    </div>
+    <p>全部節點都要回 <code>pong</code>,才能往下走。</p>
+
+    <h3>Step 9 · Ansible:把 k8s + 所有周邊裝起來</h3>
+    <p>你的筆電<strong>不需要</strong>裝 Ansible/kubectl/helm——
+      <code>scripts/ansible.sh</code> 會自動把 <code>ansible/</code> 整包
+      rsync 到 bastion,在 bastion 上 build 一個 Docker image,在裡面跑你要的指令,
+      輸出直接串流回你的終端機。每次執行都會先用 <code>terraform output</code>
+      重新產生 inventory,所以 VM IP 變了也不用手動改。</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">健檢(第一次跑之前先確認連得到)</span></div>
+      <pre><span class="prompt">$</span> <span class="cmd">scripts/ansible.sh ansible all -m ping</span></pre>
+    </div>
+    <p>確認全部節點都回 <code>pong</code> 之後,現在只要兩個聚合 playbook
+      各跑一次,不需要再手動記每個子 playbook 的順序:</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">兩個聚合 playbook,一次跑完全部</span></div>
+      <pre><span class="prompt">$</span> <span class="cmd">scripts/ansible.sh ansible-playbook playbooks/bastion.yml</span>
+<span class="prompt">$</span> <span class="cmd">scripts/ansible.sh ansible-playbook playbooks/k8s.yml</span></pre>
+    </div>
+    <p><code>bastion.yml</code> 不要求叢集已經存在——裡面的
+      <code>kubeconfig.yml</code> 那步會偵測到叢集還沒建立就安全跳過(不會
+      報錯中斷後面的步驟)。<code>k8s.yml</code> 內部依序是:</p>
+    <ol class="steps">
+      <li><div><strong>核心叢集(缺一不可,順序固定)</strong>
+        <code>k8s/crio.yml</code> → <code>k8s/nfs-client.yml</code>
+        (裝 <code>nfs-common</code>,晚一點的 <code>nfs-csi.yml</code>/
+        <code>docs-site.yml</code> 掛 NFS volume 要用到)→
+        <code>k8s/apiserver-lb.yml</code> →
+        <code>k8s/kubeadm.yml</code>(結束時把 kubeconfig 裝回 bastion)→
+        <code>k8s/cilium.yml</code> →
+        <code>k8s/smoke-test.yml</code>(裝完先跑一次,確認 iBGP fabric +
+        Pod 跨節點連線真的在動,再往下走)→
+        <code>k8s/node-labels.yml</code>(幫 <code>workers</code>/
+        <code>lbs</code> 節點補上 <code>node-role.kubernetes.io/*</code>
+        標籤,kubeadm 預設只會幫 control-plane 節點打)。</div></li>
+      <li><div><strong>L7 路由 + 加密 + 對外入口</strong>
+        <code>k8s/istio.yml</code> → <code>k8s/cert-manager.yml</code>
+        (cert-manager 需要 istio namespace 先存在,才有地方放簽出來的
+        TLS Secret)→ <code>bastion/cloudflare-tunnel.yml</code>(需要
+        Step 7 填好的 <code>secrets.yml</code>;叢集現在活了,這裡是它
+        第一次真的部署成功的時間點——不需要事後回頭重跑
+        <code>bastion.yml</code>)。</div></li>
+      <li><div><strong>內部工具(都需要 istio + cert-manager 先跑過)</strong>
+        <code>k8s/dashboard.yml</code> → <code>k8s/kube-prometheus-stack.yml</code>
+        (Hubble UI 是 Cilium 內建的,已經在 <code>k8s/cilium.yml</code>
+        裝過,不用另外跑)。</div></li>
+      <li><div><strong>可選(掛在同一個共用 Gateway 上,互相獨立)</strong>
+        <code>k8s/demo-app.yml</code>(測試用的 nginx,驗證整條對外路徑真的
+        通)、<code>k8s/showcase.yml</code>(對外成果展示頁,靜態 HTML)。</div></li>
+      <li><div><strong>儲存 addon(有先後順序)</strong>
+        <code>k8s/nfs-csi.yml</code>(部署 csi-driver-nfs,需要
+        <code>bastion.yml</code> 的 <code>nfs-server.yml</code> 已經先跑過,
+        匯出目錄才有東西可掛)→ <code>k8s/docs-site.yml</code>(部署這份技術
+        文件站本身,PVC 用的 <code>nfs-csi</code> StorageClass 要先裝好,
+        順序要排在 <code>nfs-csi.yml</code> 之後,不能反)。</div></li>
+      <li><div><strong>Cloudflare Access SSO(需要 Step 7 填好的 AUD/client_id)</strong>
+        <code>k8s/oidc-auth.yml</code> → <code>k8s/oidc-rbac.yml</code>
+        (RBAC 要在 apiserver 信任 OIDC 之後才有意義,順序不能反)。</div></li>
+    </ol>
+    <p>這條清單完整對應 <code>playbooks/k8s.yml</code> 的 import 順序,只是
+      拆開逐項解釋——想單獨重跑某一段除錯,直接照這個順序個別執行
+      <code>scripts/ansible.sh ansible-playbook playbooks/k8s/xxx.yml</code>
+      就好,不用整個 <code>k8s.yml</code> 重來。<code>bastion.yml</code> 底下的
+      <code>bastion/access.yml</code>、<code>bastion/ssh-tunnel.yml</code>、
+      <code>bastion/tools.yml</code>、<code>bastion/github-runner.yml</code>
+      跟叢集建置沒有相依性,隨時可以單獨重跑。完整的順序稽核過程見
+      <a href="https://github.com/khchiang1121/terraform-k8s/blob/main/docs/bootstrap-order-audit.md">bootstrap-order-audit.md</a>。</p>
+
+    <h3>Step 10 · 驗證</h3>
+    <ul>
+      <li><code>scripts/ansible.sh ansible-playbook playbooks/k8s/smoke-test.yml</code>
+        ——節點/系統 pod Ready、apiserver haproxy backend UP、BGP PodCIDR 傳播數量、
+        跨節點 pod-to-pod 連線,全部自動檢查,可重複執行。</li>
+      <li>對每個受 Cloudflare Access 保護的 hostname 發請求,應該都拿到 302 導到
+        Cloudflare 登入頁:<code>curl -I https://test.&lt;your-domain&gt;/</code>。</li>
+      <li>瀏覽器實際登入一次 Dashboard/Grafana,確認 SSO 正常(細節見
+        <a href="internal-tools.html">內部工具</a>)。</li>
+    </ul>
+
+    <h3>之後只是想加/刪一個節點,或是 VM 全部重建怎麼辦?</h3>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-icon">➕</div>
+        <h4>加/刪節點</h4>
+        <p>改 <code>openstack/terraform.tfvars</code> 的 <code>vms</code> map →
+          <code>terraform apply</code>(在 <code>openstack/</code> 目錄下)。新節點開機時 Nova 就已經把
+          唯一那把 key 的公鑰埋進去(跟其他節點一樣,沒有另外的內部
+          key、不需要任何 bootstrap 步驟),直接重跑
+          <code>scripts/ansible.sh</code>(inventory 自動重新產生)
+          就好,Cloudflare 那邊完全不用動。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔄</div>
+        <h4>VM 全部重建(IP 換了、bastion 也換了)</h4>
+        <p>在 <code>openstack/</code> 目錄下 <code>terraform apply</code> 重建
+          OpenStack 資源後,新的
+          bastion 開機時一樣會被 Nova 埋進同一把 key(只要
+          <code>vault_ssh_private_key</code>/<code>.ssh/id_ed25519.pub</code>
+          沒換),直接連得到,不需要任何 bootstrap 步驟。<code>secrets.yml</code>/<code>main.yml</code>
+          裡的值都還有效(Cloudflare 那側的 Tunnel/Access 沒有跟著動),
+          直接重跑 Step 9 的 Ansible 順序就好,不用碰 Step 5~7。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">☁️</div>
+        <h4>連 Cloudflare 那側也要重建</h4>
+        <p>Step 6 的 Terraform 重新 <code>apply</code> 之後,token/AUD/
+          client_id/secret 全部會換新的——<strong>一定要照 Step 7 重新填一次</strong>,
+          再重跑 <code>bastion/cloudflare-tunnel.yml</code>/
+          <code>bastion/ssh-tunnel.yml</code>/<code>k8s/oidc-auth.yml</code>/
+          <code>k8s/kube-prometheus-stack.yml</code> 這四個 playbook,不然
+          cloudflared/kube-apiserver OIDC/Grafana SSO 會停留在舊的、已經失效的
+          身份上。完整的 bug 記錄(兩個 ansible role 原本沒設計成支援 token
+          輪替,後來補上偵測變更才重啟的邏輯)見
+          <a href="cloudflare-manual-setup.html">Cloudflare 手動設定清單</a>。</p>
+      </div>
+    </div>
+
+    <div class="page-nav">
+      <a class="prev" href="index.html"><span class="dir">上一頁</span><span class="ttl">← 總覽</span></a>
+      <a class="next" href="teardown.html"><span class="dir">下一頁</span><span class="ttl">全部拆除 →</span></a>
+    </div>
+
+    <footer class="page-footer">
+      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
+      <span>最後更新:2026-07-30</span>
+    </footer>
+  </div>
+</div>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

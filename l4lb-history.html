@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DSR / L4LB(歷史階段) — k8s + BGP Lab 技術詳解</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <a class="sidebar-logo-link" href="index.html">
+      <h1>🛰️ k8s + BGP Lab</h1>
+      <span>OpenStack Lab · 技術詳解 v15</span>
+    </a>
+  </div>
+  <nav>
+    <div class="nav-group">
+      <div class="nav-group-label">總覽</div>
+      <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
+      <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
+      <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">網路架構</div>
+      <a class="nav-link" href="network-architecture.html"><span class="icon">🌐</span> 網路架構總覽</a>
+      <a class="nav-link" href="packet-flows.html"><span class="icon">🔀</span> 封包路徑實例</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">基礎設施</div>
+      <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
+      <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
+      <a class="nav-link active" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Ansible 自動化</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
+      <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
+      <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
+      <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
+      <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
+      <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
+      <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Cloudflare 手動設定</div>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">專案紀錄</div>
+      <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+    </div>
+  </nav>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" aria-label="Toggle menu">☰</button>
+      <span class="topbar-crumb">Lab Docs / <strong>DSR / L4LB(歷史階段)</strong></span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">cloudnative.tw · AS 65000</span>
+      <button class="theme-toggle" id="themeToggle" aria-label="切換主題">
+        <span class="icon-moon">🌙</span><span class="icon-sun">☀️</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <div class="callout callout-warn">
+      <p><strong>這一頁記錄的拓樸已經被取代</strong>——<code>node-a</code>、
+      <code>node-b</code>、<code>l4lb-0001</code>、<code>l4lb-0002</code>
+      這幾台機器早就不存在了,現在的拓樸是
+      <a href="index.html">總覽頁面</a>畫的 bastion + 3 master + 2 lb +
+      2 worker。保留這頁是因為這裡驗證出來的兩個結論,直接決定了現在整個
+      架構的樣子:<strong>port_security_enabled = false 的最終原因</strong>
+      (見下方 conntrack 衝突),以及<strong>「iBGP fabric 真的可以做出
+      ECMP」這個 Phase 3 native routing 完全依賴的前提</strong>。</p>
+    </div>
+
+    <h2><span class="eyebrow">歷史階段</span>Phase 1:iBGP + DSR L4LB 驗證</h2>
+    <p class="lede">最早的問題意識很單純:cloudnative.tw 是一個一般權限的 OpenStack
+      tenant,沒有 LBaaS、沒有 routed public prefix、沒有任何「雲廠商幫你做好」
+      的網路進階功能。這種環境下,「BGP-based L4LB」這種通常需要實體機房
+      BGP 路由器才有的架構,到底做不做得出來?這一頁記錄的 5 台 VM
+      拓樸(tor + node-a/node-b「假 pod」+ l4lb-0001/0002)就是用最少的機器
+      回答這個問題。</p>
+
+    <h3>用什麼證明:IPVS Direct Routing(DSR)</h3>
+    <p>l4lb 節點用 <code>ipvsadm -g</code>(gatewaying/Direct Routing 模式)
+      把 Service VIP(<code>172.31.255.1:8080</code>)的流量分派給
+      node-a/node-b 這兩個「假 pod」(用 Python <code>http.server</code>
+      模擬,VIP 直接綁在 <code>lo</code> 上)。DR 模式的特性是:<strong>去程
+      經過 l4lb</strong>(只改目的 MAC,不做 NAT、不改 IP),<strong>回程完全
+      不經過 l4lb</strong>——realserver 直接用 VIP 當來源位址把回應送回
+      client。</p>
+
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">l4lb-0001:~$ sudo ipvsadm -Ln --stats</span></div>
+      <pre><code class="out">Prot LocalAddress:Port               Conns   InPkts  OutPkts  InBytes OutBytes
+TCP  172.31.255.1:8080                   4       20        <span class="bad">0</span>     1392        <span class="bad">0</span>
+  -&gt; 10.10.0.20:8080                     2       10        <span class="bad">0</span>      696        <span class="bad">0</span>
+  -&gt; 10.10.0.21:8080                     2       10        <span class="bad">0</span>      696        <span class="bad">0</span></code></pre>
+    </div>
+    <div class="callout callout-tip">
+      <p><strong>OutPkts = 0 是這個 lab 最直接的鐵證</strong>:l4lb-0001
+      只看到 20 個進來的封包(4 個連線的三向交握 + HTTP 請求),完全沒有
+      任何一個回應封包經過它。所有回應都是 realserver 直接用 VIP 當來源
+      位址送回 client——這不是憑空宣稱,是在真實 OpenStack 環境上量出來的
+      數字。</p>
+    </div>
+
+    <h3>用什麼證明:tor 上的 ECMP</h3>
+    <p>兩台 l4lb 節點都用 <code>network</code> 陳述式宣告同一個 VIP,
+      靠 tor 的 <code>maximum-paths ibgp 8</code>(見
+      <a href="bgp-fabric.html">FRR / iBGP Fabric</a>)把流量用 ECMP
+      分散到兩台 l4lb。20 個新請求後,兩台各自的 <code>--stats</code>
+      都有非零的 <code>Conns</code>,而且各自的 <code>OutPkts</code>
+      依然是 0——ECMP 分流跟 DSR 回程繞過,兩件事同時成立,互不干擾。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th></th><th>l4lb-0001</th><th>l4lb-0002</th></tr></thead>
+        <tbody>
+          <tr><td>Conns(累計)</td><td class="mono">21</td><td class="mono">39</td></tr>
+          <tr><td>OutPkts</td><td class="mono">0</td><td class="mono">0</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>分配不是精準的 50/50,這符合預期——kernel 的雜湊分流本來就不是輪詢,
+      是「同一個連線固定選同一條路,不同連線<em>可能</em>選不同路」,
+      「兩條路都真的有被用到」才是這裡要驗證的重點,不是均勻度。</p>
+
+    <h3>最重要的發現:DSR 跟 Neutron conntrack 防火牆天生衝突</h3>
+    <p>mgmt-net 分離之後,曾經嘗試把 fabric port 的 <code>port_security_enabled</code>
+      從整段關閉,改成恢復開啟 + 用 <code>allowed_address_pairs</code>
+      精準放行。部署後 pod-to-pod ping 正常,但 VIP 的 curl 全部逾時。
+      用 <code>tcpdump -e</code> 在 tor / l4lb / realserver 三個點同時抓包,
+      才拆解出完整真相:</p>
+
+    <ol class="steps">
+      <li><div><strong>l4lb 正確轉發</strong>——SYN 從 tor 進來,l4lb 只改目的
+        MAC(DR 模式該有的行為),IP layer 完全不動,送到 node-a。</div></li>
+      <li><div><strong>node-a 收到 SYN、送出 SYN-ACK</strong>,直接送給 tor,
+        完全繞過 l4lb——這正是 DSR 該有的樣子。</div></li>
+      <li><div><strong>但 tor 送出的後續封包(ACK、GET 請求)全部消失</strong>
+        ——這些封包的路徑必須經過 l4lb(那是 tor 到 VIP 的唯一路由路徑),
+        但 node-a 端完全沒收到任何一個。</div></li>
+    </ol>
+
+    <div class="callout callout-danger">
+      <p><strong>根因:</strong>Neutron 的 OVS security group 是<strong>基於
+      conntrack 的狀態防火牆</strong>。l4lb 這個 port 上,conntrack
+      只看得到這條連線的「去程」(SYN)——因為 DSR 設計就是讓回程直接從
+      realserver 送回 client,完全繞過 l4lb。l4lb 的 conntrack 永遠等不到
+      它需要的 SYN-ACK <em>通過自己</em>,連線狀態永遠卡在「未完成握手」。
+      當 tor 後續送 ACK、GET(這些封包必須經過 l4lb),conntrack
+      判斷這是屬於一個未完成連線的封包,當成 invalid state 直接丟棄。
+      這是 DSR(非對稱路由)跟 conntrack-based 狀態防火牆的<strong>結構性
+      衝突</strong>,不是規則寫錯——<code>allowed_address_pairs</code>
+      解決的是 anti-spoofing(來源位址檢查),對 conntrack 狀態機制完全
+      沒有影響,這條路從一開始就不可能成功。</p>
+    </div>
+
+    <p>這個結論直接決定了 <a href="infrastructure.html">Terraform / OpenStack
+      頁面</a>裡 fabric port 永久維持 <code>port_security_enabled = false</code>
+      的最終原因——不是「先關著,之後再處理」的 TODO,是一個有明確反例
+      證明過「開啟會壞」的架構決定。</p>
+
+    <h3>ECMP 的隱藏前提:雜湊策略要包含 L4 資訊</h3>
+    <p>加了第二台 l4lb 之後,第一次做分流測試,20 個請求 100% 全部落在
+      l4lb-0002,l4lb-0001 完全零——即使路由表明明白白有兩個 next-hop。
+      根因是 <code>net.ipv4.fib_multipath_hash_policy</code> 預設是
+      <code>0</code>,ECMP 雜湊只取「來源 IP + 目的 IP」當輸入。測試時
+      client 永遠是 tor(單一來源 IP)、目的永遠是同一個 VIP,雜湊輸入
+      從頭到尾沒變過,結果自然也從頭到尾一樣——這不是運氣不好,是雜湊函式
+      在這個輸入下的<strong>必然結果</strong>。改成 <code>1</code>
+      (L3+L4,納入來源/目的埠)之後,同一個 client 開的不同 TCP 連線因為
+      來源埠不同,雜湊結果才會分散。這個設定只需要下在 tor 上(唯一做
+      雜湊決策的節點),完整細節見 <a href="bgp-fabric.html">FRR / iBGP
+      Fabric</a>。</p>
+
+    <div class="callout callout-info">
+      <p>這個發現的意義超出 L4LB 本身:它證明「ECMP 有沒有生效」不能只用
+      單一 client 測試,單一來源在 hash-policy=0 下永遠會是 100%
+      固定路徑的假陰性結果。</p>
+    </div>
+
+    <h3>這個階段留下的資產</h3>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-icon">🔒</div>
+        <h4>port_security_enabled = false</h4>
+        <p>不是隨便關的,是三點 tcpdump 實測出 conntrack/DSR 衝突之後的結論,
+          沿用至今,見 <a href="infrastructure.html">Terraform / OpenStack</a>。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🧭</div>
+        <h4>next-hop-self all + route-reflector-client</h4>
+        <p>iBGP RR 要能正確反射路由的兩個必要條件,現在 tor 對所有
+          <code>k8s_nodes</code> 都這樣設定,見 <a href="bgp-fabric.html">FRR
+          / iBGP Fabric</a>。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📌</div>
+        <h4>network 陳述式需要一筆 connected route</h4>
+        <p>用 <code>dummy0</code> 驗證出來的機制,後來在
+          <a href="role-cilium.html">Role: cilium</a> 的 <code>bgp_announce</code>
+          裡被重新用(拿掉 dummy0,改讀 Cilium 建的 <code>cilium_host</code>
+          route)。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">⚖️</div>
+        <h4>fib_multipath_hash_policy = 1</h4>
+        <p>tor 專屬設定,ECMP 真正依連線分散流量的必要條件,不是路由表有多個
+          next-hop 就自動生效。</p>
+      </div>
+    </div>
+
+    <div class="page-nav">
+      <a class="prev" href="bgp-fabric.html"><span class="dir">上一頁</span><span class="ttl">← FRR / iBGP Fabric</span></a>
+      <a class="next" href="ansible-framework.html"><span class="dir">下一頁</span><span class="ttl">Ansible 框架設計 →</span></a>
+    </div>
+
+    <footer class="page-footer">
+      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
+      <span>最後更新:2026-07-27</span>
+    </footer>
+  </div>
+</div>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

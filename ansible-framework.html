@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ansible 框架設計 — k8s + BGP Lab 技術詳解</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <a class="sidebar-logo-link" href="index.html">
+      <h1>🛰️ k8s + BGP Lab</h1>
+      <span>OpenStack Lab · 技術詳解 v15</span>
+    </a>
+  </div>
+  <nav>
+    <div class="nav-group">
+      <div class="nav-group-label">總覽</div>
+      <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
+      <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
+      <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">網路架構</div>
+      <a class="nav-link" href="network-architecture.html"><span class="icon">🌐</span> 網路架構總覽</a>
+      <a class="nav-link" href="packet-flows.html"><span class="icon">🔀</span> 封包路徑實例</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">基礎設施</div>
+      <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
+      <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Ansible 自動化</div>
+      <a class="nav-link active" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
+      <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
+      <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
+      <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
+      <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
+      <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
+      <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Cloudflare 手動設定</div>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">專案紀錄</div>
+      <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+    </div>
+  </nav>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" aria-label="Toggle menu">☰</button>
+      <span class="topbar-crumb">Lab Docs / <strong>Ansible 框架設計</strong></span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">cloudnative.tw · AS 65000</span>
+      <button class="theme-toggle" id="themeToggle" aria-label="切換主題">
+        <span class="icon-moon">🌙</span><span class="icon-sun">☀️</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <h2><span class="eyebrow">Ansible 自動化</span>整套自動化框架怎麼設計</h2>
+    <p class="lede">從這頁開始,文件的重心從「Terraform 建出來的機器長什麼樣子」
+      轉成「怎麼把 CRI-O/kubeadm/Cilium 裝上去」。這頁講的是框架本身的設計
+      ——為什麼控制端是 bastion 上的 Docker、inventory 怎麼自動產生、
+      整條指令執行路徑實際發生了什麼事。個別 role 的設定細節在後面每一頁。</p>
+
+    <h3>核心設計:你的筆電不執行任何 ansible task</h3>
+    <p>整個框架的第一原則是:<strong>ansible 實際執行的地方是 bastion 上的
+      一個臨時 Docker 容器,不是你的筆電、也不是另外開一台專用機器</strong>。
+      你在筆電上打的指令,只負責「把最新的 ansible/ 目錄同步過去、觸發
+      bastion 去執行」,自己不跑任何 task。</p>
+
+    <div class="flow">
+      <div class="flow-step"><div class="flow-box">你的筆電<br><small>scripts/ansible.sh ...</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box accent">rsync ansible/ 到 bastion<br><small>+ scp 內部 key 另外傳一份</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box purple">bastion:<br>docker build<br><small>(有 cache 通常秒建)</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box green">bastion:<br>docker run<br><small>容器內執行 ansible-playbook</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box">輸出即時串流<br>回你的終端機</div></div>
+    </div>
+
+    <p>為什麼要繞這一圈,不直接在筆電上裝 ansible 連過去?兩個原因:
+      第一,<strong>bastion 才是唯一在 mgmt-net 上、能直連所有節點的機器</strong>
+      ——你的筆電只能連到 bastion(透過 floating ip),連不到任何其他節點,
+      所以「執行 ansible 的地方」本來就只能是 bastion 或透過 bastion 跳。
+      第二,<strong>不想讓你的筆電需要裝、維護一套 ansible + collection
+      環境</strong>——版本、Python 環境、collection 版本全部封裝進一個
+      Dockerfile,筆電只需要有 <code>ssh</code>/<code>rsync</code>/<code>docker</code>
+      client 這種幾乎必然已經有的工具。</p>
+
+    <h3>為什麼不是「開一台專用的 ansible controller VM」</h3>
+    <p>這是使用者在設計階段明確做的決定,不是預設值:與其為了跑 ansible
+      多開一台 VM(在 OpenStack quota 吃緊的情況下,多一台就是多一份
+      配額壓力),不如直接用 bastion 既有的運算資源,用 Docker
+      隔離執行環境——bastion 本來就必須存在(唯一操作入口),
+      多裝一個 Docker daemon 的邊際成本遠低於多開一台機器。</p>
+
+    <h3>Inventory:從 Terraform output 自動產生,INI 格式</h3>
+    <p><code>ansible/inventory/generate_inventory.py</code> 讀
+      <code>terraform output -json</code>(<code>vm_mgmt_ips</code> 當
+      <code>ansible_host</code>、<code>vm_private_ips</code> 當
+      <code>fabric_ip</code>),依節點名稱前綴分組——<strong>不是</strong>看
+      terraform 的 <code>bgp_role</code>,因為 master/lb/worker 目前全部共用
+      同一個通用的 <code>peer</code> 角色,<code>bgp_role</code> 沒辦法拿來
+      區分「這台是 master 還是 lb 還是 worker」,只有名稱前綴
+      (<code>ms-</code>/<code>l4-</code>/<code>ap-</code>)才知道。</p>
+
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">ansible/inventory/hosts.ini(自動產生,不要手動編輯)</span></div>
+      <pre><span class="dim"># ansible_host 是 mgmt-net 位址,ansible 實際連線用這個
+# fabric_ip 是 k8s-net(資料平面)位址,role 需要引用時用這個</span>
+<span class="out">bastion ansible_host=192.168.200.11 fabric_ip=10.10.0.11
+tor ansible_host=192.168.200.10 fabric_ip=10.10.0.10
+
+[masters]
+ms-0001 ansible_host=192.168.200.20 fabric_ip=10.10.0.20
+ms-0002 ansible_host=192.168.200.21 fabric_ip=10.10.0.21
+ms-0003 ansible_host=192.168.200.22 fabric_ip=10.10.0.22
+
+[lbs]
+l4-0001 ansible_host=192.168.200.30 fabric_ip=10.10.0.30
+l4-0002 ansible_host=192.168.200.31 fabric_ip=10.10.0.31
+
+[workers]
+ap-0001 ansible_host=192.168.200.40 fabric_ip=10.10.0.40
+ap-0002 ansible_host=192.168.200.41 fabric_ip=10.10.0.41
+
+[k8s_nodes:children]
+masters
+lbs
+workers</span></pre>
+    </div>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-icon">🔤</div>
+        <h4>為什麼是 INI,不是 YAML</h4>
+        <p>框架最早用 YAML inventory,後來使用者明確要求改成 INI——INI
+          格式對這種「host + 一串 key=value 參數」的結構更緊湊,少一層縮排。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">👻</div>
+        <h4>tor / bastion 是「無 group」的裸 host</h4>
+        <p>INI 格式裡,寫在任何 <code>[group]</code> 標頭之前的 host
+          行,自動算 <code>ungrouped</code>,仍然屬於 <code>all</code>
+          ——不用額外開一個跟自己同名的 group(YAML 版本一度為了避免
+          「group 跟 host 同名」的警告,特地把它們放進 <code>all.hosts</code>,
+          INI 格式完全不需要這個繞路)。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🧩</div>
+        <h4>k8s_nodes 是特地加的合併 group</h4>
+        <p><code>[k8s_nodes:children]</code> 語法把 masters/lbs/workers
+          合併成一個 group,給「要對整個 k8s 叢集下手」的 playbook 用
+          (裝 CRI-O、kubelet/kubeadm、Cilium)——不含 tor/bastion,
+          它們是 fabric/ops 節點,不是 k8s 叢集成員。</p>
+      </div>
+    </div>
+
+    <h3>Dockerfile:兩個乍看奇怪、其實各自有原因的決定</h3>
+
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">ansible/Dockerfile</span></div>
+      <pre><span class="out">FROM python:3.12-slim
+
+RUN echo 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      openssh-client git sshpass rsync \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir ansible-core
+
+WORKDIR /ansible
+COPY requirements.yml .
+RUN ansible-galaxy collection install -r requirements.yml</span></pre>
+    </div>
+
+    <h4>1. <code>Acquire::ForceIPv4</code></h4>
+    <p>bastion 的 mgmt-net 只有 IPv6 link-local、沒有實際的 IPv6
+      路由(專案只建了 IPv4 的 <code>mgmt_subnet</code>)。Debian base image
+      預設的 <code>deb.debian.org</code> 是雙棧、傾向先試 IPv6,每個 mirror
+      連線都要等 30 秒逾時才 fallback 回 IPv4,build 會被拖得非常慢。
+      強制 apt 只用 IPv4,一行解決。<strong>這個修法後來被證明不是真正的
+      根因</strong>(見 <a href="troubleshooting.html">Bug 事後檢討</a>裡的
+      MTU 故事)——但留著當保險無害,而且對「apt 走 IPv4」這件事本身
+      仍然是對的優化。</p>
+
+    <h4>2. <code>requirements.yml</code> 先單獨 <code>COPY</code>,不是整包一起複製</h4>
+    <p>這是標準的 Docker layer cache 手法:如果直接 <code>COPY . .</code>
+      再裝 collection,任何一次改 playbook/role 都會讓這層快取失效,
+      重新 <code>ansible-galaxy collection install</code>(慢)。先只
+      <code>COPY requirements.yml</code>,只有這個檔案真的改了才會重新
+      安裝——playbooks/roles/inventory 之後用 volume mount 蓋掉
+      <code>/ansible</code>,完全不影響這層快取的有效性。這也是為什麼
+      collection 要裝到 ansible 預設路徑
+      (<code>~/.ansible/collections</code>),不能裝進 <code>/ansible</code>
+      底下——裝進去的話,runtime 的 volume mount 會直接蓋掉,每次執行都要
+      重裝一次。</p>
+
+    <h3>私鑰處理:只有一把 key</h3>
+    <p><strong>這個設計來回改過兩次,這裡記錄最終版本、也記錄為什麼</strong>:
+      最早是單一 key(使用者的私鑰直接落地在 bastion 上);後來使用者
+      要求改成兩把 key(另外一把跟身份無關的「內部 key」,理由是不想讓
+      自己真正的私密金鑰外流);再後來使用者重新評估,認為
+      <strong>這把 key 只給這個 lab 使用,外流頂多讓人連進 lab 內部節點,
+      風險可以接受</strong>,決定改回只用一把 key——不要為了這個取捨,
+      多維護一把 key、一個 bootstrap 步驟。目前(也是最終)版本:</p>
+    <ul>
+      <li>只有一把 key,沒有另外的「內部 key」。</li>
+      <li>它的公鑰(<code>.ssh/id_ed25519.pub</code>,不是機密)透過
+        <code>main.tf</code> 的 <code>openstack_compute_keypair_v2.k8s</code>
+        註冊進 OpenStack,由 Nova 在<strong>開機當下</strong>統一埋進全部
+        節點(包含 bastion)的 <code>authorized_keys</code>——不需要任何
+        事後的 bootstrap 步驟,也沒有雞生蛋蛋生雞的問題。</li>
+      <li>私鑰<strong>只有一份加密來源</strong>,不是本機檔案:
+        <code>group_vars/all/vault.yml</code> 裡一個叫
+        <code>vault_ssh_private_key</code> 的 ansible-vault 加密變數,
+        密碼放在 <code>.env</code> 的 <code>ANSIBLE_VAULT_PASSWORD</code>
+        (同樣被 <code>.gitignore</code> 排除)。以前(舊版)這裡另外還有
+        一份 <code>.ssh/id_ed25519</code> 私鑰檔案,已經拿掉——兩份加密
+        內容各自獨立維護,遲早會有一邊改了忘了改另一邊、悄悄不同步的
+        風險,不值得為了「檔案 vs. 變數」兩種形式各留一份。管理這唯一
+        來源用 <code>make key-encrypt KEY=/path/to/private_key</code>(順便
+        重新產生 <code>.ssh/id_ed25519.pub</code>)、
+        <code>make key-decrypt</code>(印私鑰到 stdout);背後是
+        <code>scripts/encrypt_key.sh</code>/<code>scripts/decrypt_key.sh</code>,
+        本機沒裝 <code>ansible-vault</code> 的話會自動 fallback 成用一個
+        固定 tag、靠 docker layer cache 重跑不用重新 <code>pip install</code>
+        的一次性 image(<code>ansible-vault-local</code>)來加解密。</li>
+      <li>這唯一一份來源被兩條完全獨立的路徑消費。第一條:<strong>筆電直接
+        SSH/rsync/scp 到 bastion</strong>(<code>make ssh</code>、
+        <code>scripts/ansible.sh</code> 裡的 <code>SSH_OPTS</code>)——
+        <code>scripts/decrypt_key.sh</code> 在每次執行時解密出一份用完即丟
+        的暫存拷貝,只給這兩支工具自己連 bastion 用。</li>
+      <li>第二條:<strong>ansible 內部連任何節點</strong>(包含 bastion
+        自己),完全不會碰上面那份暫存拷貝。<code>vault.yml</code> 這個
+        檔案本身跟著 <code>ansible/</code> 整包 rsync/COPY 進 image,不需要
+        額外掛載;<code>roles/bastion_access</code> 的第一個 play 用
+        <code>connection: local</code> 執行(不透過 SSH),把
+        <code>vault_ssh_private_key</code> 這個變數寫進 bastion 掛進容器的
+        <code>~/.ssh/id_ed25519</code>、<code>~/.ssh/config</code>——
+        <code>docker run</code> 把 bastion 的 <code>~/.ssh</code> 整個
+        資料夾讀寫掛進容器自己的 <code>~/.ssh</code>,容器內的本地寫入就
+        等於直接寫進 bastion 磁碟,避開「還沒有 key 就沒辦法 SSH 連
+        bastion 去放 key」的雞生蛋問題。之後任何一個 host/group 都不設定
+        <code>ansible_ssh_private_key_file</code>,連線全部靠這份
+        <code>~/.ssh/config</code> 解出私鑰路徑,跟一個人手動從 bastion
+        ssh 到其他節點走的是同一條路。<code>ansible.cfg</code> 的
+        <code>vault_password_file</code> 指向容器內固定掛載的密碼檔,讓
+        <code>ansible</code>/<code>ansible-playbook</code> 不管是
+        <code>scripts/ansible.sh</code> 自動跑、還是手動
+        <code>docker run</code> 進容器自己下指令,都能解密
+        <code>vault_ssh_private_key</code>(也可以用
+        <code>--vault-password-file</code> 明確覆蓋)。</li>
+    </ul>
+
+    <h3>連線用 mgmt-net,不是走 jump host</h3>
+    <p>Ansible 實際上在 bastion 的容器裡執行,而 bastion 跟其他所有節點
+      都在同一個 mgmt-net(<code>192.168.200.0/24</code>)flat 網段上,
+      可以直接連,不需要任何 <code>ProxyJump</code>。「需要 jump host」
+      只發生在「從你的筆電連到 bastion 以外的節點」這種情境——現在整條路徑是
+      「筆電 → bastion → 容器內直連」,中間只有一次 SSH(筆電到 bastion),
+      bastion 到其他節點是容器內部直連 mgmt-net,不是又跳一次 SSH。</p>
+
+    <h3>資料夾結構</h3>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">ansible/</span></div>
+      <pre><span class="out">ansible/
+├── ansible.cfg               </span><span class="dim"># inventory/roles 路徑、stdout_callback 等</span><span class="out">
+├── requirements.yml           </span><span class="dim"># collection 依賴</span><span class="out">
+├── Dockerfile                 </span><span class="dim"># 執行環境,在 bastion 上 build</span><span class="out">
+├── inventory/
+│   ├── generate_inventory.py </span><span class="dim"># 從 terraform output 產生 hosts.ini</span><span class="out">
+│   ├── hosts.ini              </span><span class="dim"># 自動產生(.gitignore 排除)</span><span class="out">
+│   └── group_vars/all/
+│       ├── main.yml           </span><span class="dim"># 公開的共用變數(見下方)</span><span class="out">
+│       ├── secrets.yml        </span><span class="dim"># 機密變數,.gitignore 排除</span><span class="out">
+│       └── secrets.yml.example</span><span class="dim"># 範本,提交進 git</span><span class="out">
+├── playbooks/                 </span><span class="dim"># 每個 playbook 對應一個「你會下的指令」</span><span class="out">
+└── roles/                     </span><span class="dim"># 每個 role 對應一個元件,後面每頁一個</span></pre>
+    </div>
+
+    <p><code>group_vars/all/main.yml</code> 是整個框架的「單一事實來源」——
+      <code>apiserver_hostname</code>、<code>kubernetes_minor_version</code>、
+      <code>bgp_asn</code>(跟 Terraform 的 <code>var.bgp_asn</code> 手動保持
+      同步,ansible 沒辦法直接讀 terraform 變數)、<code>cluster_pod_cidr</code>、
+      <code>service_cidr</code>、<code>ingress_wildcard_hostname</code> 全部
+      在這裡定義一次,被多個 role 共用,不會出現「同一個值在兩個地方各寫
+      一份、改一邊忘了改另一邊」的問題——這個原則在
+      <a href="role-cilium.html">Role: cilium</a> 頁面會看到具體踩過的坑
+      (CRI-O 版本 vs kubeadm 版本沒對齊)。</p>
+
+    <h3>為什麼是 <code>group_vars/all/main.yml</code>,不是單一的
+      <code>group_vars/all.yml</code></h3>
+    <p>這是加入 <a href="role-cloudflare-tunnel.html">cloudflare_tunnel
+      role</a> 時,為了處理 Cloudflare Tunnel token 這種不能進 git 的
+      機密值,重新拆出來的結構。</p>
+    <div class="callout callout-danger">
+      <p><strong>Bug:直接把機密另存成 <code>group_vars/secrets.yml</code>
+      這種扁平檔案,永遠不會被自動載入</strong>——第一版直覺地在
+      <code>group_vars/</code> 底下(跟原本的 <code>all.yml</code> 同一層)
+      多開一個 <code>secrets.yml</code>,實測整個叢集重建時直接
+      <code>cloudflare_tunnel_token is undefined</code>。根因是 ansible
+      的 <code>group_vars/&lt;name&gt;.yml</code> 自動載入機制,
+      <code>&lt;name&gt;</code> 必須對應到一個<strong>真正存在的
+      inventory group</strong>——沒有一個叫做「secrets」的 group,這個
+      檔案名稱對 ansible 而言毫無意義,靜靜地被忽略,不會報錯提醒你。</p>
+      <p>修法是改用 ansible 支援的<strong>「每個 group 一個目錄」</strong>
+      寫法:把原本的 <code>group_vars/all.yml</code> 用
+      <code>git mv</code> 搬進 <code>group_vars/all/main.yml</code>,
+      機密另外放同一個目錄底下的 <code>group_vars/all/secrets.yml</code>
+      ——兩個檔案都對應到真正存在的 <code>all</code> group,ansible 會
+      自動合併載入 <code>all/</code> 目錄底下的<strong>所有</strong>
+      <code>.yml</code> 檔案,不需要額外的 <code>vars_files</code>
+      include,同時達成「公開變數跟機密變數的檔案分開放、機密檔案單獨
+      gitignore」的目標。</p>
+    </div>
+    <p>真正的機密值只存在 <code>group_vars/all/secrets.yml</code>
+      (gitignored),git 裡只留一份 <code>secrets.yml.example</code>
+      範本,寫變數名稱跟一個明顯的佔位值,不含真正的 token——這個約定
+      在 <a href="role-cloudflare-tunnel.html">Role: cloudflare_tunnel</a>
+      有完整說明,跟這個專案處理 SSH 私鑰的方式是同一套邏輯。</p>
+
+    <h3>目前有的 playbook,以及裝一個全新叢集的順序</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Playbook</th><th>用途</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">ping.yml</td><td>健檢,確認 inventory/SSH/bastion 這條路徑整個通</td></tr>
+          <tr><td class="mono">bastion.yml</td><td>一次跑完全部 bastion 專屬設定的入口(<code>import_playbook</code> 串起下面所有 <code>bastion/*.yml</code>),bastion 單獨重建之後只要跑這一個</td></tr>
+          <tr><td class="mono">bastion/access.yml</td><td>讓 bastion 能用同一把 key 直接連到所有其他節點,見下方</td></tr>
+          <tr><td class="mono">k8s.yml</td><td>全新環境架設時一次跑完的入口(<code>import_playbook</code> 串起下面所有 <code>k8s/*.yml</code>),不含 <code>kubeadm-reset.yml</code>(破壞性操作)。不要求 bastion 已經有 kubectl——<code>k8s/kubeadm.yml</code> 最後一步會自己把 kubeconfig 裝回 bastion,<code>bastion.yml</code> 只要先跑過(nfs-server 匯出好)即可,不需要它先建好 kubectl</td></tr>
+          <tr><td class="mono">k8s/crio.yml</td><td>在 <code>k8s_nodes</code> 上安裝並啟用 CRI-O</td></tr>
+          <tr><td class="mono">k8s/apiserver-lb.yml</td><td>在 tor 上架 haproxy 轉發 apiserver,寫入 <code>/etc/hosts</code></td></tr>
+          <tr><td class="mono">k8s/kubeadm.yml</td><td>裝 kubeadm/kubelet/kubectl、init 控制平面(<code>--skip-phases=addon/kube-proxy</code>)、其餘節點 join</td></tr>
+          <tr><td class="mono">k8s/cilium.yml</td><td>部署 Cilium(<code>cilium</code> namespace,eBPF kube-proxy replacement),native routing 整合既有 FRR fabric</td></tr>
+          <tr><td class="mono">k8s/istio.yml</td><td>部署 Istio(<code>istio</code> namespace)+ 叢集共用的入口 Gateway,見 <a href="role-istio.html">Role: istio</a></td></tr>
+          <tr><td class="mono">k8s/cert-manager.yml</td><td>裝 cert-manager + Cloudflare origin-ca-issuer,簽 <code>*.dough-ops.com</code> wildcard 憑證,見 <a href="role-cert-manager.html">Role: cert_manager</a></td></tr>
+          <tr><td class="mono">bastion/cloudflare-tunnel.yml</td><td>部署 <code>cloudflared</code>(<code>cloudflare</code> namespace),對外唯一入口,見 <a href="role-cloudflare-tunnel.html">Role: cloudflare_tunnel</a>。只被 <code>k8s.yml</code>(<code>cert-manager.yml</code> 之後)匯入——它部署的東西活在叢集 etcd/pod 裡,不是 bastion 本機狀態,所以不放進 <code>bastion.yml</code>;Cloudflare 那邊 tunnel token 換了要重新套用時,直接單獨跑這個 playbook</td></tr>
+          <tr><td class="mono">k8s/dashboard.yml</td><td>裝 Kubernetes Dashboard,見 <a href="internal-tools.html">內部工具</a></td></tr>
+          <tr><td class="mono">k8s/kube-prometheus-stack.yml</td><td>裝 Prometheus/Alertmanager/Grafana,見 <a href="internal-tools.html">內部工具</a></td></tr>
+          <tr><td class="mono">k8s/demo-app.yml</td><td>部署測試用 nginx + VirtualService,驗證整條 ingress 路徑通不通</td></tr>
+          <tr><td class="mono">k8s/node-labels.yml</td><td>幫 <code>workers</code>/<code>lbs</code> 節點打上 <code>node-role.kubernetes.io/worker</code>/<code>l4</code> 標籤,補 kubeadm 沒自動打的 ROLES</td></tr>
+          <tr><td class="mono">bastion/tools.yml</td><td>在 bastion 上裝 k9s、開 kubectl 自動補全、加 <code>k</code> 這個 alias</td></tr>
+          <tr><td class="mono">k8s/oidc-auth.yml</td><td>讓 kube-apiserver 信任 Cloudflare Access 的 OIDC 身份,見 <a href="internal-tools.html">內部工具</a></td></tr>
+          <tr><td class="mono">k8s/oidc-rbac.yml</td><td>幫 OIDC 身份配 RBAC(唯讀預設 + 個別 email cluster-admin)</td></tr>
+          <tr><td class="mono">bastion/ssh-tunnel.yml</td><td>在 bastion 上裝獨立的 Cloudflare Tunnel,給瀏覽器內建 web SSH 用</td></tr>
+          <tr><td class="mono">bastion/nfs-server.yml</td><td>把 bastion 上 cloud-init 已格式化/掛好的資料碟(<code>/srv/nfs/k8s</code>)裝成 NFS server,給叢集內 csi-driver-nfs 當 StorageClass 後端</td></tr>
+          <tr><td class="mono">bastion/kubeconfig.yml</td><td>從第一台 master 抓 admin kubeconfig、在 bastion 上裝 kubectl——這兩樣只存在 bastion 的 ephemeral 開機碟上,重建後會不見,需要重跑</td></tr>
+          <tr><td class="mono">bastion/apiserver-dns.yml</td><td>在 bastion 上寫 <code>/etc/hosts</code> 的 <code>k8s-api.internal</code> 記錄,跟 <code>k8s/apiserver-lb.yml</code> 背後同一個 <code>roles/apiserver_dns</code>,只是刻意只對 bastion 跑</td></tr>
+          <tr><td class="mono">bastion/github-runner.yml</td><td>把 bastion 註冊成 doughops org 共用的 GitHub Actions self-hosted runner,見 <a href="role-github-runner.html">Role: github_runner</a></td></tr>
+          <tr><td class="mono">kubeadm-reset.yml</td><td>危險操作:整個叢集狀態清空,只在要改「初始化時就固定死」的參數才用,刻意不放進 <code>k8s.yml</code> 的 import 鏈</td></tr>
+          <tr><td class="mono">k8s/smoke-test.yml</td><td>驗證整個 k8s + Cilium + FRR native routing 是不是真的在動</td></tr>
+          <tr><td class="mono">k8s/nfs-csi.yml</td><td>部署 csi-driver-nfs,提供 <code>nfs-csi</code>/<code>nfs-csi-retain</code> 兩個 RWX StorageClass,背後接 <code>bastion/nfs-server.yml</code> 的 NFS export</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>裝一個全新叢集,現在只要兩個聚合 playbook 各跑一次:
+      <code>bastion.yml</code>(不要求叢集已存在,<code>kubeconfig.yml</code>
+      那步會安全跳過)→ <code>k8s.yml</code>(內部順序是
+      <code>crio.yml</code>(kubeadm 需要先有 container runtime)→
+      <code>apiserver-lb.yml</code> → <code>kubeadm.yml</code>(結束時把
+      kubeconfig 裝回 bastion)→ <code>cilium.yml</code> →
+      <code>smoke-test.yml</code> → <code>node-labels.yml</code> →
+      <code>istio.yml</code> → <code>cert-manager.yml</code>(Gateway 的 443
+      server block 要靠這一步簽出來的憑證才會真的生效)→
+      <code>bastion/cloudflare-tunnel.yml</code>(叢集現在活了,這裡是它第一次
+      真的部署成功的時間點)→ <code>dashboard.yml</code> /
+      <code>kube-prometheus-stack.yml</code> / <code>demo-app.yml</code> /
+      <code>showcase.yml</code>(這幾個先後順序不重要,互相獨立,都只是掛一個
+      新的 VirtualService 到同一個共用 Gateway 上)→ <code>nfs-csi.yml</code> →
+      <code>docs-site.yml</code>(這步要排在 <code>nfs-csi.yml</code> 之後——
+      用一顆普通的 <code>nfs-csi</code> 動態佈建 PVC,NFS export 只能經由
+      PVC 存取,不允許原生 <code>nfs:</code> volume 繞過
+      <code>roles/nfs_csi_driver</code> 的網路存取限制;內容用
+      <code>kubectl exec</code>/<code>kubectl cp</code> 經 Kubernetes API
+      寫進 PVC,不直接碰 bastion 上 PVC 背後實際落地的目錄,細節見
+      <code>roles/docs_site</code>)→ <code>oidc-auth.yml</code> →
+      <code>oidc-rbac.yml</code>)。不需要在 <code>k8s.yml</code> 跑完後回頭
+      重跑 <code>bastion.yml</code>。Cloudflare 那邊的 DNS/Tunnel
+      ingress/Access 設定不在這個順序裡——那些是手動用 Cloudflare API
+      設一次就永久生效,不需要每次重建叢集都重做,見
+      <a href="cloudflare-manual-setup.html">Cloudflare 手動設定清單</a>。
+      完整的稽核過程見
+      <a href="https://github.com/khchiang1121/terraform-k8s/blob/main/docs/bootstrap-order-audit.md">bootstrap-order-audit.md</a>。</p>
+
+    <p><strong>只有 bastion 單獨重建(叢集其他節點都還活著,例如改
+      <code>terraform.tfvars</code> 的 <code>data_volumes</code> 導致
+      bastion 的 <code>boot_index=0</code> block_device 變了、強制
+      replace)</strong>:新的 bastion 開機時 Nova 會自動重新埋進同一把
+      key(只要 <code>vault_ssh_private_key</code>/<code>.ssh/id_ed25519.pub</code>
+      沒換),不需要任何額外的信任步驟,直接跑一次 <code>bastion.yml</code>
+      就好——不需要也不應該重跑整個「全新叢集」順序,叢集本身的狀態
+      沒有變。</p>
+
+    <h3>bastion-access:讓 bastion 自己也能 SSH 到所有節點</h3>
+    <p>原本的設計裡,只有你的筆電需要能 SSH 到 bastion,bastion 到其他
+      節點是靠 ansible-runner 容器內的 key 直連(見上方「私鑰處理」)。
+      這個 role 額外做的事:把同一把 key(從 <code>vault_ssh_private_key</code>
+      這個變數讀出來,使用者的真實私鑰)也放一份到 bastion 自己的
+      <code>~/.ssh/id_ed25519</code>,並寫一份 <code>~/.ssh/config</code>
+      (<code>StrictHostKeyChecking accept-new</code>),讓使用者<strong>
+      直接登入 bastion 之後</strong>,不透過 ansible-runner 容器,也能
+      手動 SSH 到任何一台節點做臨時的除錯——這是操作便利性的需求,跟
+      「ansible 怎麼執行」是兩件事,所以獨立成一個小 role,單獨一個
+      playbook,不是塞進其他 role 裡。</p>
+
+    <div class="page-nav">
+      <a class="prev" href="l4lb-history.html"><span class="dir">上一頁</span><span class="ttl">← DSR / L4LB(歷史階段)</span></a>
+      <a class="next" href="role-crio.html"><span class="dir">下一頁</span><span class="ttl">Role: crio →</span></a>
+    </div>
+
+    <footer class="page-footer">
+      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
+      <span>最後更新:2026-07-30</span>
+    </footer>
+  </div>
+</div>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Role: kubelet — k8s + BGP Lab 技術詳解</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <a class="sidebar-logo-link" href="index.html">
+      <h1>🛰️ k8s + BGP Lab</h1>
+      <span>OpenStack Lab · 技術詳解 v15</span>
+    </a>
+  </div>
+  <nav>
+    <div class="nav-group">
+      <div class="nav-group-label">總覽</div>
+      <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
+      <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
+      <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">網路架構</div>
+      <a class="nav-link" href="network-architecture.html"><span class="icon">🌐</span> 網路架構總覽</a>
+      <a class="nav-link" href="packet-flows.html"><span class="icon">🔀</span> 封包路徑實例</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">基礎設施</div>
+      <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
+      <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Ansible 自動化</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
+      <a class="nav-link active" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
+      <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
+      <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
+      <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
+      <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
+      <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Cloudflare 手動設定</div>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">專案紀錄</div>
+      <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+    </div>
+  </nav>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" aria-label="Toggle menu">☰</button>
+      <span class="topbar-crumb">Lab Docs / <strong>Role: kubelet</strong></span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">cloudnative.tw · AS 65000</span>
+      <button class="theme-toggle" id="themeToggle" aria-label="切換主題">
+        <span class="icon-moon">🌙</span><span class="icon-sun">☀️</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <h2><span class="eyebrow">Ansible 自動化</span>Role: kubelet</h2>
+    <p class="lede">在所有 <code>k8s_nodes</code> 上裝 kubeadm/kubelet/kubectl,
+      並確保三個前提條件:cgroup v2、無 swap、kubelet 用正確的網段當
+      node-ip。kubeadm init/join 的邏輯不在這裡,見
+      <a href="role-kubeadm.html">Role: kubeadm</a>——這個 role 只管
+      「裝好套件、裝好前提條件」。</p>
+
+    <h3>前提條件一:cgroup v2,用 assert 直接驗證,不是假設</h3>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/kubelet/tasks/main.yml</span></div>
+      <pre><span class="out">- command: stat -fc %T /sys/fs/cgroup
+  register: cgroup_fs_type
+
+- assert:
+    that: cgroup_fs_type.stdout == "cgroup2fs"
+    fail_msg: "...不是 cgroup2fs,中止讓你確認..."</span></pre>
+    </div>
+    <p>使用者的原始需求就是「用 cgroup v2」——這裡沒有選擇默默假設
+      Ubuntu 24.04 一定是 cgroup v2(雖然實務上它就是),而是<strong>實際
+      查一次 <code>/sys/fs/cgroup</code> 的檔案系統類型</strong>,
+      <code>cgroup2fs</code> 才是真的 unified hierarchy。如果哪天 image
+      被客製化過導致不是 cgroup v2,這裡會直接中止並給出明確原因,不是讓
+      後面 kubelet/CRI-O 的 cgroup driver 設定在一個錯誤前提下繼續跑,
+      跑出更難追的間接錯誤。</p>
+
+    <h3>前提條件二:無 swap</h3>
+    <p>kubeadm 預設仍要求節點沒有 swap(kubelet 對 swap 的支援目前還是
+      alpha/beta 等級的 feature gate)。<code>swapoff -a</code> 只影響
+      當下的執行期,額外在 <code>/etc/fstab</code> 用 regex 註解掉
+      swap 掛載那一行,確保重開機後 swap 不會又被掛回來。實測這批
+      OpenStack VM 本身就沒有配置 swap 分割區(<code>ansible_swaptotal_mb</code>
+      是 0),這兩步在目前的環境下都是 no-op,但保留是為了讓這個 role
+      在任何(包含未來換了不同 image 的)環境下都是正確、冪等的。</p>
+
+    <h3>前提條件三:kubeadm preflight 需要的網路工具</h3>
+    <p><code>conntrack</code> 是 kubeadm preflight 檢查的<strong>硬性要求</strong>
+      ——第一次跑 <code>kubeadm init</code> 時實測直接撞到
+      <code>[ERROR FileExisting-conntrack]: conntrack not found in system path</code>,
+      preflight 檢查會直接 fatal error、拒絕繼續。<code>socat</code>/
+      <code>ebtables</code>/<code>ethtool</code> 是官方文件列出的
+      kubelet/kube-proxy 依賴,一次裝好,不要每個 preflight 錯誤各修一次
+      再重跑。</p>
+
+    <h3>kubeadm/kubelet/kubectl 安裝 + 版本鎖定</h3>
+    <p>跟 <a href="role-crio.html">Role: crio</a> 一樣的 apt repo 模式
+      (<code>pkgs.k8s.io</code>,GPG key + keyring + apt source),
+      裝完之後對三個套件都下
+      <code>dpkg_selections: selection: hold</code>——避免任何一次
+      <code>apt upgrade</code> 意外把它們升級到不同的 minor version,
+      跟 CRI-O 版本錯開造成不相容。</p>
+
+    <div class="callout callout-warn">
+      <p><strong>Bug:被 hold 鎖住的套件,即使改了
+      <code>kubernetes_minor_version</code>、repo URL 也指向新版本,
+      <code>state: present</code> 還是不會升級</strong>——第一次把
+      <code>kubernetes_minor_version</code> 從 <code>v1.31</code> 改成
+      <code>v1.34</code> 時,role 沒有跟著改,實測套件仍然停在
+      <code>v1.31</code>。根因是 <code>state: present</code> 的語意是
+      「有裝就好」,而 <code>dpkg_selections: hold</code> 讓 apt 更進一步
+      拒絕任何版本變動,兩個機制疊加的結果是「已經裝過的套件永遠不會被
+      這個 task 動到」,就算 repo URL 本身已經指向 v1.34 的 index 也一樣。
+      修法是在安裝前先解除鎖定(<code>selection: install</code>),再把
+      安裝 task 從 <code>state: present</code> 改成 <code>state:
+      latest</code>——這裡用 <code>state: latest</code> 是安全的,因為
+      repo URL 本身已經是版本綁定的(<code>.../v1.34/deb/</code>),
+      「latest」只會在同一個 minor version 底下抓最新 patch,不會意外
+      跳到不同的 minor version。</p>
+    </div>
+
+    <h3>node-ip:kubelet 要明確指定,不能讓它自己猜</h3>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">/etc/default/kubelet</span></div>
+      <pre><span class="out">KUBELET_EXTRA_ARGS=--node-ip=10.10.0.20</span></pre>
+    </div>
+    <p>不設的話,kubelet 會自動選「預設路由所在的介面」的位址當自己的
+      node-ip。這台機器有兩張網卡:k8s-net(<code>no_gateway=true</code>,
+      沒有預設路由)跟 mgmt-net(<strong>有</strong>預設路由)——kubelet
+      如果自己猜,一定會選到 mgmt-net 的位址,而這整個架構的設計前提是
+      「k8s 節點之間的流量走 k8s-net(資料平面),mgmt-net 只給操作/對外用」
+      (見 <a href="network-architecture.html">網路架構總覽</a>)。這裡
+      透過 <code>/etc/default/kubelet</code>(kubelet 的 systemd unit 會
+      source 這個檔案的 <code>KUBELET_EXTRA_ARGS</code>)明確指定
+      <code>--node-ip</code>,用每個節點各自的 <code>fabric_ip</code>
+      (從 ansible inventory 讀,見 <a href="ansible-framework.html">框架
+      設計</a>)。</p>
+
+    <h3>最大的一個 bug:service-cidr 需要一條靜態路由</h3>
+    <p>這是整個 native routing 落地過程中唯一一個純網路層級(不是
+      k8s 也不是 Cilium)的 bug,完整除錯過程值得記錄——裝 Cilium 時,
+      init container 卡在連 <code>10.96.0.1:443</code>(那時候還是預設
+      service-cidr,後來改成 <code>172.18.0.0/16</code>)逾時。</p>
+
+    <ol class="steps">
+      <li><div><strong>tcpdump 在受影響節點的 <code>ens3</code> 上抓包</strong>,
+        發現 SYN 封包的<strong>來源位址是 <code>192.168.200.x</code>
+        (mgmt_ip)</strong>,不是預期的 <code>10.10.0.x</code>(fabric_ip)
+        ——即使目的地已經被 kube-proxy 正確 DNAT 成某個真實 master 的
+        fabric_ip。</div></li>
+      <li><div><strong>用 <code>ip route get 10.96.0.1</code> 直接驗證</strong>:
+        kernel 回報會走 mgmt-net、來源選 <code>192.168.200.x</code>
+        ——因為 <code>10.96.0.0/12</code>(ClusterIP 網段)在 k8s-net
+        上完全沒有對應路由,查詢 fallback 到 mgmt-net 的預設路由。</div></li>
+      <li><div><strong>根因是 kernel 決定「來源位址」的時機</strong>:
+        Linux 對本機發起的連線,是先用<strong>原始</strong>目的地(改寫前的
+        ClusterIP)做一次路由查詢來決定來源位址,這個時機在 kube-proxy
+        的 DNAT 規則生效<strong>之前</strong>。ClusterIP 從來不是一個
+        「路由得到」的位址,DNAT 一定會先把它改寫成真實 backend——但
+        「決定來源位址」這件事發生得比 DNAT 早,如果 ClusterIP 網段
+        在本機路由表裡沒有任何專屬條目,就會被一般的 fallback 邏輯
+        (走預設路由)決定,選到錯的網段。</div></li>
+    </ol>
+
+    <h4>修法:netplan 加一條 scope link 的「假」路由</h4>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">/etc/netplan/90-service-cidr-route.yaml(範本渲染後)</span></div>
+      <pre><span class="out">network:
+  version: 2
+  ethernets:
+    ens3:
+      routes:
+        - to: 172.18.0.0/16
+          scope: link</span></pre>
+    </div>
+    <p>這條路由<strong>不會真的被拿去轉送任何封包</strong>(封包一定會先被
+      DNAT 成真實 backend,不會照著這條路由的字面意思去送)——它唯一的
+      作用是讓「決定來源位址」那次路由查詢,對
+      <code>172.18.0.0/16</code> 這個目的地能查到一個落在 k8s-net 上的
+      結果,連帶讓 kernel 選中 <code>10.10.0.x</code> 當來源位址。用
+      <code>scope: link</code>(不指定 gateway)是因為這個網段本來就不是
+      真的路由到哪裡去,只是要「佔住」這個路由表項目。</p>
+
+    <div class="callout callout-tip">
+      <p><strong>介面名稱不是寫死的 <code>ens3</code></strong>——雖然目前
+      每台機器實測下來 fabric NIC 確實都是 <code>ens3</code>
+      (Terraform 的 <code>network {}</code> block 順序決定),但 role
+      裡先用 <code>ip -4 -o addr show | grep -F '{{ fabric_ip }}/'</code>
+      實際查一次對應到哪個介面名稱,再把結果代入 netplan 範本——不假設
+      介面命名規則,萬一 OpenStack NIC 枚舉順序在某台機器上不一樣,
+      這裡不會壞。</p>
+    </div>
+
+    <p>這個 bug 影響的不只是 Cilium——任何跑在 hostNetwork 模式、需要連
+      ClusterIP 的元件都會撞到同樣的問題,所以修法放在
+      <code>kubelet</code> 這個通用 role 裡,不是塞進
+      <a href="role-cilium.html">Role: cilium</a>,即使它是在裝 Cilium
+      時才被實際發現的。</p>
+
+    <h3>啟用 kubelet:此時預期會 crashloop</h3>
+    <p>role 的最後一步是 <code>systemctl enable --now kubelet</code>
+      的等價操作。這個階段還沒有 kubeadm init/join 產生的
+      <code>/var/lib/kubelet/config.yaml</code>,kubelet 會一直
+      crashloop,這是<strong>預期行為</strong>,跟官方 kubeadm 文件描述的
+      流程完全一致——真正讓 kubelet 穩定跑起來,要等
+      <a href="role-kubeadm.html">Role: kubeadm</a> 的 init/join 跑完。</p>
+
+    <div class="page-nav">
+      <a class="prev" href="role-crio.html"><span class="dir">上一頁</span><span class="ttl">← Role: crio</span></a>
+      <a class="next" href="role-kubeadm.html"><span class="dir">下一頁</span><span class="ttl">Role: kubeadm →</span></a>
+    </div>
+
+    <footer class="page-footer">
+      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
+      <span>最後更新:2026-07-27</span>
+    </footer>
+  </div>
+</div>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

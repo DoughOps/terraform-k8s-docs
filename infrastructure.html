@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Terraform / OpenStack — k8s + BGP Lab 技術詳解</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <a class="sidebar-logo-link" href="index.html">
+      <h1>🛰️ k8s + BGP Lab</h1>
+      <span>OpenStack Lab · 技術詳解 v15</span>
+    </a>
+  </div>
+  <nav>
+    <div class="nav-group">
+      <div class="nav-group-label">總覽</div>
+      <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
+      <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
+      <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">網路架構</div>
+      <a class="nav-link" href="network-architecture.html"><span class="icon">🌐</span> 網路架構總覽</a>
+      <a class="nav-link" href="packet-flows.html"><span class="icon">🔀</span> 封包路徑實例</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">基礎設施</div>
+      <a class="nav-link active" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
+      <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Ansible 自動化</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
+      <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
+      <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
+      <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
+      <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
+      <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
+      <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Cloudflare 手動設定</div>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">專案紀錄</div>
+      <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+    </div>
+  </nav>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" aria-label="Toggle menu">☰</button>
+      <span class="topbar-crumb">Lab Docs / <strong>Terraform / OpenStack</strong></span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">cloudnative.tw · AS 65000</span>
+      <button class="theme-toggle" id="themeToggle" aria-label="切換主題">
+        <span class="icon-moon">🌙</span><span class="icon-sun">☀️</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <h2><span class="eyebrow">基礎設施</span>Terraform / OpenStack 層</h2>
+    <p class="lede">這一層負責的是「IaaS」——虛擬機器、網路、路由器、security group、
+      floating IP。這一層完全不知道 Kubernetes 存在;它的責任只是把 9 台 VM 跟
+      它們之間的網路可達性準備好,交給 <a href="ansible-framework.html">Ansible
+      層</a>去把 CRI-O/kubeadm/Cilium 裝上去。</p>
+
+    <h3>VM 資源清單</h3>
+    <p>全部定義在 <code>terraform.tfvars</code> 的 <code>vms</code> map 裡,
+      每個角色的 flavor 大小是刻意選的——master/lb 用小 flavor 是因為它們
+      本身不太吃資源(etcd/apiserver/scheduler/kube-proxy/cilium-agent 都不重),
+      worker 用大一點的 flavor 是因為之後真正的工作負載會排程到那裡。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>名稱</th><th>k8s-net IP</th><th class="mono">flavor</th><th>bgp_role</th><th>角色</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="mono">tor</td><td class="mono">10.10.0.10</td><td class="mono">d1.medium</td><td class="mono">tor</td><td>Route reflector + apiserver haproxy</td></tr>
+          <tr><td class="mono">bastion</td><td class="mono">10.10.0.11</td><td class="mono">d1.medium</td><td class="mono">bastion</td><td>唯一操作入口,唯一有 floating ip,不裝 FRR</td></tr>
+          <tr><td class="mono">ms-0001~3</td><td class="mono">10.10.0.20~22</td><td class="mono">d1.medium</td><td class="mono">peer</td><td>Control-plane(etcd + apiserver + scheduler + controller-manager)</td></tr>
+          <tr><td class="mono">l4-0001~2</td><td class="mono">10.10.0.30~31</td><td class="mono">d1.medium</td><td class="mono">peer</td><td>原規劃當 L4LB,現在也是一般 worker</td></tr>
+          <tr><td class="mono">ap-0001~2</td><td class="mono">10.10.0.40~41</td><td class="mono">d2.large</td><td class="mono">peer</td><td>純 worker,flavor 較大準備跑實際工作負載</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-info">
+      <p><strong><code>bgp_role</code> 目前只有三種有效值在用</strong>:
+      <code>tor</code>、<code>bastion</code>、<code>peer</code>。<code>peer</code>
+      是一個刻意通用的角色——它只建立跟 tor 的 iBGP session、不宣告任何 prefix
+      (<code>announce_prefix = ""</code>)。變數定義裡還留著
+      <code>node</code>/<code>l4lb</code> 兩個舊角色(見
+      <code>variables.tf</code>),那是 <a href="l4lb-history.html">Phase 1
+      DSR 驗證</a>用的角色,目前的 <code>terraform.tfvars</code> 沒有任何一台
+      機器用它們,但程式邏輯還留著沒刪——之後如果要重現/延伸 DSR demo,
+      不用重寫這段 template 邏輯。</p>
+    </div>
+
+    <p>所有機器統一 <code>boot_mode = "image"</code>(直接從 <code>Ubuntu-24.04</code>
+      image 開機,不額外掛 boot volume)、統一 <code>keypair_name = "k8s"</code>。
+      image 名稱大小寫是刻意對齊 Glance 裡實際的名稱(<code>Ubuntu-24.04</code>,
+      首字大寫)——這個專案早期踩過一次大小寫不符直接讓 <code>terraform apply</code>
+      失敗的坑。</p>
+
+    <h3>兩個網路,兩份不同的 cloud-init</h3>
+    <p>每台 VM 的 <code>user_data</code> 由 Terraform 的 <code>templatefile()</code>
+      在 <code>main.tf</code>(<code>locals.user_data</code>)組出來,依
+      <code>bgp_role</code> 分成兩條路:</p>
+
+    <div class="nic-grid">
+      <div class="nic-card">
+        <h5>templates/frr-init.sh.tftpl <span class="flag">tor / peer</span></h5>
+        <dl>
+          <dt>安裝</dt><dd>FRR</dd>
+          <dt>設定</dt><dd>ip_forward、per-interface rp_filter/redirects、FRR 設定檔(見 <a href="bgp-fabric.html">FRR / iBGP Fabric</a>)</dd>
+          <dt>用在</dt><dd>tor、bastion 以外所有節點(現在全部是 <code>peer</code>)</dd>
+        </dl>
+      </div>
+      <div class="nic-card">
+        <h5>templates/bastion-init.sh.tftpl <span class="flag">bastion</span></h5>
+        <dl>
+          <dt>安裝</dt><dd>Docker(官方 apt repo)、把 <code>ubuntu</code> 加進 docker group</dd>
+          <dt>設定</dt><dd>完全不碰 FRR/BGP 相關設定,也不裝 FRR</dd>
+          <dt>用在</dt><dd>只有 bastion</dd>
+        </dl>
+      </div>
+    </div>
+
+    <p>這個分流本身就是「bastion 不是資料平面成員」這個設計決定在 Terraform
+      層的體現——bastion 有 k8s-net 的 IP(<code>10.10.0.11</code>),但完全
+      不參與 iBGP,所以它連得到其他節點的<strong>節點位址</strong>(flat
+      subnet 直連),但連不到任何 <strong>Pod IP</strong>(需要 BGP 學到的路由,
+      bastion 沒有),詳見 <a href="network-architecture.html">網路架構總覽</a>。</p>
+
+    <h3>網路資源:為什麼要拆成兩張網路</h3>
+    <p>這是整個基礎設施最核心的一個決定,完整的網路架構角度分析在
+      <a href="network-architecture.html">網路架構總覽</a>,這裡列 Terraform
+      實際怎麼設定:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>資源</th><th>設定</th><th>為什麼</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="mono">k8s_subnet_v4</td>
+            <td class="mono">10.10.0.0/24<br><code>no_gateway = true</code></td>
+            <td>不掛任何 Neutron Router,連 DHCP 都不會發預設路由——逼所有
+              k8s-net 內部的可達性都要靠 iBGP 學到的具體路由,不能有任何一張
+              介面「剛好贏得」default route 的僥倖情況</td>
+          </tr>
+          <tr>
+            <td class="mono">mgmt_subnet</td>
+            <td class="mono">192.168.200.0/24<br>掛 <code>mgmt_router</code></td>
+            <td><code>mgmt_router</code> 接 <code>external_network</code>,
+              是整個架構<strong>唯一</strong>的 SNAT 出口——ansible 對外
+              (apt/helm/image pull)、DNS(<code>8.8.8.8</code>/<code>8.8.4.4</code>)
+              全部走這裡</td>
+          </tr>
+          <tr>
+            <td class="mono">fabric port(每台 VM 一個)</td>
+            <td class="mono">port_security_enabled = false</td>
+            <td>Neutron OVS 的 conntrack-based 防火牆跟 BGP 動態學到的路由、
+              (歷史上)DSR 非對稱路由天生衝突,見下方完整說明</td>
+          </tr>
+          <tr>
+            <td class="mono">mgmt port(每台 VM 一個)</td>
+            <td class="mono">維持 Neutron 預設 security</td>
+            <td>一般端點,不轉發任何流量,沒有理由關掉基本防護</td>
+          </tr>
+          <tr>
+            <td class="mono">bastion_fip</td>
+            <td class="mono">只掛在 bastion 的 mgmt port</td>
+            <td>全架構唯一的 floating ip,壓縮對外攻擊面到只有一台機器</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>為什麼 fabric port 的 <code>port_security_enabled</code> 是 <code>false</code>,是最終結論不是 TODO</h3>
+    <p>這個決定在專案裡被重新驗證過一次(mgmt-net 分離之後,一度嘗試改回
+      <code>port_security_enabled = true</code> + <code>allowed_address_pairs</code>,
+      結果失敗,又改回 <code>false</code>)——值得在這裡把完整推論寫清楚,
+      因為表面上看「關掉安全機制」總是可疑的,需要證明不是偷懶。</p>
+
+    <ol class="steps">
+      <li><div><strong>Neutron 的 security group 是 conntrack-based 的狀態防火牆</strong>
+        ——它不只檢查單一封包是否符合規則,還會追蹤整條 TCP 連線的狀態
+        (NEW → ESTABLISHED),只有已經被標記成 ESTABLISHED 的連線,後續封包
+        才會被放行。</div></li>
+      <li><div><strong>DSR(Direct Server Return,見 <a href="l4lb-history.html">L4LB
+        歷史頁面</a>)的設計本質就是非對稱路由</strong>——去程流量經過負載平衡器,
+        回程流量從 realserver 直接送回 client,完全不經過負載平衡器。</div></li>
+      <li><div><strong>兩者放在一起:負載平衡器的 Neutron port 只會看到「去程」
+        (SYN)</strong>,它的 conntrack 狀態機永遠等不到回程的 SYN-ACK,
+        連線永遠卡在 NEW,標記不了 ESTABLISHED。</div></li>
+      <li><div><strong>client 後續送出的 ACK / 實際資料封包,因為對應的連線
+        狀態不是 ESTABLISHED,被 conntrack 當成「不合法的狀態轉換」直接丟棄</strong>
+        ——這是 DSR/非對稱路由架構跟任何 conntrack-based 防火牆的結構性衝突,
+        不是規則寫錯,加再多 <code>allowed_address_pairs</code>(只解決
+        anti-spoofing/來源位址檢查,完全不碰 conntrack 狀態機)都解決不了。</div></li>
+    </ol>
+    <p>用三點同時 tcpdump(tor / l4lb / realserver)實測驗證過這個結論:
+      l4lb 的 port 上只看得到 SYN,永遠看不到 SYN-ACK。這也解釋了為什麼
+      即使 <a href="l4lb-history.html">DSR 階段已經是歷史</a>,這個
+      <code>port_security_enabled = false</code> 的決定仍然保留到現在——
+      整個 k8s-net 網段的性質(需要承載動態、非對稱、由軟體層決定的路由)
+      沒有變,即使目前的工作負載(kubeadm/Cilium)本身不再直接依賴 DSR。</p>
+
+    <h3>Security Group 規則:寫了但目前不生效的部分</h3>
+    <p><code>k8s-ibgp-lab-sg</code>(刻意取獨立名稱,避開這個 OpenStack
+      專案裡一個已存在、非 Terraform 管理的同名殘留 security group 造成
+      API 名稱解析歧義)裡有 4 條規則:SSH(22)、ICMP、iBGP(179)、
+      Service port。因為 fabric port 已經整段關掉 port security,
+      後兩條(179、service port)目前<strong>不會被實際套用</strong>
+      ——留著純粹是文件用途,記錄「如果哪天恢復 port security,這是
+      當時預期需要開的 port」。</p>
+
+    <h3>BGP ASN 從哪裡設定</h3>
+    <p><code>variables.tf</code> 的 <code>var.bgp_asn</code>(預設
+      <code>65000</code>)會透過 <code>templatefile()</code> 傳進
+      cloud-init,渲染進每台機器的 FRR 設定。這個值<strong>只存在 Terraform
+      這一層</strong>——Ansible 端沒辦法直接讀 Terraform 變數,只能在
+      <code>ansible/inventory/group_vars/all/main.yml</code> 手動維護一份一樣的
+      <code>bgp_asn: 65000</code>,兩邊改的時候要記得一起改,細節見
+      <a href="role-cilium.html">Role: cilium</a>(<code>bgp_announce</code>
+      需要這個值來組 vtysh 指令)。</p>
+
+    <div class="page-nav">
+      <a class="prev" href="packet-flows.html"><span class="dir">上一頁</span><span class="ttl">← 封包路徑實例</span></a>
+      <a class="next" href="bgp-fabric.html"><span class="dir">下一頁</span><span class="ttl">FRR / iBGP Fabric →</span></a>
+    </div>
+
+    <footer class="page-footer">
+      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
+      <span>最後更新:2026-07-27</span>
+    </footer>
+  </div>
+</div>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>內部工具 — k8s + BGP Lab 技術詳解</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <a class="sidebar-logo-link" href="index.html">
+      <h1>🛰️ k8s + BGP Lab</h1>
+      <span>OpenStack Lab · 技術詳解 v15</span>
+    </a>
+  </div>
+  <nav>
+    <div class="nav-group">
+      <div class="nav-group-label">總覽</div>
+      <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
+      <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
+      <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">網路架構</div>
+      <a class="nav-link" href="network-architecture.html"><span class="icon">🌐</span> 網路架構總覽</a>
+      <a class="nav-link" href="packet-flows.html"><span class="icon">🔀</span> 封包路徑實例</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">基礎設施</div>
+      <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
+      <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Ansible 自動化</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
+      <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
+      <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
+      <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
+      <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
+      <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
+      <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
+      <a class="nav-link active" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Cloudflare 手動設定</div>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">專案紀錄</div>
+      <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+    </div>
+  </nav>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" aria-label="Toggle menu">☰</button>
+      <span class="topbar-crumb">Lab Docs / <strong>內部工具</strong></span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">cloudnative.tw · AS 65000</span>
+      <button class="theme-toggle" id="themeToggle" aria-label="切換主題">
+        <span class="icon-moon">🌙</span><span class="icon-sun">☀️</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <h2><span class="eyebrow">Ansible 自動化</span>內部工具:Kubernetes Dashboard / Hubble UI / kube-prometheus-stack</h2>
+    <p class="lede">三組跟叢集本身的網路/運算架構無關,純粹是「裝好、
+      透過同一條 <a href="role-istio.html">Istio Gateway</a> + <a
+      href="role-cert-manager.html">Origin CA 憑證</a> expose 出去、擋在
+      <a href="role-cert-manager.html">Cloudflare Access</a> 後面」的
+      維運/觀測工具。三個都遵循同一個模式,所以放在同一頁,不是各自獨立
+      成頁。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>工具</th><th>子網域</th><th>裝在哪個 role</th><th>目標 Service:port</th><th>內建登入</th></tr></thead>
+        <tbody>
+          <tr><td>Hubble UI</td><td class="mono">hubble.dough-ops.com</td><td class="mono">roles/cilium</td><td class="mono">hubble-ui.cilium:80</td><td>無</td></tr>
+          <tr><td>Kubernetes Dashboard</td><td class="mono">dashboard.dough-ops.com</td><td class="mono">roles/dashboard</td><td class="mono">kubernetes-dashboard-kong-proxy.kubernetes-dashboard:80</td><td>Cloudflare Access SSO,自動略過登入畫面(見下方)</td></tr>
+          <tr><td>Grafana</td><td class="mono">grafana.dough-ops.com</td><td class="mono">roles/kube_prometheus_stack</td><td class="mono">kube-prometheus-stack-grafana.monitoring:80</td><td>Cloudflare Access 原生 OIDC SSO,帳密登入仍保留當備援(見下方)</td></tr>
+          <tr><td>Prometheus</td><td class="mono">prometheus.dough-ops.com</td><td class="mono">roles/kube_prometheus_stack</td><td class="mono">kube-prometheus-stack-prometheus.monitoring:9090</td><td>無</td></tr>
+          <tr><td>Alertmanager</td><td class="mono">alertmanager.dough-ops.com</td><td class="mono">roles/kube_prometheus_stack</td><td class="mono">kube-prometheus-stack-alertmanager.monitoring:9093</td><td>無</td></tr>
+        </tbody>
+      </table>
+      </div>
+    <p>「內建登入」欄位刻意列出來,是因為<strong>這正是為什麼裝完
+      cert-manager 之後緊接著設定 Cloudflare Access 的原因</strong>
+      (見 <a href="role-cert-manager.html">Role: cert_manager</a>)——
+      五個裡面有三個完全沒有任何形式的身份驗證,如果沒有 Access 擋著,
+      這些頁面對外就是完全公開的。</p>
+
+    <h3>共通模式:helm 裝 + 一個(或幾個)VirtualService</h3>
+    <p>三個 role 的 <code>tasks/main.yml</code> 形狀幾乎一樣:</p>
+    <div class="flow">
+      <div class="flow-step"><div class="flow-box">helm repo add</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box accent">helm install/upgrade<br><small>各自的 chart</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box purple">等對應 Deployment ready</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box green">template + apply<br>VirtualService(跨 namespace<br>引用 istio/k8s-gateway)</div></div>
+    </div>
+    <p>VirtualService 跨 namespace 引用共用 Gateway 的寫法,直接沿用
+      <a href="role-istio.html">demo app</a> 當初立下的模式
+      (<code>gateways: [istio/k8s-gateway]</code>)——每加一個新工具,
+      重複同一個模式就好,不用碰 <a href="role-istio.html">Role:
+      istio</a> 或 <a href="role-cert-manager.html">Role:
+      cert_manager</a> 任何一行。</p>
+
+    <h3>Hubble:不是獨立安裝,是 Cilium chart 內建的 flag</h3>
+    <p>跟其他兩個不一樣,Hubble<strong>不是</strong>另外裝一個 chart
+      ——它是 <a href="role-cilium.html">roles/cilium</a> 的
+      <code>cilium-values.yaml.j2</code> 多加兩行:</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/cilium/templates/cilium-values.yaml.j2(新增部分)</span></div>
+      <pre><span class="out">hubble:
+  enabled: true
+  relay:
+    enabled: true
+  ui:
+    enabled: true</span></pre>
+    </div>
+    <p><code>relay</code> 是聚合每個節點 Cilium agent 觀測資料的元件,
+      <code>ui</code> 才是真正對外的網頁介面(<code>hubble-ui</code>
+      Service)。VirtualService 的 apply 邏輯放進
+      <code>roles/cilium/tasks/hubble_expose.yml</code>,由
+      <code>roles/cilium/tasks/main.yml</code> 在 bastion 那一段
+      include——放在 cilium role 裡而不是獨立一個 role,因為 Hubble
+      本質上是 Cilium 的一部分,不是一個獨立安裝的 app。</p>
+
+    <h3>Kubernetes Dashboard:避開一個已知的 Kong TLS port bug</h3>
+    <p>Dashboard 的 helm chart 內建用 Kong 當前置反向代理,<strong>預設
+      只開 HTTPS</strong>(自己簽自簽憑證,<code>kong.proxy.http.enabled:
+      false</code>)。這個專案已經在 Istio Gateway 那一層用真憑證終止過
+      一次 TLS 了(見 <a href="role-cert-manager.html">Role:
+      cert_manager</a>),沒有必要讓流量進到 Dashboard 這邊又是一層自簽
+      憑證的 TLS——上游專案本身有一個已知的 bug/behavior
+      (<a href="https://github.com/kubernetes/dashboard/issues/9861" target="_blank">kubernetes/dashboard#9861</a>):
+      就算想關掉 HTTPS,實際的 Service port 選擇也不一定照預期運作。</p>
+    <p>這裡選擇最乾淨的繞法:明確打開 <code>kong.proxy.http.enabled:
+      true</code>,讓 Kong <strong>同時</strong>開一個 plain HTTP 的
+      port 80(<code>targetPort: 8000</code>),VirtualService 直接打
+      這個 port,完全不碰 HTTPS 那一側,避開整個已知問題,而不是去對抗
+      它。實測驗證這條路徑確實回應 200,不是靠猜的。</p>
+
+    <div class="callout callout-warn">
+      <p><strong>上游專案 <code>kubernetes/dashboard</code> 已經被
+      CNCF/社群標成 retired</strong>(GitHub 倉庫實際搬到
+      <code>kubernetes-retired/dashboard</code>,helm repo URL 也跟著換了
+      ——舊的 <code>kubernetes.github.io/dashboard</code> 現在回
+      404)。chart 本身還能正常裝、正常用,只是往後不會再有官方安全更新
+      ——這是使用者明確要求裝這個工具時就該知道的取捨,不是隱藏起來的
+      風險,用哪個工具的決定權在使用者。</p>
+    </div>
+
+    <h3>Dashboard 的真正 SSO:過了 Cloudflare Access 直接可以用,讀寫權限照身份決定</h3>
+    <p>一開始的方案是「兩個網址,一個自動塞固定的唯讀 token、一個手動貼
+      cluster-admin token」——使用者明確否決,原文:「k8s
+      dashboard不是可以支援sso登入嗎?我不要分成兩個網址 直接看有沒有
+      登入來決定是否可寫」。這代表 kube-apiserver 要真的認得「這個請求
+      是誰發的」,不能只是全部人共用一顆固定 token——所以改走 OIDC
+      整合,單一網址(<code>dashboard.dough-ops.com</code>),三個部分
+      合起來才是完整的故事:</p>
+
+    <div class="flow">
+      <div class="flow-step"><div class="flow-box">瀏覽器登入<br>Cloudflare Access<br><small>doughops GitHub org</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box accent">Access 自動帶<br>Cf-Access-Jwt-Assertion<br>header</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box purple">Istio EnvoyFilter<br>複製成 Authorization<br>header(roles/dashboard)</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box green">Dashboard 自動略過<br>登入畫面<br><small>kubernetes/dashboard#8497</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box">apiserver 用 OIDC<br>驗證同一個 JWT<br>(roles/oidc_auth)</div></div>
+    </div>
+
+    <h4>1. kube-apiserver 直接信任 Cloudflare Access 的 JWT</h4>
+    <p>新增 <code>roles/oidc_auth</code>,幫三台 master 的 apiserver
+      static pod manifest 補上:</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">/etc/kubernetes/manifests/kube-apiserver.yaml(補上的部分)</span></div>
+      <pre><span class="out">- --oidc-issuer-url=https://doughops.cloudflareaccess.com
+- --oidc-client-id=&lt;wildcard Access Application 的 AUD&gt;
+- --oidc-username-claim=email
+- --oidc-username-prefix=-</span></pre>
+    </div>
+    <p><code>--oidc-issuer-url</code> 能不能用,關鍵是這個網域要有正常
+      的 OIDC discovery——用
+      <code>curl https://doughops.cloudflareaccess.com/.well-known/openid-configuration</code>
+      實際查證過會回傳合法的 <code>issuer</code>/<code>jwks_uri</code>,
+      才動手改,不是查了 Cloudflare 文件說「JWT 可以驗證」就假設
+      apiserver 的 OIDC 認證器一定吃得下去。<code>--oidc-username-prefix=-</code>
+      關掉 apiserver 預設會加的 issuer 前綴,讓 RBAC 的 <code>User</code>
+      subject 可以直接寫 email 本身。</p>
+    <p>這是控制平面層級的認證變更,<strong>影響整個 apiserver,不只是
+      Dashboard</strong>——用 <code>serial: 1</code> 一台一台改,每台
+      都先記錄舊的 container id,改完 manifest 之後等
+      <code>crictl ps</code> 確認 container id 真的換了(不是只看
+      <code>/livez</code> 回 200——manifest 改完的當下舊 container
+      通常還在跑,單看 <code>/livez</code> 會誤判成已經套用新設定)、
+      再確認新 container 的 <code>/livez</code> 真的回 200,才動下一台
+      master。</p>
+
+    <h4>2. RBAC:預設唯讀 + 三個明確放行的寫入,個別 email 才有完整 write</h4>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/oidc_rbac</span></div>
+      <pre><span class="out">ClusterRoleBinding cloudflare-access-oidc-view
+  subjects: [Group system:authenticated]
+  roleRef:  ClusterRole/view                     </span><span class="dim"># 內建,刻意不含 secrets</span><span class="out">
+
+ClusterRoleBinding cloudflare-access-oidc-default
+  subjects: [Group system:authenticated]
+  roleRef:  ClusterRole/cloudflare-access-default </span><span class="dim"># 自訂,疊加在 view 之上</span><span class="out">
+
+ClusterRoleBinding cloudflare-access-oidc-admin
+  subjects: [User &lt;email&gt;, ...]   </span><span class="dim"># oidc_admin_emails,secrets.yml</span><span class="out">
+  roleRef:  ClusterRole/cluster-admin</span></pre>
+    </div>
+    <p><code>system:authenticated</code> 是 Kubernetes 內建的群組
+      ——任何用任何方式(client cert、service account token、這裡新加的
+      OIDC……)成功通過 apiserver 驗證的使用者都自動屬於這個群組,不用
+      手動維護成員名單。這個群組疊加綁了<strong>兩個</strong>
+      ClusterRole:內建的 <code>view</code>(唯讀大多數 namespaced
+      資源),加上自訂的 <code>cloudflare-access-default</code>
+      (唯讀 <code>view</code> 沒涵蓋到的 cluster-scope 資源如
+      <code>nodes</code>,外加明確放行三個寫入操作:刪 pod、改
+      configmap、scale deployment,方便日常操作又不用給完整 write)。
+      要完整 write 權限的 email 清單放在
+      <code>oidc_admin_emails</code>(<code>group_vars/all/secrets.yml</code>,
+      不進版控)——這不是傳統意義上的密鑰,但是使用者的私人帳號資訊,
+      一樣不該出現在任何會進 git 歷史的檔案裡。</p>
+    <div class="callout callout-danger">
+      <p><strong>Bug 記錄:自訂角色一開始寫成
+      <code>resources: ["*"]</code>,等於整個 org 都能讀 Secrets</strong>
+      ——原始版本想用一個 wildcard ClusterRole 完全取代 <code>view</code>,
+      理由是 <code>view</code> 涵蓋不到 <code>nodes</code> 這種
+      cluster-scope 資源。但 RBAC 沒有「排除」語法,
+      <code>resources: ["*"]</code> 沒辦法只排除 <code>secrets</code>
+      ——這代表任何通過 Cloudflare Access 登入的人(目前是整個
+      <code>doughops</code> GitHub org,不只是 <code>oidc_admin_emails</code>
+      名單)都能 <code>kubectl get secret -o yaml</code> 讀到 Grafana
+      admin 密碼、TLS 私鑰、Cloudflare tunnel token 等機密——這正是
+      內建 <code>view</code> 角色刻意排除 <code>secrets</code> 的原因。
+      部署前發現這個問題,改成兩個 ClusterRoleBinding 疊加:繼續綁
+      <code>view</code>(沿用官方已經審查過、刻意排除 secrets 的
+      curation),自訂角色改成明確列舉需要額外補上的 cluster-scope
+      資源類型(<code>nodes</code>/<code>namespaces</code>/
+      <code>persistentvolumes</code>/<code>storageclasses</code>)加三個
+      寫入 verb,完全不碰 wildcard。</p>
+    </div>
+
+    <h4>3. EnvoyFilter:讓 Dashboard 自動略過登入畫面</h4>
+    <p>Dashboard 官方文件明講:請求裡已經帶著有效的
+      <code>Authorization</code> header,登入畫面會直接跳過(v7 拿掉了
+      原本內建的 skip-login 開關,這是官方維護者在
+      <a href="https://github.com/kubernetes/dashboard/issues/8497" target="_blank">kubernetes/dashboard#8497</a>
+      明確給的取代方案)。Cloudflare Access 本身在每個通過驗證的請求上
+      已經自動帶了 <code>Cf-Access-Jwt-Assertion</code> header——
+      <code>roles/dashboard</code> 新增一個 EnvoyFilter,掛一段 Lua
+      腳本,把這個 header 的值複製一份、加上 <code>Bearer </code>
+      前綴、蓋到 <code>Authorization</code> 上:</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/dashboard/templates/dashboard-cf-jwt-envoyfilter.yaml.j2(Lua 部分)</span></div>
+      <pre><span class="out">function envoy_on_request(request_handle)
+  local host = request_handle:headers():get(":authority")
+  if host == "dashboard.dough-ops.com" then
+    local jwt = request_handle:headers():get("cf-access-jwt-assertion")
+    if jwt ~= nil then
+      request_handle:headers():replace("authorization", "Bearer " .. jwt)
+    end
+  end
+end</span></pre>
+    </div>
+    <p>用 <code>:authority</code>(Host header)判斷只在
+      <code>dashboard_hostname</code> 生效,是刻意的——這個
+      EnvoyFilter 掛在整個 ingress gateway 上(沒辦法只綁定某一條
+      VirtualService),不加這個判斷會蓋掉 Grafana 等其他服務自己可能
+      在用的 <code>Authorization</code> header,那些服務不預期被硬蓋
+      這個值。</p>
+
+    <div class="callout callout-tip">
+      <p><strong>驗證這個機制真的有效,不能只靠 curl 測試</strong>
+      ——帶假的 <code>Cf-Access-Jwt-Assertion</code> 值送測試請求,跟
+      完全不帶這個 header,對 apiserver 來說都是同一種「沒有效的
+      bearer token」,回應的 401 一模一樣,測不出 Lua 腳本到底有沒有把
+      header 複製過去。真正的驗證方法是暫時在 Lua 腳本裡加
+      <code>request_handle:logInfo(...)</code>,把 istio-ingressgateway
+      的 log level 臨時調到 <code>info</code>,送一次測試請求,直接在
+      Envoy 自己的 log 裡看到「host 判斷對了→ 讀到 header 值 → 真的
+      執行了 replace」三行紀錄,才確認 Lua 邏輯本身正確,再把 debug
+      版本換回乾淨版本。</p>
+    </div>
+
+    <p>目前 <code>oidc_admin_emails</code> 是空的(使用者要另外提供
+      email,不透過會留紀錄的管道),所以現在任何過了 Cloudflare
+      Access 的人都只有上面那組預設權限(唯讀 + 三個放行的寫入,不含
+      secrets)——這是預期的中間狀態,不是漏做,加了 email 重跑
+      <code>playbooks/k8s/oidc-rbac.yml</code> 就會生效。</p>
+
+    <h3>kube-prometheus-stack:release name 刻意取跟 chart 同名</h3>
+    <p>Prometheus/Alertmanager/Grafana 三個 Service 的名稱,取決於這個
+      chart 的 <code>fullname</code> helper 邏輯——如果 release name
+      跟 chart name(<code>kube-prometheus-stack</code>)不一樣,
+      Service 名稱會疊成
+      <code>&lt;release&gt;-kube-prometheus-stack-alertmanager</code>
+      這種重複又長的名字。這裡故意把 helm release 也取名
+      <code>kube-prometheus-stack</code>,讓 helper 判斷「release name
+      已經包含 chart name」,自動省掉重複的部分,得到乾淨的
+      <code>kube-prometheus-stack-grafana</code> /
+      <code>-prometheus</code> / <code>-alertmanager</code>
+      ——VirtualService 裡硬寫的目標 Service 名稱才對得上,這個對應關係
+      是先用 <code>helm template</code> 實際算出來、確認過名稱,才寫進
+      ansible role 的,不是照著猜的慣例寫。</p>
+
+    <h3>不掛 PVC:也是 chart 的預設值,不是額外關掉什麼</h3>
+    <p>使用者明確要求「可以不用掛 PVC」——查了一下這個 chart 的
+      <code>values.yaml</code>,<code>prometheusSpec.storageSpec</code>、
+      <code>alertmanagerSpec.storage</code>、
+      <code>grafana.persistence.enabled</code> 三個原本就<strong>預設
+      關閉</strong>,不需要額外做什麼。<code>roles/kube_prometheus_stack/templates/values.yaml.j2</code>
+      還是明確把這三個值寫出來(即使跟預設值一樣)——目的是讓「這是刻意
+      的決定」這件事在程式碼裡看得到,不是意外落在預設值上、以後有人
+      改 chart 版本時預設值變了都不會發現。代價很直接:
+      Prometheus/Alertmanager/Grafana 的資料在 pod 重建後全部歸零,這個
+      lab 環境接受這個取捨。</p>
+
+    <h3>Grafana 密碼:helm 自動產生,不印進 ansible 執行紀錄</h3>
+    <p>沒有在 values 裡指定 <code>grafana.adminPassword</code>——讓
+      chart 自己產生一組隨機密碼,存進
+      <code>kube-prometheus-stack-grafana</code> 這個 Secret 的
+      <code>admin-password</code> 欄位。role 的最後一步只印一段「怎麼自己
+      查」的說明(<code>kubectl get secret ... -o jsonpath=... | base64
+      -d</code>),<strong>不會</strong>把密碼實際印出來或寫進
+      ansible 的執行紀錄——密碼這種東西能不落地就不落地,跟這個專案處理
+      SSH 私鑰、tunnel token、Origin CA API token 是同一種謹慎程度。</p>
+
+    <h3>Grafana 的 SSO:原生支援,不用碰 Istio</h3>
+    <p>使用者接著問「grafana也串接sso 假如可以原生支援的話 如果要做
+      大量客製化修改則先停下讓我決定」——跟 Dashboard 不一樣,Grafana
+      本身就有一等公民的 <code>auth.generic_oauth</code> 功能,Cloudflare
+      也有對應的原生功能可以配對:<strong>Access for SaaS</strong>
+      這種 OIDC application 類型(跟前面 kube-apiserver/Dashboard 用的
+      <code>self_hosted</code> Application 完全不同機制——這種類型讓
+      Cloudflare Access 本身扮演一個真正的 OIDC provider,發 authorization
+      code、發 token,不是被動驗證一個既有的 JWT)。兩邊都是原生功能,
+      不需要像 Dashboard 那樣另外掛 EnvoyFilter/Lua 複製 header 的
+      workaround(Dashboard v7 是因為拿掉了官方內建的 skip-login 開關
+      才需要那條路,見 <a href="role-cert-manager.html">Role:
+      cert_manager</a>；Grafana 沒有這個限制)。</p>
+
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/kube_prometheus_stack/templates/values.yaml.j2(grafana.ini 部分)</span></div>
+      <pre><span class="out">auth.generic_oauth:
+  enabled: true
+  allow_sign_up: true
+  auto_login: true
+  client_id: &lt;grafana-sso 這個 SaaS app 的 client_id&gt;
+  scopes: "openid email profile"
+  auth_url:  https://doughops.cloudflareaccess.com/cdn-cgi/access/sso/oidc/&lt;client_id&gt;/authorization
+  token_url: https://doughops.cloudflareaccess.com/cdn-cgi/access/sso/oidc/&lt;client_id&gt;/token
+  api_url:   https://doughops.cloudflareaccess.com/cdn-cgi/access/sso/oidc/&lt;client_id&gt;/userinfo
+  role_attribute_path: "contains([&lt;oidc_admin_emails&gt;], email) && 'Admin' || 'Viewer'"</span></pre>
+    </div>
+    <p><code>auth_url</code>/<code>token_url</code>/<code>api_url</code>
+      這三個網址,是先用
+      <code>curl https://doughops.cloudflareaccess.com/cdn-cgi/access/sso/oidc/&lt;client_id&gt;/.well-known/openid-configuration</code>
+      實際查出來的正確端點,才填進去——不是照著網路上的網址規則猜著拼。
+      <code>role_attribute_path</code> 重用
+      <code>roles/oidc_rbac</code>(見上方 Dashboard SSO 的說明)那份
+      <code>oidc_admin_emails</code> 清單——同一批人在 Dashboard(K8s
+      RBAC)跟 Grafana(Org Admin)都是管理者,只維護一份名單;清單是
+      空的話這個表達式直接退化成固定字串 <code>'Viewer'</code>,所有人
+      預設唯讀。<code>client_secret</code> 不寫進 <code>grafana.ini</code>
+      (那份設定會存成一個 plaintext 的 ConfigMap),改用
+      <code>envValueFrom</code> 從另外建的 Secret 讀,對應到 Grafana
+      認得的環境變數覆寫規則(<code>GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET</code>
+      蓋過 ini 裡同一個設定)。</p>
+
+    <div class="callout callout-danger">
+      <p><strong>被否決的設計:讓 grafana.dough-ops.com 略過邊緣的
+      Cloudflare Access</strong>——裝完之後發現
+      <code>grafana.dough-ops.com</code> 同時被兩層擋著:邊緣的萬用字元
+      Access Application(涵蓋整個 <code>*.dough-ops.com</code>)先擋
+      一次,Grafana 自己的 <code>auth.generic_oauth</code> 又擋一次,
+      兩層要求的其實是同一件事(doughops GitHub org)。原本想幫
+      <code>grafana.dough-ops.com</code> 另外建一個
+      <code>decision: bypass</code> 的精確匹配 Application,讓邊緣那層
+      對這個 hostname 讓開,只留 Grafana 自己的 OIDC 當唯一關卡——被
+      使用者明確否決:「所有網站都需要通過cloudflare access, 否則你的
+      方法萬一grafana有漏洞 網站會被攻破」。這是刻意的
+      defense-in-depth 要求:兩層各自獨立擋,即使 Grafana 自己的認證
+      邏輯哪天出現漏洞,邊緣那一層依然完整擋著,不會因為省一次跳轉就
+      把這道防線拆掉。維持現況(兩層都在),兩層共用同一個 Cloudflare
+      team session,實測瀏覽器只需要登入一次——第二層是無感的重新
+      導向,不是真的要求使用者重新輸入帳密。</p>
+    </div>
+
+    <h3>Grafana 密碼:帳密登入還在,當 SSO 之外的備援</h3>
+    <p>沒有在 values 裡指定 <code>grafana.adminPassword</code>——讓
+      chart 自己產生一組隨機密碼,存進
+      <code>kube-prometheus-stack-grafana</code> 這個 Secret 的
+      <code>admin-password</code> 欄位。role 的最後一步只印一段「怎麼自己
+      查」的說明(<code>kubectl get secret ... -o jsonpath=... | base64
+      -d</code>),<strong>不會</strong>把密碼實際印出來或寫進
+      ansible 的執行紀錄——密碼這種東西能不落地就不落地,跟這個專案處理
+      SSH 私鑰、tunnel token、Origin CA API token 是同一種謹慎程度。裝了
+      SSO 之後這組帳密不會自動失效(<code>auth.generic_oauth</code> 是
+      <strong>加裝</strong>一種登入方式,不是取代原本的帳密登入),保留
+      當作 SSO 出問題時的備援登入路徑。</p>
+
+    <h3>驗證方式:內部用真憑證驗證,外部確認被 Access 擋住</h3>
+    <p>每個工具都用跟 <a href="role-cert-manager.html">Role:
+      cert_manager</a> 一樣的兩段式驗證:先在叢集內部開一個臨時
+      <code>curl</code> pod,帶 Origin CA root cert 直接打
+      <code>istio-ingressgateway</code> 的 443 port(繞過 Cloudflare
+      Access,證明「後端這一段」真的通、憑證真的驗證得過);再從外部
+      直接 <code>curl https://&lt;子網域&gt;.dough-ops.com/</code>,確認
+      回應是 302 導去 <code>doughops.cloudflareaccess.com</code> 的
+      GitHub 登入頁,不是 200 或任何其他狀態——兩段都要各自驗證,只測
+      外部的話測不到「後端到底通不通」,只測內部的話又證明不了「Access
+      真的擋住了」。</p>
+
+    <div class="page-nav">
+      <a class="prev" href="role-github-runner.html"><span class="dir">上一頁</span><span class="ttl">← Role: github_runner</span></a>
+      <a class="next" href="testing.html"><span class="dir">下一頁</span><span class="ttl">測試 / smoke-test →</span></a>
+    </div>
+
+    <footer class="page-footer">
+      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
+      <span>最後更新:2026-07-27</span>
+    </footer>
+  </div>
+</div>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

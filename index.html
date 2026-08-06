@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>總覽 — k8s + BGP Lab 技術詳解</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <a class="sidebar-logo-link" href="index.html">
+      <h1>🛰️ k8s + BGP Lab</h1>
+      <span>OpenStack Lab · 技術詳解 v15</span>
+    </a>
+  </div>
+  <nav>
+    <div class="nav-group">
+      <div class="nav-group-label">總覽</div>
+      <a class="nav-link active" href="index.html"><span class="icon">🏠</span> 總覽</a>
+      <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
+      <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">網路架構</div>
+      <a class="nav-link" href="network-architecture.html"><span class="icon">🌐</span> 網路架構總覽</a>
+      <a class="nav-link" href="packet-flows.html"><span class="icon">🔀</span> 封包路徑實例</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">基礎設施</div>
+      <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
+      <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Ansible 自動化</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
+      <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
+      <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
+      <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
+      <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
+      <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
+      <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Cloudflare 手動設定</div>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">專案紀錄</div>
+      <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+    </div>
+  </nav>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" aria-label="Toggle menu">☰</button>
+      <span class="topbar-crumb">Lab Docs / <strong>總覽</strong></span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">cloudnative.tw · AS 65000</span>
+      <button class="theme-toggle" id="themeToggle" aria-label="切換主題">
+        <span class="icon-moon">🌙</span><span class="icon-sun">☀️</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <div class="hero">
+      <h2>在真實 OpenStack 上,用 iBGP fabric 撐起一個 native routing 的 Kubernetes 叢集</h2>
+      <p class="lede" style="margin-top:10px;">
+        這不是教學文件裡的範例架構,是在 cloudnative.tw(一個一般權限、沒有 LBaaS/routed
+        public prefix 的通用 OpenStack tenant)上,從零開始一步步建出來、每個決定都有
+        實測證據支撐的真實叢集。核心命題很單純:<strong>公有雲/一般 OpenStack tenant
+        通常只給你「一張扁平網路 + Router NAT」,但如果你自己在每台機器上跑
+        FRR 組一個 iBGP fabric,你其實可以拿到接近「有 BGP 路由器的實體機房」才有的
+        東西——ECMP、L4LB DR、以及現在這份文件的主角:不靠 VXLAN/Geneve overlay
+        的 native routing CNI。</strong>
+      </p>
+      <div class="hero-chips">
+        <span class="chip chip-blue">7 個 k8s 節點 + 1 tor + 1 bastion</span>
+        <span class="chip chip-green">單一 ASN 65000,全節點 iBGP</span>
+        <span class="chip chip-purple">Cilium native routing,不用 Cilium 自己的 BGP</span>
+        <span class="chip chip-yellow">Ansible 全自動化,跑在 bastion 的 Docker 裡</span>
+        <span class="chip chip-blue">Cilium eBPF 取代 kube-proxy</span>
+        <span class="chip chip-purple">Cloudflare Tunnel 對外,不開任何 inbound port</span>
+        <span class="chip chip-green">cert-manager + Origin CA,端對端 Full (strict) 加密</span>
+        <span class="chip chip-yellow">Cloudflare Access 擋整個 *.dough-ops.com</span>
+      </div>
+    </div>
+
+    <h3>現在的拓樸</h3>
+    <p>這是目前(2026-07-27)這個 lab 實際跑起來的樣子——3 台 master 做 etcd/apiserver HA、
+      2 台原本規劃當 L4LB 的節點現在也直接當 k8s worker 用、2 台純 worker,
+      全部節點的資料平面都在同一個扁平網路(k8s-net)上跑 iBGP。</p>
+
+    <div class="topo">
+      <div class="topo-cap">
+        <span class="t">節點拓樸圖</span>
+        <span class="n">mgmt-net(虛線,管理/對外)+ k8s-net iBGP fabric(實線,tor 扇出)</span>
+      </div>
+      <svg class="topo-svg" viewBox="0 0 960 420" role="img" aria-label="拓樸圖:你的筆電經 floating ip 連到 bastion;bastion 與所有節點共用 mgmt-net 管理網路(對外唯一出口是 OpenStack Router 的 SNAT);tor 是 k8s-net 這個扁平網路上唯一的 iBGP route reflector,扇出連接 3 台 control-plane、2 台原規劃當 L4LB 現在也當 worker 的節點,以及 2 台純 worker">
+        <defs>
+          <marker id="topoArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path class="arrow-fill" d="M0,0 L10,5 L0,10 z"></path>
+          </marker>
+          <marker id="topoArrowAccent" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path class="arrow-fill accent" d="M0,0 L10,5 L0,10 z"></path>
+          </marker>
+        </defs>
+
+        <!-- mgmt-net: 對外/管理平面(虛線,everything hangs off this) -->
+        <line class="dline dashed" x1="20" y1="118" x2="900" y2="118"></line>
+        <line class="dline dashed" x1="490" y1="80" x2="490" y2="176"></line>
+        <line class="dline dashed" x1="235" y1="118" x2="235" y2="176"></line>
+        <line class="dline dashed" x1="900" y1="118" x2="930" y2="118"></line>
+        <line class="dline dashed" x1="930" y1="118" x2="930" y2="356"></line>
+        <line class="dline dashed" x1="930" y1="356" x2="900" y2="356"></line>
+        <text class="dtiny" x="60" y="112" text-anchor="start">mgmt-net</text>
+        <text class="dtiny" x="870" y="104" text-anchor="end">(也接到其他節點,簡化只畫一條)</text>
+
+        <!-- k8s-net: 資料平面(實線,tor 扇出,唯一的 accent 用色) -->
+        <path class="dline accent" d="M490,246 C490,286 95,286 95,326" marker-end="url(#topoArrowAccent)"></path>
+        <path class="dline accent" d="M490,246 C490,286 220,286 220,326" marker-end="url(#topoArrowAccent)"></path>
+        <path class="dline accent" d="M490,246 C490,286 345,286 345,326" marker-end="url(#topoArrowAccent)"></path>
+        <path class="dline accent" d="M490,246 C490,286 470,286 470,326" marker-end="url(#topoArrowAccent)"></path>
+        <path class="dline accent" d="M490,246 C490,286 595,286 595,326" marker-end="url(#topoArrowAccent)"></path>
+        <path class="dline accent" d="M490,246 C490,286 720,286 720,326" marker-end="url(#topoArrowAccent)"></path>
+        <path class="dline accent" d="M490,246 C490,286 845,286 845,326" marker-end="url(#topoArrowAccent)"></path>
+        <text class="dtiny" x="870" y="200" text-anchor="end">k8s-net 10.10.0.0/24</text>
+
+        <!-- 你的筆電 -->
+        <rect class="dbox dim" x="20" y="196" width="100" height="50" rx="3"></rect>
+        <text class="dlabel" x="70" y="226">你的筆電</text>
+        <path class="dline" d="M120,221 L146,221" marker-end="url(#topoArrow)"></path>
+        <text class="dtiny" x="133" y="212">floating ip</text>
+
+        <!-- OpenStack Router -->
+        <rect class="dbox dim" x="380" y="24" width="220" height="50" rx="3"></rect>
+        <text class="dlabel" x="490" y="46">OpenStack Router</text>
+        <text class="dsub" x="490" y="61">SNAT · mgmt-net 唯一對外出口</text>
+
+        <!-- bastion(虛線框:只在 mgmt-net,沒有 k8s-net) -->
+        <rect class="dbox dim" x="150" y="176" width="170" height="70" rx="3"></rect>
+        <text class="dlabel" x="235" y="204">bastion</text>
+        <text class="dsub" x="235" y="219">.11 · 唯一操作入口</text>
+        <text class="dtiny" x="235" y="262">SSH 直連,同一個 mgmt-net(無 ProxyJump)</text>
+
+        <!-- tor(唯一 accent 框:route reflector,k8s-net 的中心) -->
+        <rect class="dbox accent" x="390" y="176" width="200" height="70" rx="3"></rect>
+        <text class="dlabel accent" x="490" y="204">tor</text>
+        <text class="dsub" x="490" y="219">.10 · route reflector(FRR + haproxy)</text>
+
+        <!-- 3 x control-plane -->
+        <rect class="dbox" x="40" y="326" width="110" height="60" rx="3"></rect>
+        <text class="dlabel" x="95" y="352">ms-0001</text>
+        <text class="dsub" x="95" y="367">.20 · control-plane</text>
+
+        <rect class="dbox" x="165" y="326" width="110" height="60" rx="3"></rect>
+        <text class="dlabel" x="220" y="352">ms-0002</text>
+        <text class="dsub" x="220" y="367">.21 · control-plane</text>
+
+        <rect class="dbox" x="290" y="326" width="110" height="60" rx="3"></rect>
+        <text class="dlabel" x="345" y="352">ms-0003</text>
+        <text class="dsub" x="345" y="367">.22 · control-plane</text>
+
+        <!-- 2 x l4lb(現在也是 worker) -->
+        <rect class="dbox" x="415" y="326" width="110" height="60" rx="3"></rect>
+        <text class="dlabel" x="470" y="352">l4-0001</text>
+        <text class="dsub" x="470" y="367">.30 · worker(L4LB)</text>
+
+        <rect class="dbox" x="540" y="326" width="110" height="60" rx="3"></rect>
+        <text class="dlabel" x="595" y="352">l4-0002</text>
+        <text class="dsub" x="595" y="367">.31 · worker(L4LB)</text>
+
+        <!-- 2 x 純 worker -->
+        <rect class="dbox" x="665" y="326" width="110" height="60" rx="3"></rect>
+        <text class="dlabel" x="720" y="352">ap-0001</text>
+        <text class="dsub" x="720" y="367">.40 · worker</text>
+
+        <rect class="dbox" x="790" y="326" width="110" height="60" rx="3"></rect>
+        <text class="dlabel" x="845" y="352">ap-0002</text>
+        <text class="dsub" x="845" y="367">.41 · worker</text>
+      </svg>
+      <p class="topo-foot">每個節點的 Pod CIDR(172.16.x.0/24)由 Cilium 分配,由本節點的 FRR 用 network 陳述式廣播出去,tor 反射給其他所有節點。</p>
+      <div class="topo-legend">
+        <span class="lg-item"><span class="lg-swatch"></span> mgmt-net 192.168.200.0/24(管理/對外)</span>
+        <span class="lg-item"><span class="lg-swatch solid"></span> k8s-net 10.10.0.0/24(iBGP fabric)</span>
+        <span class="lg-item"><span class="pill pill-tor">tor</span> 唯一 route reflector</span>
+        <span class="lg-item"><span class="pill pill-bastion">bastion</span> 唯一操作入口,無 k8s-net</span>
+      </div>
+    </div>
+
+    <p>圖上沒畫出來的是<strong>對外流量的入口</strong>:cluster 內
+      <code>cloudflare</code> namespace 跑著 <code>cloudflared</code>,
+      對 Cloudflare 邊緣建立 outbound-only 連線,不佔用上面拓樸裡的任何
+      floating ip/inbound port——完整路徑見
+      <a href="role-cloudflare-tunnel.html">Role: cloudflare_tunnel</a>。</p>
+
+    <div class="callout callout-tip">
+      <p><strong>為什麼要看這份文件,不是只看 <code>kubectl get all</code>?</strong>
+      因為這個 lab 的價值不在「有一個能動的 k8s 叢集」——minikube 五分鐘就有一個。
+      價值在於每一個看起來普通的設定背後,都對應著一個實測踩到的坑,或一個刻意的取捨。
+      這份文件的目標是讓你不用重踩這些坑就能看懂「為什麼是這樣設」。</p>
+    </div>
+
+    <h3>建置的五個階段</h3>
+    <p>這個 lab 不是一次到位設計出來的,是分階段疊上去的,每一階段都先驗證上一階段的
+      假設是對的,再往下一階段走。了解這個順序,能幫助理解為什麼某些設計「看起來繞了一下」
+      ——因為當初做那個決定時,後面的階段根本還沒發生。</p>
+
+    <ol class="steps">
+      <li>
+        <div>
+          <strong>Phase 1 · 驗證 iBGP + ECMP + DSR L4LB 的核心假設(已被取代,見
+          <a href="l4lb-history.html">DSR / L4LB 歷史頁面</a>)</strong>
+          最早的問題是:「cloudnative.tw 這種一般權限 OpenStack tenant,到底有沒有可能做出
+          BGP-based 的 L4LB?」用最少的機器(tor + 2 個「假 pod」node-a/node-b + 2 台 l4lb)
+          證明了:next-hop-self force 讓 route reflector 正確反射路由、
+          <code>maximum-paths ibgp</code> 做出真正的 ECMP、IPVS DR 模式讓 L4LB
+          回程流量完全不經過負載平衡器本身(用 <code>ipvsadm --stats</code> 的
+          <code>OutPkts=0</code> 證明)。這個階段也是 <strong>Neutron port security
+          與 DSR 天生不相容</strong>這個結論的來源——之後全專案的 fabric port 都
+          <code>port_security_enabled = false</code>,是這裡驗證出來的,不是隨便關的。
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>Phase 2 · 換成真實 k8s 拓樸,分離 mgmt-net / k8s-net</strong>
+          驗證完核心假設後,把測試用的 node-a/node-b/l4lb-0001/l4lb-0002 換成真正要跑
+          k8s 的機器:bastion(操作入口)+ 3 master + 2 lb(仍保留角色但也當 worker)+
+          2 worker,並且把原本「單一扁平網路 + Router 做 SNAT」正式拆成
+          k8s-net(資料平面,無預設路由)+ mgmt-net(操作/對外,有 SNAT),
+          詳見 <a href="infrastructure.html">Terraform / OpenStack 頁面</a>。
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>Phase 3 · 用 Ansible 把「裝 k8s」這件事自動化,再用 kubeadm + Cilium
+          native routing 把叢集真的立起來</strong>
+          先建立一套「本機打指令、實際在 bastion 的 Docker 裡執行 ansible」的框架
+          (<a href="ansible-framework.html">Ansible 框架設計</a>),再依序裝
+          CRI-O → kubeadm 拉起 3-master HA 控制平面 → apiserver 的 haproxy LB
+          (架在 tor 上,見 <a href="role-apiserver-lb.html">Role: apiserver-lb</a>)→
+          最後裝 Cilium,選 native routing 模式、<strong>刻意不用 Cilium 自己的
+          BGP Control Plane</strong>,而是把每個節點的 Pod CIDR 動態塞進既有的
+          FRR fabric 裡宣告出去(見 <a href="role-cilium.html">Role: cilium</a>)——
+          讓 Phase 1 驗證出來的 iBGP fabric 真的變成「production 用途」,不是驗證完就丟掉。
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>Phase 4 · 拿掉 kube-proxy、裝 Istio + Cloudflare Tunnel,
+          把叢集變成真的能對外服務</strong>
+          Phase 3 讓叢集自己內部通了,但還沒有對外的路。這個階段做三件
+          事:把 <code>kubeProxyReplacement</code> 打開、讓 Cilium 的
+          eBPF 完全取代 kube-proxy(連帶把 Cilium 搬到專屬的
+          <code>cilium</code> namespace,見
+          <a href="role-cilium.html">Role: cilium</a>);裝 Istio 當
+          cluster 內部的 L7 路由層(<code>istio</code> namespace,見
+          <a href="role-istio.html">Role: istio</a>);最後裝
+          <code>cloudflared</code>,建立一條 outbound-only 的 Cloudflare
+          Tunnel 當<strong>唯一</strong>對外入口(<code>cloudflare</code>
+          namespace,見
+          <a href="role-cloudflare-tunnel.html">Role: cloudflare_tunnel</a>)
+          ——這個階段也踩到一個值得記錄的岔路:第一版方案是走
+          bastion floating ip + NodePort + nginx,被使用者明確否決、
+          整個移除,因為使用者已經獨立設定好 Cloudflare Tunnel,不需要
+          再開任何 inbound port。同一批工作也順手把整個叢集升級到
+          Kubernetes 1.34。
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>Phase 5 · 端對端加密 + 身份驗證:cert-manager、
+          Cloudflare Access,還有一批真正拿來用的內部工具</strong>
+          Phase 4 讓 <code>*.dough-ops.com</code> 對外通了,但
+          Cloudflare Tunnel 到 Istio Gateway 那一段還是 plain HTTP、
+          誰都連得到。這個階段裝 cert-manager + Cloudflare 官方的
+          <code>origin-ca-issuer</code>,簽一張真正被 Cloudflare 信任的
+          <code>*.dough-ops.com</code> wildcard 憑證,讓 Istio Gateway
+          也講 HTTPS,cloudflared 用同一張 CA 的 root cert 驗證(見
+          <a href="role-cert-manager.html">Role: cert_manager</a>)——
+          整條路徑變成 Cloudflare「Full (strict)」等級的端對端加密。
+          光加密還不夠,因為緊接著裝的三個工具(Kubernetes Dashboard、
+          Hubble UI、kube-prometheus-stack 的 Grafana/Prometheus/
+          Alertmanager,見 <a href="internal-tools.html">內部工具</a>)
+          有一半以上完全沒有內建登入,所以同一批工作也設定了
+          Cloudflare Access,擋在整個 <code>*.dough-ops.com</code>
+          萬用字元前面,只有 <code>doughops</code> 這個 GitHub org 的
+          成員登入後才連得到——一次設定,新增任何服務都自動涵蓋在內。
+        </div>
+      </li>
+    </ol>
+
+    <h3>怎麼讀這份文件</h3>
+    <p>如果你想要自己動手從零建一份一樣的環境,直接看
+      <a href="getting-started.html">從零開始建置</a>——那頁是唯一一份「OpenStack
+      認證設定 → Terraform 建資源 → Cloudflare Terraform → Ansible 裝好整套」的完整
+      操作清單。如果你只有五分鐘,看
+      <a href="network-architecture.html">網路架構總覽</a> 就好——那頁把「為什麼整個系統
+      長這樣」講完整了。如果你要重現或除錯某個具體元件,直接跳對應的
+      <code>role-*.html</code> 頁面,每頁都是「這個 role 每個設定為什麼這樣寫」
+      的逐項說明,包含實測踩到的 bug。如果你在找「這個錯誤訊息我好像在哪見過」,
+      直接去 <a href="troubleshooting.html">Bug 事後檢討</a>,那頁把整個專案
+      實測到的所有 bug 按時間排序,每個都附根因分析跟修法。</p>
+
+    <div class="card-grid">
+      <a class="card-link" href="getting-started.html">
+        <div class="card">
+          <div class="card-icon">🚀</div>
+          <h4>從零開始建置</h4>
+          <p>OpenStack 認證 → Terraform → Cloudflare Terraform → Ansible,完整的自己動手清單。</p>
+        </div>
+      </a>
+      <a class="card-link" href="network-architecture.html">
+        <div class="card">
+          <div class="card-icon">🌐</div>
+          <h4>網路架構總覽</h4>
+          <p>所有 IP 網段的權責、每種節點角色的完整路由表、為什麼選 native routing。</p>
+        </div>
+      </a>
+      <a class="card-link" href="role-cilium.html">
+        <div class="card">
+          <div class="card-icon">🐝</div>
+          <h4>Role: cilium</h4>
+          <p>把 Pod CIDR 塞進既有 FRR fabric、取代 kube-proxy 的完整故事,含四個實測 bug。</p>
+        </div>
+      </a>
+      <a class="card-link" href="role-cloudflare-tunnel.html">
+        <div class="card">
+          <div class="card-icon">☁️</div>
+          <h4>Role: cloudflare_tunnel</h4>
+          <p>唯一的對外入口,outbound-only,不開任何 inbound port,含一段被否決的方案轉折。</p>
+        </div>
+      </a>
+      <a class="card-link" href="role-cert-manager.html">
+        <div class="card">
+          <div class="card-icon">🔐</div>
+          <h4>Role: cert_manager</h4>
+          <p>Cloudflare Origin CA 真憑證 + Cloudflare Access,端對端加密跟身份驗證怎麼補上。</p>
+        </div>
+      </a>
+      <a class="card-link" href="troubleshooting.html">
+        <div class="card">
+          <div class="card-icon">🐛</div>
+          <h4>Bug 事後檢討</h4>
+          <p>整個專案實測到的所有 bug,按時間排序,根因 + 修法。</p>
+        </div>
+      </a>
+      <a class="card-link" href="testing.html">
+        <div class="card">
+          <div class="card-icon">✅</div>
+          <h4>測試 / smoke-test</h4>
+          <p>怎麼自己重新驗證整個系統真的在動,不是只看 pod 有沒有裝。</p>
+        </div>
+      </a>
+    </div>
+
+    <div class="page-nav">
+      <span></span>
+      <a class="next" href="getting-started.html"><span class="dir">下一頁</span><span class="ttl">從零開始建置 →</span></a>
+    </div>
+
+    <footer class="page-footer">
+      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
+      <span>最後更新:2026-07-27</span>
+    </footer>
+  </div>
+</div>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

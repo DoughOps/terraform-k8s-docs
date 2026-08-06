@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Role: github_runner — k8s + BGP Lab 技術詳解</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <a class="sidebar-logo-link" href="index.html">
+      <h1>🛰️ k8s + BGP Lab</h1>
+      <span>OpenStack Lab · 技術詳解 v15</span>
+    </a>
+  </div>
+  <nav>
+    <div class="nav-group">
+      <div class="nav-group-label">總覽</div>
+      <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
+      <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
+      <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">網路架構</div>
+      <a class="nav-link" href="network-architecture.html"><span class="icon">🌐</span> 網路架構總覽</a>
+      <a class="nav-link" href="packet-flows.html"><span class="icon">🔀</span> 封包路徑實例</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">基礎設施</div>
+      <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
+      <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Ansible 自動化</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
+      <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
+      <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
+      <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
+      <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
+      <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
+      <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link active" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Cloudflare 手動設定</div>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">專案紀錄</div>
+      <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+    </div>
+  </nav>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" aria-label="Toggle menu">☰</button>
+      <span class="topbar-crumb">Lab Docs / <strong>Role: github_runner</strong></span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">cloudnative.tw · AS 65000</span>
+      <button class="theme-toggle" id="themeToggle" aria-label="切換主題">
+        <span class="icon-moon">🌙</span><span class="icon-sun">☀️</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <h2><span class="eyebrow">Ansible 自動化</span>Role: github_runner</h2>
+    <p class="lede">在 bastion 上跑一個獨立的 Docker container,註冊成
+      <code>doughops</code> 這個 GitHub org 共用的 self-hosted
+      runner——目前<strong>只是把 runner 本身接上</strong>,還沒有任何
+      repo 可以真的用它跑 CD(見下方「目前的範圍」)。這頁記錄的除了
+      「怎麼接上」,更多篇幅在「為什麼還不能直接拿來給 public repo
+      當 CD」,因為這正是設計這個 role 時花最多時間討論的部分。</p>
+
+    <div class="callout callout-danger">
+      <p><strong>目前的範圍:runner 已經接上,但故意讓它對任何 repo
+      都用不到</strong>——doughops 底下 9 個 repo 有 8 個是 public,
+      org 層級共用的 self-hosted runner 預設對所有 repo 開放,等於
+      「任何人對任何一個 public repo 開 PR,只要 workflow 檔案跑在
+      self-hosted runner 上,就有機會在 bastion 上執行任意程式碼」——
+      這是 GitHub 官方自己的安全建議明講過的攻擊面,不是這個專案過度
+      謹慎。bastion 身上背的東西(admin.conf、內部 SSH key、Cloudflare
+      tunnel token)一旦被拿到執行權,代價遠大於這個 lab 目前處理過的
+      任何風險。所以這個 role 註冊 runner 的同時,建了一個
+      <code>doughops-cd</code> Runner Group,<strong>刻意不放任何
+      repo 進去</strong>——runner 存在,但沒有任何 repo 能實際排到它。
+      要開放給哪個 CD repo 用、怎麼安全地開放,是還沒做、需要另外規劃
+      的下一步(見下方「還沒解決的部分」)。</p>
+    </div>
+
+    <h3>為什麼是 Docker container,不是 systemd</h3>
+    <p>跟 <a href="role-cloudflare-tunnel.html">bastion_ssh_tunnel</a>
+      那種常駐服務不一樣,這裡故意選 Docker——bastion 上已經有 Docker
+      在跑(<code>scripts/ansible.sh</code> 自己就是靠它建置、執行
+      ansible-runner container),多一個獨立的 <code>github-runner</code>
+      image 是同一套既有工具鏈,不用再多學一種服務管理方式。版本/
+      執行環境完全封裝在 image 裡,重跑這個 role 不會跟 host 上其他
+      東西的相依套件打架。</p>
+
+    <h3>整體流程</h3>
+    <div class="flow">
+      <div class="flow-step"><div class="flow-box">GitHub App<br><small>只有 org runner 權限</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box accent">mint_registration_token.py<br><small>JWT → installation token → registration token</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box purple">config.sh<br><small>註冊到 doughops-cd 這個 Runner Group</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box green">run.sh<br><small>常駐,等工作進來</small></div></div>
+    </div>
+
+    <div class="callout callout-tip">
+      <p><strong>實際跑起來了</strong>——container 已經在 bastion 上跑,
+      log 印出 <code>√ Runner successfully added</code> →
+      <code>√ Connected to GitHub</code> →
+      <code>Listening for Jobs</code>,<code>docker inspect</code> 確認
+      <code>RestartCount: 0</code>、<code>Status: running</code>,不是
+      卡在重啟迴圈裡假裝正常。過程中抓到兩個實測才會冒出來的 bug,記錄
+      在下面。</p>
+    </div>
+
+    <div class="callout callout-danger">
+      <p><strong>Bug 記錄:第一次跑完全綠燈,但 GitHub 上完全看不到
+      runner</strong>——「確認 github-runner container 存不存在」這個
+      task 用 <code>docker inspect github-runner</code>(沒帶
+      <code>--type</code>)判斷要不要建立 container,但
+      <code>docker inspect</code> 預設會搜尋<strong>所有種類</strong>的
+      物件(container、image、volume、network……),而上一步
+      <code>docker build -t github-runner</code> 剛好也建出一個同名的
+      <strong>image</strong>——所以這個檢查從第一次跑完 <code>docker
+      build</code> 之後就一路命中那個 image,永遠回報「已經存在」,
+      <code>docker run</code> 因此永遠被 <code>when</code> 擋掉跳過,
+      runner 從來沒有真的被建立、註冊過,ansible 卻全部顯示
+      <code>ok</code>/沒有失敗。修法是加上
+      <code>--type container</code>,把搜尋範圍限定在容器,不讓同名的
+      image 混進來。</p>
+      <p><strong>Bug 記錄:第二個問題——container 起來了,但 openssl
+      讀不到掛進去的 private key</strong>——<code>Dockerfile</code> 原本
+      自己 <code>useradd -m runner</code> 造一個新使用者,但
+      <code>ubuntu:24.04</code> 這個 base image 本身就內建一個 UID 1000
+      的 <code>ubuntu</code> 使用者,所以新造的 <code>runner</code> 被
+      擠到 UID 1001。GitHub App 的 private key 檔案是用
+      <code>-v /home/ubuntu/.github-app-key.pem:...:ro</code> 從 host
+      bind mount 進去的,host 上這個檔案屬於 UID 1000(bastion 的
+      <code>ubuntu</code> 使用者),bind mount 進 container 之後權限檢查
+      是照 UID <strong>數字</strong>比對、不是看使用者名稱——container
+      裡的 UID 1001 讀不到 UID 1000 擁有的 <code>mode 0600</code> 檔案,
+      openssl 直接 <code>Permission denied</code>。修法不是放寬檔案
+      權限,是乾脆不要自己造新使用者,直接沿用 base image 內建、UID 剛好
+      對得上 host 的 <code>ubuntu</code> 使用者。</p>
+    </div>
+
+    <h3>為什麼是 GitHub App,不是個人帳號的 PAT</h3>
+    <p>註冊 org 層級的 runner 需要 org 管理層級的 API 權限。最簡單的做法
+      是 GitHub 網頁上「New self-hosted runner」直接給的 registration
+      token——但那是給人手動貼一次用的,每次 bastion 重建都要有人回來
+      網頁上重新複製一次,不符合「自動註冊」的需求,所以一定要換成腳本
+      能拿到的憑證。</p>
+    <p>能腳本化的選項其實有三種,誠實列出取捨,不是只有「用了才知道」:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>方式</th><th>範圍</th><th>會不會過期</th><th>綁在誰身上</th></tr></thead>
+        <tbody>
+          <tr><td>Classic PAT(<code>admin:org</code>)</td><td>整個 org 管理權限,遠大於「只管 runner」</td><td>看設定,可以是永不過期</td><td>個人帳號</td></tr>
+          <tr><td>Fine-grained PAT</td><td>可以鎖到只剩 Organization → Self-hosted runners</td><td><strong>強制</strong>設過期日(最長 1 年),要記得手動續期</td><td>個人帳號</td></tr>
+          <tr><td>GitHub App(這裡選的)</td><td>一樣鎖到只剩 Organization → Self-hosted runners</td><td>App 本身不設過期,只有要不要主動撤銷 private key 的問題</td><td>org 資產,不屬於任何一個人</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Fine-grained PAT 其實已經解決了「範圍太寬」的問題,設定也比 App
+      簡單得多(不用簽 JWT、不用管 installation token,直接拿 token 打
+      API)——選 App 純粹是為了另外兩個屬性:不會因為忘記手動續期而
+      某天突然斷掉,以及它是 doughops 這個 org 的資產,不會因為某個人
+      離開/停用帳號而跟著失效。在只有 3 個人的 org 現階段,這個差異其實
+      沒有很大,是刻意選「對團隊長期比較對」的做法,不是唯一能動的做法
+      ——如果你之後覺得 App 的設定成本不划算,fine-grained PAT 是完全
+      合理的替代方案,程式碼只要把 <code>mint_registration_token.py</code>
+      的 JWT 那段拿掉、直接拿 PAT 當 installation token 用就好。</p>
+
+    <h3>建立 GitHub App:逐欄位的完整步驟</h3>
+    <p>下面每一步都是 GitHub 網頁上實際會看到的欄位,照著填就好——這頁
+      第一版只寫了「建一個 App,勾 Self-hosted runners 權限」,漏了一堆
+      表單上真的會卡住人的欄位(Webhook、Installation ID 去哪找……),
+      這次補齊。</p>
+
+    <ol class="steps">
+      <li>
+        <div>
+          <strong>1. 開新 App 的頁面</strong>
+          網址直接打 <code>https://github.com/organizations/doughops/settings/apps/new</code>
+          (或手動走 doughops org → Settings → Developer settings →
+          GitHub Apps → New GitHub App)。
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>2. GitHub App name</strong>
+          這個名字是<strong>全 GitHub 唯一</strong>,不是只在 doughops
+          org 內唯一——跟別人的 App 撞名會建立失敗。建議取一個包含
+          doughops 的名字,例如 <code>doughops-bastion-runner</code>。
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>3. Homepage URL(必填,但不需要真的能用)</strong>
+          這個 App 不會真的被誰拿去點連結,填
+          <code>https://github.com/doughops</code> 就夠,只是通過表單
+          驗證。
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>4. Callback URL、Setup URL</strong>
+          都留空——這兩個是給「App 要讓使用者跑 OAuth 登入流程」用的,
+          這裡完全用不到(我們只用 App 對 org 的權限,不會有人「登入」
+          這個 App)。
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>5. Webhook</strong>
+          把 <strong>Active</strong> 這個勾選框<strong>取消勾選</strong>
+          ——我們不需要 webhook 事件,勾著又沒填 URL,GitHub 有時候會
+          擋你儲存,或是背景一直嘗試投遞失敗的 webhook,乾脆關掉。
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>6. Permissions → Repository permissions</strong>
+          整組全部維持預設的 <code>No access</code>,一個都不用勾——
+          runner 註冊跟 repo 內容完全無關。
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>7. Permissions → Organization permissions</strong>
+          在清單裡找到 <strong>Self-hosted runners</strong>(注意不是
+          repository permissions 那組同名的項目,是下面 Organization
+          permissions 這一組),下拉選單選
+          <strong>Read and write</strong>。其他 Organization
+          permissions(Members、Administration……)全部維持
+          <code>No access</code>。
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>8. Permissions → Account permissions</strong>
+          維持全部 <code>No access</code>——這組是給存取使用者個人帳號
+          資料用的,跟這個 App 的用途無關。
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>9. Where can this GitHub App be installed?</strong>
+          選 <strong>Only on this account</strong>(doughops)——不要選
+          「Any account」,那個是給要公開發佈給別人裝的 App 用的。
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>10. 按 Create GitHub App,記下 App ID</strong>
+          建立完成後會跳到 App 自己的設定頁,最上面就印著
+          <code>App ID: 123456</code> 這種數字——這是
+          <code>github_app_id</code>。
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>11. 產生 private key</strong>
+          同一頁往下捲到 <strong>Private keys</strong> 區塊,按
+          <strong>Generate a private key</strong>——瀏覽器會自動下載一個
+          <code>&lt;App 名稱&gt;.&lt;日期&gt;.private-key.pem</code>
+          檔案。<strong>這個檔案的完整內容(整份,含
+          <code>-----BEGIN RSA PRIVATE KEY-----</code>/
+          <code>-----END RSA PRIVATE KEY-----</code> 那兩行,保留原本的
+          換行)就是 <code>github_app_private_key</code></strong>,只會
+          讓你看到/下載這一次,遺失了要在同一頁重新產生一把新的(舊的
+          可以在旁邊按 Delete 撤銷)。
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>12. Install 到 doughops org</strong>
+          左側選單點 <strong>Install App</strong>,找到 doughops → 按
+          <strong>Install</strong>。跳出來的 Repository access 選哪個
+          都不影響安全性(這個 App 完全沒有要任何 repo 權限,唯一有意義
+          的是前面設定的 Organization permission)——選
+          <code>Only select repositories</code> 隨便選一個,或乾脆選
+          <code>All repositories</code> 都可以。
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>13. 拿 Installation ID</strong>
+          按完 Install 之後,瀏覽器網址列會變成類似
+          <code>https://github.com/organizations/doughops/settings/installations/12345678</code>
+          ——結尾那串數字就是 <code>github_app_installation_id</code>。
+          如果那個當下沒注意到,事後找的路徑是:doughops org → Settings
+          → 左側選單 <strong>GitHub Apps</strong>(在 org 主 Settings
+          選單裡,不是 Developer settings 底下那個同名項目)→ 找到你的
+          App → 按 <strong>Configure</strong>,網址列一樣會帶出同一串
+          數字。
+        </div>
+      </li>
+    </ol>
+
+    <div class="callout callout-tip">
+      <p><strong>不想用瀏覽器網址欄找 Installation ID?</strong>
+      拿到 App ID + private key 之後,可以直接用指令查(這是
+      <code>mint_registration_token.py</code> 簽 JWT 那段的純 bash 版本,
+      不需要先跑完整個 ansible role):</p>
+      <pre><span class="out">APP_ID=12345          # 換成你的 App ID
+KEY=doughops-bastion-runner.2026-07-27.private-key.pem   # 換成你下載的檔名
+
+NOW=$(date +%s)
+HEADER=$(printf '{"alg":"RS256","typ":"JWT"}' | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+PAYLOAD=$(printf '{"iat":%s,"exp":%s,"iss":"%s"}' "$((NOW-60))" "$((NOW+540))" "$APP_ID" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+SIG=$(printf '%s.%s' "$HEADER" "$PAYLOAD" | openssl dgst -sha256 -sign "$KEY" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+JWT="$HEADER.$PAYLOAD.$SIG"
+
+curl -s -H "Authorization: Bearer $JWT" \
+     -H "Accept: application/vnd.github+json" \
+     https://api.github.com/app/installations</span></pre>
+      <p>回應是一個 JSON 陣列,每個元素的 <code>id</code> 欄位就是
+      installation ID(這串指令已經照這個實際的 JWT 組法測過,確認能
+      產生格式正確的 token,不是憑印象寫的)。</p>
+    </div>
+
+    <p>三個值都拿到之後,填進
+      <code>ansible/inventory/group_vars/all/secrets.yml</code>
+      (複製自 <code>secrets.yml.example</code>,這個檔案不進版控):</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">group_vars/all/secrets.yml</span></div>
+      <pre><span class="out">github_app_id: "12345"
+github_app_installation_id: "12345678"
+github_app_private_key: |
+  -----BEGIN RSA PRIVATE KEY-----
+  ……(.pem 檔案的完整內容,保留每一行換行)……
+  -----END RSA PRIVATE KEY-----</span></pre>
+    </div>
+    <p>填完跑 <code>scripts/ansible.sh ansible-playbook playbooks/bastion/github-runner.yml</code>
+      ——沒填之前跑會被 role 開頭的 <code>ansible.builtin.assert</code>
+      擋下來,清楚報錯而不是卡在某個看不懂的 API 401。</p>
+
+    <h3>mint_registration_token.py:只用標準函式庫 + openssl</h3>
+    <p>GitHub App 認證的標準流程是:用 App 的 private key 簽一個
+      JWT(RS256)→ 拿 JWT 換一個 installation access token → 用這個
+      token 呼叫實際的 API。這一步通常會用 <code>PyJWT</code>/
+      <code>cryptography</code> 這類套件,但這裡故意不裝任何 pip 套件
+      ——JWT 的 header/payload 組裝、base64url 編碼,標準函式庫就夠;
+      唯一需要真正密碼學運算的 RSA-SHA256 簽章,直接呼叫系統的
+      <code>openssl dgst -sha256 -sign</code>,讓 image 保持精簡,也
+      減少一條「pip 套件版本又要跟著維護」的相依鏈。</p>
+    <p>這支腳本除了現領 token,也在 <code>entrypoint.sh</code> 每次
+      container 啟動、還沒註冊過的時候(<code>.runner</code> 檔案不
+      存在,靠 named volume <code>github-runner-data</code> 判斷)
+      順便做兩件事:</p>
+    <ul>
+      <li>確保 <code>doughops-cd</code> 這個 Runner Group
+        存在——如果不存在,建成 <code>visibility: selected</code>、
+        <code>selected_repository_ids: []</code>,一開始不放任何 repo
+        進去。</li>
+      <li>清掉同名的舊 runner——bastion 被 terraform 重建過、或這個
+        container 的 volume 被清掉重新註冊的話,GitHub 那邊還留著上一份
+        的紀錄(狀態會是 offline),不清掉會一直堆積在 org 的 runner
+        清單裡。</li>
+    </ul>
+
+    <h3>還沒解決的部分:怎麼安全地開放給第一個 CD repo</h3>
+    <p>把 repo 加進 <code>doughops-cd</code> 這個 Runner Group,只是
+      解決「誰可以觸發」——真正的問題是「觸發的東西被信任嗎」:就算
+      只放行一個白名單內的 repo,那個 repo 本身被攻破(維護者帳號被盜、
+      用到的某個 Action/套件被下毒)一樣能讓惡意程式碼跑到 runner
+      上。討論下來,真正該做的是把「假設某次執行是惡意的」當前提,讓
+      它能造成的傷害趨近於零,而不是只想辦法讓惡意執行不要發生:</p>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-icon">🎫</div>
+        <h4>短命、範圍極窄的部署憑證</h4>
+        <p>每個 job 用 Kubernetes 的 <code>TokenRequest</code> API 現領
+          一個 ServiceAccount token,TTL 15-30 分鐘,RBAC 只綁該 repo
+          自己的 namespace——不是把 <code>admin.conf</code> 或長期
+          存在的 kubeconfig 放進 GitHub secret。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🧱</div>
+        <h4>Runner 跟 bastion 網路隔離</h4>
+        <p>bastion 身上背了太多敏感資產(內部 SSH key、對所有節點的
+          連線)——長期應該是一台獨立、只開一條路連 kube-apiserver 的
+          runner VM,而不是繼續疊加在 bastion 上,把「runner 中毒」跟
+          「整個 lab 淪陷」畫上等號。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔀</div>
+        <h4>只允許 push/workflow_dispatch 觸發部署</h4>
+        <p><code>pull_request</code> 永遠不該碰 self-hosted runner
+          ——deploy job 只在 <code>push</code> 到 <code>main</code>
+          (代表已經過 PR review 才會發生)或 <code>workflow_dispatch</code>
+          觸發,build/test 這種在任何 PR 都會跑的 job 留給 GitHub-hosted
+          runner。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">♻️</div>
+        <h4>Ephemeral runner</h4>
+        <p>每個 job 現生一個一次性 runner、做完自動銷毀
+          (<code>generate-jitconfig</code> + <code>--ephemeral</code>)
+          ——避免任何一次執行的痕跡留到下一個 job,不管下一個 job 是
+          不是同一個 repo 的。</p>
+      </div>
+    </div>
+    <p>這些都還沒實作——先把 runner 本身接好、Runner Group 鎖成空的,
+      等實際的 CD repo 出現、需求明確之後,再依那個 repo 實際要部署的
+      東西決定怎麼組合上面這幾層。</p>
+
+    <div class="page-nav">
+      <a class="prev" href="role-cert-manager.html"><span class="dir">上一頁</span><span class="ttl">← Role: cert_manager</span></a>
+      <a class="next" href="internal-tools.html"><span class="dir">下一頁</span><span class="ttl">內部工具(Dashboard/Hubble/監控) →</span></a>
+    </div>
+
+    <footer class="page-footer">
+      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
+      <span>最後更新:2026-07-27</span>
+    </footer>
+  </div>
+</div>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

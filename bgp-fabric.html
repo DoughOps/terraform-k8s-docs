@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FRR / iBGP Fabric — k8s + BGP Lab 技術詳解</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <a class="sidebar-logo-link" href="index.html">
+      <h1>🛰️ k8s + BGP Lab</h1>
+      <span>OpenStack Lab · 技術詳解 v15</span>
+    </a>
+  </div>
+  <nav>
+    <div class="nav-group">
+      <div class="nav-group-label">總覽</div>
+      <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
+      <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
+      <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">網路架構</div>
+      <a class="nav-link" href="network-architecture.html"><span class="icon">🌐</span> 網路架構總覽</a>
+      <a class="nav-link" href="packet-flows.html"><span class="icon">🔀</span> 封包路徑實例</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">基礎設施</div>
+      <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
+      <a class="nav-link active" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Ansible 自動化</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
+      <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
+      <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
+      <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
+      <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
+      <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
+      <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Cloudflare 手動設定</div>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">專案紀錄</div>
+      <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+    </div>
+  </nav>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" aria-label="Toggle menu">☰</button>
+      <span class="topbar-crumb">Lab Docs / <strong>FRR / iBGP Fabric</strong></span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">cloudnative.tw · AS 65000</span>
+      <button class="theme-toggle" id="themeToggle" aria-label="切換主題">
+        <span class="icon-moon">🌙</span><span class="icon-sun">☀️</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <h2><span class="eyebrow">基礎設施</span>FRR / iBGP Fabric 設計</h2>
+    <p class="lede">這是整個 lab 的地基:每一台節點(除了 bastion)開機時,
+      cloud-init 就把 FRR 裝好、設定好、啟動好。這頁講的是這份設定<strong>每一行
+      為什麼這樣寫</strong>——完整模板在 <code>templates/frr-init.sh.tftpl</code>。</p>
+
+    <h3>拓樸模型:單一 ASN,tor 當 Route Reflector</h3>
+    <p>選 iBGP(不是 eBGP)、單一 ASN(<code>65000</code>,由
+      <code>var.bgp_asn</code> 統一分配給所有節點)是刻意簡化——這個規模的
+      fabric 不需要 eBGP 的 AS Path 機制,用 iBGP + Route Reflector 的
+      hub-and-spoke 模型就夠:tor 是唯一的 RR,其他所有節點都是它的
+      RR client,彼此之間<strong>不建立</strong> BGP session(iBGP 全互聯
+      的 O(n²) session 數在只有一個 tor 的情況下完全沒必要)。</p>
+
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">tor · /etc/frr/frr.conf(精簡)</span></div>
+      <pre><span class="out">router bgp 65000
+ bgp router-id 10.10.0.10
+ neighbor 10.10.0.20 remote-as 65000
+ neighbor 10.10.0.20 next-hop-self all
+ neighbor 10.10.0.20 route-reflector-client
+ </span><span class="dim"># ...對每個節點各重複一組(ms-0001~3, l4-0001~2, ap-0001~2)</span><span class="out">
+ !
+ address-family ipv4 unicast
+  neighbor 10.10.0.20 activate
+  </span><span class="dim"># ...對每個節點各一行 activate</span><span class="out">
+  maximum-paths ibgp 8
+ exit-address-family</span></pre>
+    </div>
+
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">ms-0001(peer 角色)· /etc/frr/frr.conf</span></div>
+      <pre><span class="out">router bgp 65000
+ bgp router-id 10.10.0.20
+ neighbor 10.10.0.10 remote-as 65000
+ !
+ address-family ipv4 unicast
+  neighbor 10.10.0.10 activate
+ exit-address-family</span></pre>
+    </div>
+
+    <p>兩邊的設定不對稱是刻意的——只有 tor 一邊需要
+      <code>next-hop-self</code>/<code>route-reflector-client</code>,
+      這兩個指令的語意本來就是「我是 RR,以下是我的 client」,只有站在
+      RR 的角度設定才有意義。<code>peer</code> 角色的節點完全不知道自己是
+      RR client,它只知道「我跟 tor 建 iBGP session」。</p>
+
+    <h3><code>next-hop-self all</code>:為什麼要 <code>all</code>,不能只寫 <code>next-hop-self</code></h3>
+    <p>這是整個 fabric 能動的關鍵一行,也是最容易漏掉的一行。iBGP 有個
+      標準行為:一般的 iBGP peer 之間轉發路由時<strong>不會改寫 next-hop</strong>
+      (只有 eBGP 邊界才會),但 Route Reflector 反射路由給其他 client 時,
+      預設也是<strong>保留原始 next-hop</strong>——如果 tor 只是單純
+      <code>next-hop-self</code>(不帶 <code>all</code>),它只會替<strong>自己
+      發起</strong>的路由改寫 next-hop,對<strong>反射給其他 client 的路由</strong>
+      不會生效(這是 RFC 4456 的標準行為)。</p>
+    <p>結果就是:<code>ms-0001</code> 宣告了自己的 PodCIDR,tor 反射給
+      <code>ap-0001</code> 時,如果沒有 <code>all</code>,<code>ap-0001</code>
+      收到的路由 next-hop 會是<code>ms-0001</code>的原始位址——這剛好是對的
+      (因為 k8s-net 是 flat subnet,<code>ap-0001</code> 確實可以直連
+      <code>ms-0001</code>)。<strong>但</strong>如果 fabric 不是 flat subnet
+      (例如之後要接多個不同的 L2 網段),沒有 <code>all</code> 就會讓
+      <code>ap-0001</code> 收到一個它根本連不到的 next-hop。這個 lab
+      加 <code>all</code> 是為了讓「tor 是唯一 L3 決策點」這個設計前提在
+      架構上是<strong>保證</strong>成立的,不是「剛好因為現在是 flat subnet
+      所以矇對了」。FRR 內部把 <code>next-hop-self all</code> 存成
+      <code>force</code>(<code>show running-config</code> 會顯示成
+      <code>next-hop-self force</code>),語意等價。</p>
+
+    <h3>ECMP:<code>maximum-paths ibgp 8</code></h3>
+    <p>FRR 預設就算收到多條「等成本」的 iBGP 路徑(同一個 prefix、
+      LocPrf/weight 都一樣),也只會選<strong>一條</strong>當最佳路徑裝進
+      kernel——這是 <a href="l4lb-history.html">Phase 1</a> 用兩台
+      l4lb 節點宣告同一個 Service VIP 時發現的:沒有這行,tor 永遠只把流量
+      導向其中一台 l4lb,另一台完全沒有流量,ECMP 名存實亡。加上
+      <code>maximum-paths ibgp 8</code> 之後,FRR 才會把所有等成本路徑
+      都裝進 kernel 的路由表,變成 kernel 層級真正的多路徑(可以用
+      <code>ip nexthop show</code> 或 <code>ip route show</code> 看到一個
+      prefix 對應多個 nexthop)。數字 8 給得比目前節點數寬裕,之後加更多
+      節點不用回頭改這裡。</p>
+    <p>這行只加在 <code>tor</code> 的設定裡(<code>%{ if role == "tor" }</code>)
+      ——ECMP 的決策點在 tor(它是唯一收到多條路徑、需要決定要不要都裝進
+      kernel 的節點),其他節點各自只會收到 tor 反射過來的、已經決定好的
+      多路徑集合。</p>
+
+    <h3>四組 sysctl 調校,每一組解決一個實測到的問題</h3>
+
+    <h4>1. <code>net.ipv4.ip_forward=1</code></h4>
+    <p>最基本的:一台機器要當路由器(轉發不是自己的封包),kernel 預設是關的,
+      要手動開。所有跑 FRR 的節點都要開,不分 tor/peer。</p>
+
+    <h4>2. <code>net.ipv4.conf.*.rp_filter=0</code></h4>
+    <p>rp_filter(reverse path filtering)預設(cloud image 通常是
+      <code>2</code>,loose mode)會檢查「這個封包的來源位址,是否至少有一條
+      路由讓我把回應送回去」,不符合就丟棄。在一個路由完全由動態 BGP
+      決定、且存在非對稱路徑可能性的 fabric 上,這個檢查太容易誤殺合法流量
+      ——關掉(設成 <code>0</code>,不檢查)。</p>
+    <div class="callout callout-warn">
+      <p><strong>非追溯性陷阱(這個模板裡出現兩次,務必記住這個模式)</strong>:
+      <code>net.ipv4.conf.all.X</code> 跟 <code>net.ipv4.conf.default.X</code>
+      分別代表「套用到所有已存在介面」跟「套用到之後新建立的介面」的<strong>預設值</strong>
+      ——但 cloud-init 執行的當下,<code>ens3</code>/<code>ens4</code>
+      早就已經存在(開機時 kernel 就建立好了),它們各自的值是各自介面
+      自己的 per-interface 設定,不會因為改了 <code>all</code>/<code>default</code>
+      而回溯更新。這個模板對 <code>rp_filter</code> 跟
+      <code>send_redirects</code>/<code>accept_redirects</code> 都額外用
+      <code>for f in /proc/sys/net/ipv4/conf/*/rp_filter; do echo 0 > "$f"; done</code>
+      這種迴圈,逐一介面覆蓋——只寫 <code>all</code>/<code>default</code>
+      看起來設定生效了(<code>sysctl -a</code> 查得到),但實際行為完全沒變,
+      這是實測踩到的坑,不是預防性寫法。</p>
+    </div>
+
+    <h4>3. <code>send_redirects</code> / <code>accept_redirects</code> = 0</h4>
+    <p>在共用 L2 網段上,如果 kernel 發現「我把封包從某個介面轉發出去,
+      而且發現目的地跟真正的 next-hop 剛好在同一個網段」,會主動送一個
+      ICMP Redirect,建議對方之後直接抄捷徑,不要繞路由器。這違反這個 fabric
+      的設計前提——「tor 是唯一的 L3 決策點,所有跨節點流量都要讓它決定
+      怎麼走」,如果對端抄了 ICMP Redirect 的建議繞過 tor,tor 上的
+      ECMP/hash policy 這些集中式決策就會被繞過。所以來源(tor)不送、
+      所有節點也不接受,兩邊都關,不依賴 <code>secure_redirects</code>
+      這種「只信任預設閘道送來的 redirect」的折衷保護。</p>
+
+    <h4>4. <code>arp_ignore=1</code> / <code>arp_announce=2</code></h4>
+    <p>這組是 <a href="l4lb-history.html">Phase 1 DSR demo</a> 專用的
+      ——DSR 架構裡 Service VIP 會同時出現在 l4lb 的宣告介面跟每台
+      realserver 的 <code>lo</code> 上,如果不管 ARP 行為,多台機器可能同時
+      回應同一個 VIP 的 ARP 請求(ARP Flux),造成流量不可預期地分散。
+      <code>arp_ignore=1</code> 讓機器只回應「請求的目的位址剛好是收到請求
+      那張介面自己的位址」的 ARP;<code>arp_announce=2</code> 讓機器發送 ARP
+      時一定用「最適合目的網段」的來源位址,不要洩漏 VIP 這種借來的位址。
+      現在的拓樸沒有 DSR 場景了,但這組設定對一般的 BGP fabric 節點無害,
+      沒有特別移除。</p>
+
+    <h3>這份模板裡還留著的 dormant 邏輯</h3>
+    <p><code>frr-init.sh.tftpl</code> 是跟 <a href="l4lb-history.html">Phase 1</a>
+      共用的同一份模板,裡面還留著 <code>role == "node"</code>(假 Pod +
+      LVS-DR realserver 設定)跟 <code>role == "l4lb"</code>
+      (ipvsadm DSR 規則)兩段邏輯,還有 <code>dummy0</code> 介面 +
+      <code>network</code> 宣告的機制。現在的 <code>terraform.tfvars</code>
+      沒有任何一台機器用 <code>node</code>/<code>l4lb</code> 角色,這兩段
+      完全不會被執行到——留著是因為之後如果要重現/延伸 DSR demo,
+      不用重寫這段 template 邏輯,而且它證明了一件事:<strong>用
+      <code>dummy0</code> + <code>network</code> 陳述式宣告一個 prefix</strong>
+      這個機制,後來在 <a href="role-cilium.html">Role: cilium</a> 的
+      <code>bgp_announce</code> 裡被重新用了一次(拿掉 dummy0,改成直接讀
+      Cilium 已經建好的 <code>cilium_host</code> connected route)——
+      Phase 1 驗證出來的「FRR network 陳述式需要一筆對應的 connected route
+      才會生效」這個知識,直接被 Phase 3 繼承。</p>
+
+    <div class="page-nav">
+      <a class="prev" href="infrastructure.html"><span class="dir">上一頁</span><span class="ttl">← Terraform / OpenStack</span></a>
+      <a class="next" href="l4lb-history.html"><span class="dir">下一頁</span><span class="ttl">DSR / L4LB(歷史階段)→</span></a>
+    </div>
+
+    <footer class="page-footer">
+      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
+      <span>最後更新:2026-07-27</span>
+    </footer>
+  </div>
+</div>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

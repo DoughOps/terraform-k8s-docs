@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Changelog — k8s + BGP Lab 技術詳解</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <a class="sidebar-logo-link" href="index.html">
+      <h1>🛰️ k8s + BGP Lab</h1>
+      <span>OpenStack Lab · 技術詳解 v15</span>
+    </a>
+  </div>
+  <nav>
+    <div class="nav-group">
+      <div class="nav-group-label">總覽</div>
+      <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
+      <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
+      <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">網路架構</div>
+      <a class="nav-link" href="network-architecture.html"><span class="icon">🌐</span> 網路架構總覽</a>
+      <a class="nav-link" href="packet-flows.html"><span class="icon">🔀</span> 封包路徑實例</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">基礎設施</div>
+      <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
+      <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Ansible 自動化</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
+      <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
+      <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
+      <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
+      <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
+      <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
+      <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Cloudflare 手動設定</div>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">專案紀錄</div>
+      <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
+      <a class="nav-link active" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+    </div>
+  </nav>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" aria-label="Toggle menu">☰</button>
+      <span class="topbar-crumb">Lab Docs / <strong>Changelog</strong></span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">cloudnative.tw · AS 65000</span>
+      <button class="theme-toggle" id="themeToggle" aria-label="切換主題">
+        <span class="icon-moon">🌙</span><span class="icon-sun">☀️</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <h2><span class="eyebrow">專案紀錄</span>Changelog</h2>
+    <p class="lede">跟 git log 一一對應的變更歷史,由舊到新。每筆附
+      commit hash,可以直接 <code>git show &lt;hash&gt;</code> 看實際 diff。</p>
+
+    <div class="cl-entry">
+      <div class="cl-date">2025-12-29</div>
+      <h3><span class="cl-tag cl-feat">feat</span> 專案起點</h3>
+      <ul>
+        <li><span class="cl-hash">93d3576</span> Add OpenStack iBGP Lab with Terraform and FRR——初始 Terraform + FRR 骨架。</li>
+        <li><span class="cl-hash">8c7d9bd</span> 新增 <code>terraform.tfvars</code>,讓虛擬機設定可被版控追蹤。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-26 · 上半場</div>
+      <h3><span class="cl-tag cl-feat">feat</span> Phase 1:iBGP + DSR L4LB 驗證</h3>
+      <ul>
+        <li><span class="cl-hash">34ef54d</span> 最小 iBGP FRR 驗證環境(tor + 2 節點)。</li>
+        <li><span class="cl-hash">e2cde62</span> <span class="cl-tag cl-fix">fix</span> 讓 iBGP fabric 真的轉發 pod-to-pod 流量(<a href="troubleshooting.html">Bug #1、#2</a>)。</li>
+        <li><span class="cl-hash">c92b43a</span> 加入 l4lb 節點:IPVS-DR、VIP 宣告、DSR backend。</li>
+        <li><span class="cl-hash">249af63</span> <span class="cl-tag cl-test">docs</span> 第一版技術詳解網站(單頁,<code>docs/lab-deep-dive.html</code>)。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-26 · mgmt-net 分離</div>
+      <h3><span class="cl-tag cl-feat">feat</span> 資料平面 / 管理平面正式分離</h3>
+      <ul>
+        <li><span class="cl-hash">6489b8e</span> 把 mgmt-net 從資料平面切開,k8s-net 拿掉 Neutron gateway(<code>no_gateway=true</code>)。</li>
+        <li><span class="cl-hash">d489ded</span> <span class="cl-tag cl-fix">fix</span> <code>rp_filter=0</code> 對開機時已存在的介面沒有追溯效力(<a href="troubleshooting.html">Bug #5</a>)。</li>
+        <li><span class="cl-hash">8d4f146</span> <span class="cl-tag cl-test">docs</span> 文件同步更新 mgmt-net 分離 + conntrack/DSR 衝突(<a href="troubleshooting.html">Bug #6</a>)。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-26 · 真實 ECMP</div>
+      <h3><span class="cl-tag cl-feat">feat</span> 第二台 L4LB,驗證跨節點 ECMP</h3>
+      <ul>
+        <li><span class="cl-hash">4585b05</span> 加入 l4lb-0002,讓 tor 對兩台 l4lb 做真正的 ECMP(<a href="troubleshooting.html">Bug #7</a>)。</li>
+        <li><span class="cl-hash">a35dfe0</span> <span class="cl-tag cl-test">docs</span> 記錄兩台 l4lb 間的真實 ECMP 分流數據。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-26 · Phase 2:換成真實 k8s 拓樸</div>
+      <h3><span class="cl-tag cl-feat">feat</span> 拆掉測試 fabric,換成 bastion + master + lb + worker</h3>
+      <ul>
+        <li><span class="cl-hash">205faa2</span> <code>node-a</code>/<code>node-b</code>/<code>l4lb-0001</code>/<code>l4lb-0002</code>
+          換成 bastion + 3 master + 2 lb + 2 worker(見 <a href="infrastructure.html">Terraform / OpenStack</a>)。</li>
+        <li><span class="cl-hash">0e44210</span> Ansible 框架:跑在 bastion 的 Docker 裡,不用手動登入
+          (見 <a href="ansible-framework.html">框架設計</a>),過程中修好 Docker MTU bug(<a href="troubleshooting.html">Bug #10</a>)。</li>
+        <li><span class="cl-hash">cb7c5c7</span> apiserver HA:haproxy 架在 tor 上,不開新 VM
+          (見 <a href="role-apiserver-lb.html">Role: apiserver-lb</a>)。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-26 · Phase 3:真正的 Kubernetes</div>
+      <h3><span class="cl-tag cl-feat">feat</span> CRI-O → kubeadm → INI inventory</h3>
+      <ul>
+        <li><span class="cl-hash">ca01926</span> <span class="cl-tag cl-fix">refactor</span> Inventory 從 YAML 改成 INI 格式(見 <a href="ansible-framework.html">框架設計</a>)。</li>
+        <li><span class="cl-hash">d1edc90</span> 新增 <code>roles/crio</code>,在所有 k8s 節點裝好 CRI-O(見 <a href="role-crio.html">Role: crio</a>)。</li>
+        <li><span class="cl-hash">9ecbbad</span> 用 kubeadm 在 cgroup v2 上拉起整個叢集(見 <a href="role-kubeadm.html">Role: kubeadm</a>),
+          修好 cert-key race condition(<a href="troubleshooting.html">Bug #16</a>)、conntrack preflight
+          (<a href="troubleshooting.html">Bug #15</a>)。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-26 · Cilium native routing</div>
+      <h3><span class="cl-tag cl-feat">feat</span> CNI 落地,整合既有 FRR fabric</h3>
+      <ul>
+        <li><span class="cl-hash">1389656</span> 新增 <code>roles/cilium</code>:native routing、明確關掉
+          Cilium 自己的 BGP(見 <a href="role-cilium.html">Role: cilium</a>)。同一個 commit 也加了
+          <code>make ssh</code>。過程中修好三個 bug:blockinfile YAML 縮排
+          (<a href="troubleshooting.html">Bug #17</a>)、service-cidr 路由
+          (<a href="troubleshooting.html">Bug #18</a>)、zebra 不認 Cilium route + Null0 distance 200
+          (<a href="troubleshooting.html">Bug #19</a>)。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-27</div>
+      <h3><span class="cl-tag cl-feat">feat</span> CIDR 變更 + 可重複執行的測試</h3>
+      <ul>
+        <li><span class="cl-hash">bd10ef8</span> Pod CIDR 改成 <code>172.16.0.0/16</code>、Service CIDR 改成
+          <code>172.18.0.0/16</code>——需要整個叢集 <code>kubeadm reset</code> 重建
+          (見 <a href="role-kubeadm.html">Role: kubeadm</a>)。過程中發現並修好
+          CNI 目錄 inode 監看失效的問題(<a href="troubleshooting.html">Bug #20</a>)。</li>
+        <li><span class="cl-hash">641619f</span> 新增 <code>playbooks/smoke-test.yml</code>——可重複執行的整體驗證
+          (見 <a href="testing.html">測試 / smoke-test</a>),修好 haproxy CSV 欄位定位
+          (<a href="troubleshooting.html">Bug #21</a>)、command 模組 JSON 引號陷阱
+          (<a href="troubleshooting.html">Bug #22</a>)。</li>
+        <li>這份多頁技術文件本身——把單頁的 <code>lab-deep-dive.html</code>
+          拆成 15 頁,涵蓋現在的完整拓樸、每個 ansible role 的逐項設計理由、
+          整合過的 bug 事後檢討目錄。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-27 · Phase 4:Istio + 對外流量(第一版,被否決)</div>
+      <h3><span class="cl-tag cl-feat">feat</span> 裝 Istio,一開始想走 bastion floating ip</h3>
+      <ul>
+        <li><span class="cl-hash">3244cdd</span> 裝 Istio(<code>istio</code> namespace)+
+          測試網頁服務,第一版對外方案是 bastion floating ip + NodePort。</li>
+        <li><span class="cl-hash">55f2181</span> <span class="cl-tag cl-test">docs</span>
+          playbook 表格加上 <code>istio.yml</code>、<code>demo-app.yml</code>。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-27 · Phase 4:改用 Cloudflare Tunnel</div>
+      <h3><span class="cl-tag cl-fix">fix</span> 使用者已經設好 Cloudflare Tunnel,floating ip 方案整個撤掉</h3>
+      <ul>
+        <li><span class="cl-hash">bdc7871</span> 用 <code>roles/cloudflare_tunnel</code>
+          取代 bastion floating ip 曝露方式——刪掉 <code>roles/ingress_proxy</code>、
+          撤銷新增的 security group rule、Istio gateway 改回
+          <code>ClusterIP</code>(見 <a href="role-cloudflare-tunnel.html">Role: cloudflare_tunnel</a>、
+          <a href="role-istio.html">Role: istio</a>)。同一個 commit 也修好
+          <code>group_vars/secrets.yml</code> 扁平檔案不會被自動載入的問題
+          (<a href="troubleshooting.html">Bug #25</a>),改成
+          <code>group_vars/all/main.yml</code> + <code>all/secrets.yml</code>
+          目錄結構。</li>
+        <li><span class="cl-hash">6cec469</span> 新增 <code>roles/bastion_access</code>,
+          讓 bastion 自己也能直接 SSH 到所有節點(見 <a href="ansible-framework.html">框架設計</a>)。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-27 · Phase 4:kube-proxy 移除 + k8s 1.34</div>
+      <h3><span class="cl-tag cl-feat">feat</span> Cilium 接手 kube-proxy、搬進專屬 namespace、叢集升級 1.34</h3>
+      <ul>
+        <li><span class="cl-hash">c589460</span> <code>kubeProxyReplacement: true</code> +
+          <code>--skip-phases=addon/kube-proxy</code>,Cilium 搬到
+          <code>cilium</code> namespace,<code>kubernetes_minor_version</code>
+          從 v1.31 升到 v1.34(見 <a href="role-cilium.html">Role: cilium</a>、
+          <a href="role-kubeadm.html">Role: kubeadm</a>)。過程中修好三個 bug:
+          <code>kubeadm init phase upload-certs</code> 單獨呼叫猜錯 advertise
+          address(<a href="troubleshooting.html">Bug #23</a>)、Cilium
+          <code>k8sServiceHost</code> 設成 tor IP 導致 TLS SAN 不匹配
+          (<a href="troubleshooting.html">Bug #24</a>)、被 hold 鎖住的套件
+          <code>state: present</code> 不會真的升級
+          (<a href="troubleshooting.html">Bug #26</a>)。</li>
+        <li><span class="cl-hash">e76bd4d</span> <span class="cl-tag cl-fix">fix</span>
+          CRI-O 1.34 的 <code>short-name-mode</code> 預設 enforcing,拒絕未限定
+          image 名稱(<a href="troubleshooting.html">Bug #27</a>),見
+          <a href="role-crio.html">Role: crio</a>。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-27 · 網域從 kunchiee.com 換成 dough-ops.com</div>
+      <h3><span class="cl-tag cl-feat">feat</span> 換成第一層萬用字元網域,不用再拆 exact-match DNS 紀錄</h3>
+      <ul>
+        <li><span class="cl-hash">9599183</span> 對外網域從 <code>kunchiee.com</code>
+          換成使用者新買的 <code>dough-ops.com</code>,沿用同一條既有
+          tunnel。<code>*.dough-ops.com</code> 是 apex 底下的第一層萬用字元,
+          免費方案 Universal SSL 直接涵蓋(用
+          <code>/zones/{id}/ssl/certificate_packs</code> API 查證實),不像
+          <code>kunchiee.com</code> 當初的 <code>*.k8s.kunchiee.com</code>
+          是第二層萬用字元、免費方案涵蓋不到,不再需要每個服務各自一筆
+          exact-match DNS 紀錄的 workaround,見
+          <a href="role-cloudflare-tunnel.html">Role: cloudflare_tunnel</a>。
+          用 <code>curl https://test.dough-ops.com/</code> 實際驗證整條
+          Cloudflare Tunnel → Istio ingress gateway → VirtualService →
+          Service → Pod 路徑通。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-27 · Phase 5:端對端加密 + Access</div>
+      <h3><span class="cl-tag cl-feat">feat</span> cert-manager + Cloudflare Origin CA,Cloudflare Access 擋整個 *.dough-ops.com</h3>
+      <ul>
+        <li>新增 <code>roles/cert_manager</code>:helm 裝 cert-manager、
+          apply Cloudflare 官方 <code>origin-ca-issuer</code>(CRD/RBAC/
+          controller,pin v0.14.4)、簽出 <code>*.dough-ops.com</code>
+          wildcard 憑證(見 <a href="role-cert-manager.html">Role:
+          cert_manager</a>)。</li>
+        <li>Istio Gateway 新增 443 HTTPS server block(<code>tls.mode:
+          SIMPLE</code> + 剛簽出來的憑證),Cloudflare Tunnel ingress
+          從 <code>http://...:80</code> 改成
+          <code>https://...:443</code>,<code>cloudflared</code> 掛進一份
+          Origin CA root cert 的 ConfigMap 做 <code>caPool</code> 驗證
+          ——整條路徑變成 Cloudflare「Full (strict)」等級加密,用叢集內
+          <code>curl --cacert</code> 實際驗證憑證鏈跟 SAN,不是只看回應
+          狀態碼。</li>
+        <li>用 Cloudflare API 建一個涵蓋整個
+          <code>*.dough-ops.com</code> 的 Access Application,policy
+          限定 <code>doughops</code> GitHub org 成員——這步不是 ansible
+          管的,跟 DNS/Tunnel ingress 規則一樣的道理。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-27 · Phase 5:內部工具</div>
+      <h3><span class="cl-tag cl-feat">feat</span> Hubble UI、Kubernetes Dashboard、kube-prometheus-stack</h3>
+      <ul>
+        <li>Cilium 開 <code>hubble.relay/ui.enabled</code>,VirtualService
+          掛到 <code>hubble.dough-ops.com</code>(見
+          <a href="internal-tools.html">內部工具</a>)。</li>
+        <li>新增 <code>roles/dashboard</code>:Kubernetes Dashboard,
+          <code>kong.proxy.http.enabled: true</code> 避開上游一個已知的
+          Kong TLS port bug(<a href="https://github.com/kubernetes/dashboard/issues/9861" target="_blank">kubernetes/dashboard#9861</a>)。</li>
+        <li>新增 <code>roles/kube_prometheus_stack</code>:Prometheus/
+          Alertmanager/Grafana 三個獨立子網域,helm release name 故意
+          取跟 chart 同名讓 Service 名稱不重複疊字;三個都不掛 PVC
+          (也是 chart 預設值,寫出來只是讓決定看得見)。</li>
+        <li>每個工具都用同一套兩段式驗證:叢集內部帶 Origin CA root cert
+          直接打 443 port(繞過 Access,證明後端真的通、憑證真的驗證得
+          過),外部 curl 確認回應是 302 導去 Cloudflare Access 登入頁
+          (證明 Access 真的擋住了)。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-27 · Phase 5:真實流量 503</div>
+      <h3><span class="cl-tag cl-fix">fix</span> Cloudflare Tunnel 的 originServerName 設成 apex 網域,SNI 對不上 Gateway 的 wildcard listener</h3>
+      <ul>
+        <li>使用者回報 <code>https://hubble.dough-ops.com/</code>
+          503(Cloudflare 品牌錯誤頁),但叢集內部直接測試一直是 200
+          ——根因是 <code>originRequest.originServerName</code> 設成
+          <code>dough-ops.com</code>(zone apex),Istio Gateway 443
+          listener 的 SNI 比對規則 <code>*.dough-ops.com</code> 不吃
+          apex 名稱,TLS handshake 直接被 Envoy 斷線
+          (<a href="troubleshooting.html">Bug #28</a>)。用一個臨時
+          curl pod 故意讓 SNI 跟 Host header 不一致,重現出跟
+          cloudflared 一樣的失敗,才抓到根因。改成
+          <code>gateway.dough-ops.com</code>(帶子網域即可,不需要是
+          真的服務)修好,見 <a href="role-cert-manager.html">Role:
+          cert_manager</a>。六個子網域全部重新驗證過一輪。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-27 · Phase 5:瀏覽器 SSH</div>
+      <h3><span class="cl-tag cl-feat">feat</span> 獨立的 bastion-ssh tunnel + 專用的 Browser SSH Application</h3>
+      <ul>
+        <li>使用者明確要求:要透過 Cloudflare Access 用瀏覽器內建終端機
+          SSH 進 bastion,但不能用 cluster 內那條 <code>openstack-k8s</code>
+          tunnel。新建一條完全獨立的 tunnel(<code>bastion-ssh</code>),
+          新增 <code>roles/bastion_ssh_tunnel</code>——這次
+          <code>cloudflared</code> 是裝在 bastion 主機本身(systemd
+          service),不是 k8s pod,見 <a href="role-cloudflare-tunnel.html">Role:
+          cloudflare_tunnel</a>。過程中發現
+          <code>cloudflared service install</code> 不是冪等指令,role
+          裡加了 <code>stat</code> 檢查守衛。</li>
+        <li>第一次設定完,瀏覽器打開沒有渲染出終端機——用了涵蓋整個
+          <code>*.dough-ops.com</code> 的 <code>self_hosted</code> Access
+          Application,但瀏覽器渲染 SSH 終端機需要專門的
+          <code>type: "ssh"</code> Application(<a href="troubleshooting.html">Bug #29</a>)。
+          另建一個精確匹配 <code>ssh.dough-ops.com</code> 的
+          <code>ssh</code> 類型 Application 修好。</li>
+        <li>修好之後又撞到「Unable to find your Access organization」
+          ——查出 Zero Trust 帳號的 team name 歷史上從 <code>31lab</code>
+          改成 <code>doughops</code>,但 <code>access/organizations</code>
+          的 <code>name</code> 欄位還停在舊值(<a href="troubleshooting.html">Bug #30</a>)。
+          PUT 更新這個欄位後,使用者確認可以正常使用。</li>
+        <li>新增 <a href="cloudflare-manual-setup.html">Cloudflare 手動
+          設定清單</a>頁面——使用者要求把所有 Cloudflare 側的手動設定
+          (DNS、Tunnel、Access Application、Zero Trust 身份提供者)
+          完整記錄下來,涵蓋這次的 bastion SSH 設定跟稍早的
+          <code>*.dough-ops.com</code> Access Application。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-27 · Phase 5:Dashboard 真正的 SSO</div>
+      <h3><span class="cl-tag cl-feat">feat</span> kube-apiserver 信任 Cloudflare Access 的 OIDC 身份</h3>
+      <ul>
+        <li>使用者否決了「兩個網址 + 共用 token」的第一版方案,要求單一
+          網址、讀寫權限照登入身份決定。新增
+          <code>roles/oidc_auth</code>:幫三台 master 的 apiserver 補上
+          <code>--oidc-issuer-url</code>(先用 curl 查證
+          <code>doughops.cloudflareaccess.com</code> 真的有回正常的
+          OIDC discovery document,不是假設)、
+          <code>--oidc-client-id</code>、
+          <code>--oidc-username-claim=email</code>。<code>serial: 1</code>
+          一台一台改,每台都靠 <code>crictl ps</code> 確認 container id
+          真的換過(不是只看 <code>/livez</code>,manifest 改完當下舊
+          container 通常還在跑)才動下一台,見
+          <a href="internal-tools.html">內部工具</a>。</li>
+        <li>新增 <code>roles/oidc_rbac</code>:
+          <code>system:authenticated</code>(K8s 內建群組)綁
+          <code>view</code>,個別 email(<code>oidc_admin_emails</code>,
+          secrets.yml)綁 <code>cluster-admin</code>。</li>
+        <li><code>roles/dashboard</code> 新增一個 EnvoyFilter,把
+          Cloudflare Access 自動帶的 <code>Cf-Access-Jwt-Assertion</code>
+          複製成 <code>Authorization</code> header,讓 Dashboard
+          照官方維護者在
+          <a href="https://github.com/kubernetes/dashboard/issues/8497" target="_blank">kubernetes/dashboard#8497</a>
+          給的做法自動略過登入畫面。用臨時的 debug log 版本在 Envoy
+          內部直接確認 Lua 腳本真的正確讀到並複製了 header(一般 curl
+          帶假 JWT 測不出差異,假 token 跟沒帶 token 對 apiserver 都是
+          同一種 401),才換回乾淨版本。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-27 · Phase 5:Grafana 原生 SSO</div>
+      <h3><span class="cl-tag cl-feat">feat</span> Grafana auth.generic_oauth 串 Cloudflare Access for SaaS</h3>
+      <ul>
+        <li>使用者要求 Grafana 也串 SSO,明確說「假如可以原生支援的話,
+          如果要做大量客製化修改則先停下讓我決定」。Grafana 原生的
+          <code>auth.generic_oauth</code> 配對 Cloudflare 的
+          <code>type: "saas"</code> OIDC application(讓 Access 扮演真正
+          的 OIDC provider,不是被動驗證 JWT)——兩邊都是原生功能,不需要
+          像 Dashboard 那樣掛 EnvoyFilter/Lua。<code>roles/kube_prometheus_stack</code>
+          新增建 Secret 放 client secret、grafana.ini 的
+          <code>auth.generic_oauth</code> 區塊,
+          <code>role_attribute_path</code> 重用
+          <code>oidc_admin_emails</code> 清單(跟 Dashboard 同一批
+          管理者)。</li>
+        <li>裝完發現 <code>grafana.dough-ops.com</code> 被邊緣萬用字元
+          Access Application 跟 Grafana 自己的 OIDC 疊了兩層,一度想幫
+          Grafana 的 hostname 開一個 <code>bypass</code> policy 跳過邊緣
+          檢查——被使用者明確否決:「所有網站都需要通過cloudflare
+          access, 否則你的方法萬一grafana有漏洞 網站會被攻破」,刻意的
+          defense-in-depth 要求。維持兩層都在,使用者實測瀏覽器確認只
+          需要登入一次(同一個 Cloudflare team session,第二層是無感的
+          重新導向),見 <a href="internal-tools.html">內部工具</a>、
+          <a href="cloudflare-manual-setup.html">Cloudflare 手動設定
+          清單</a>。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-27 · Phase 5:Cloudflare 設定改用 Terraform</div>
+      <h3><span class="cl-tag cl-feat">feat</span> 獨立的 <code>cloudflare/</code> Terraform module 管 DNS/Tunnel/Access/Zero Trust org</h3>
+      <ul>
+        <li>使用者要求 Cloudflare Access 設定「要嘛自動化,要嘛詳細到
+          可以照著重新設定」,明確偏好自動化。新增獨立目錄、獨立 state 的
+          <code>cloudflare/</code>(跟 <code>main.tf</code> 管的
+          OpenStack 資源完全分開),用官方 <code>cloudflare/cloudflare</code>
+          provider(v5.22.0)管 2 條 Tunnel、3 個 Access Application +
+          Policy、2 筆 DNS CNAME、Zero Trust org 設定,共 7 種資源
+          15 個物件。Tunnel token 不是 Terraform 資源的可查詢屬性,改用
+          <code>random_id</code> 產生 tunnel secret,本地算出
+          <code>base64encode(jsonencode({a,t,s}))</code>,讓 Terraform
+          完全不依賴 cloudflared/k8s 存在就能建出可用的 token。</li>
+        <li>使用者確認「刪掉重建」既有的 7 個活資源(不是 import),
+          並在確認完整的 cascading impact(萬用字元 Access App 的 AUD
+          換掉會讓 kube-apiserver OIDC 失效、Grafana SaaS app 的
+          client_id/secret 換掉會讓 Grafana SSO 失效、DNS/Tunnel/Access
+          會有短暫斷線)之後明確授權「yes, go」。實際執行:刪除 7 個舊
+          資源 → <code>terraform apply</code> 建出 15 個新資源 → 把新的
+          token/AUD/client_id/secret 寫回
+          <code>group_vars/all/{main,secrets}.yml</code> → 依序重跑
+          <code>cloudflare-tunnel.yml</code> →
+          <code>bastion-ssh-tunnel.yml</code> →
+          <code>oidc-auth.yml</code> →
+          <code>kube-prometheus-stack.yml</code>。</li>
+        <li><span class="cl-tag cl-fix">fix</span> 兩個 ansible role
+          原本沒設計成支援 token 輪替:<code>roles/cloudflare_tunnel</code>
+          更新 Kubernetes Secret 後不會讓已經在跑的 Pod 拿到新 token
+          (env var 只在啟動時讀一次),補上偵測 Secret 真的變了才觸發
+          <code>kubectl rollout restart</code>;
+          <code>roles/bastion_ssh_tunnel</code> 的
+          <code>cloudflared service install</code> 不是冪等指令,用
+          「systemd unit 存不存在」當 guard,導致 token 換了單純重跑
+          playbook 會被整段跳過、新 token 完全不會套用——拆成獨立的
+          「寫 token 檔案」task(每次都跑、靠內容 diff 判斷)+ 一個
+          restart handler。細節見
+          <a href="cloudflare-manual-setup.html">Cloudflare 手動設定
+          清單</a>。</li>
+        <li>重連後端對端驗證:5 個受 Access 保護的 hostname 全部回
+          302,<code>kid</code> 對到新建立的 Access Application AUD;
+          Grafana pod 因 helm values 變動自動重建,
+          <code>grafana.ini</code> 內確認是新的 client_id;
+          <code>smoke-test.yml</code> 全綠(節點/系統 pod Ready、
+          haproxy backend UP、BGP route 數量正確、跨節點 pod-to-pod
+          連線正常)。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-27 · 節點標籤、bastion 工具、SSH key 分離</div>
+      <h3><span class="cl-tag cl-feat">feat</span> node-role 標籤、k9s/kubectl alias、bastion 不再落地使用者私鑰</h3>
+      <ul>
+        <li>新增 <code>playbooks/node-labels.yml</code>(<code>roles/node_labels</code>):
+          kubeadm 預設只會幫 control-plane 節點打
+          <code>node-role.kubernetes.io/*</code> 標籤,這裡補上
+          <code>workers</code> 群組的 <code>worker</code>、<code>lbs</code>
+          群組的 <code>l4</code>,讓 <code>kubectl get nodes</code> 的
+          ROLES 欄位看得出每台節點的角色。</li>
+        <li>新增 <code>playbooks/bastion-tools.yml</code>(<code>roles/bastion_tools</code>):
+          在 bastion 上裝 k9s(.deb,固定版本 + sha256 checksum)、開
+          kubectl 的 bash 自動補全、加 <code>k=kubectl</code> 這個
+          alias(<code>complete -F __start_kubectl k</code> 讓補全對
+          alias 也生效)。</li>
+        <li><span class="cl-tag cl-fix">security</span> 使用者明確要求:
+          「bastion ssh 到節點請使用 auto generate 的 key,不要用我的
+          key,我的私密金鑰不可以外流」——<code>scripts/ansible.sh</code>
+          原本每次都把使用者的真實私鑰(<code>.ssh/id_ed25519</code>)
+          scp 到 bastion 上,給 ansible 容器拿去連所有節點,bastion 一旦
+          被攻破,使用者的真實私鑰就外流。改成新增一把跟使用者身份無關、
+          <code>ssh-keygen</code> 產生的專屬 key
+          (<code>.ssh/bastion_internal_ed25519</code>),新增
+          <code>roles/internal_ssh_key</code> +
+          <code>playbooks/internal-ssh-key.yml</code>(用
+          <code>ansible.posix.authorized_key</code> 把公鑰佈署到每台
+          節點),<code>scripts/ansible.sh</code> 之後只送這把 key——
+          使用者的真實私鑰現在只用來從筆電直接連 bastion,不會出現在
+          bastion 的磁碟上。新增 <code>BOOTSTRAP=1</code> 環境變數當
+          雞生蛋、蛋生雞問題的解法(全新節點只信任使用者私鑰時,借用
+          一次來佈署新 key)。</li>
+        <li>實際對線上叢集執行:先用還在用使用者私鑰的連線佈署新 key 到
+          全部 9 台節點 → 切換 <code>scripts/ansible.sh</code> →
+          <code>ansible all -m ping</code> 確認改用新 key 也全部連得到
+          → 用 checksum 比對 bastion 上落地的 key 內容,確認不再是
+          使用者的私鑰 → 重跑 <code>bastion-access.yml</code>,連
+          bastion 自己給人手動用的那份也換成新 key。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-27 · OIDC RBAC:預設角色補上 cluster-scope 讀取 + 三個放行寫入</div>
+      <h3><span class="cl-tag cl-fix">fix</span> 自訂 ClusterRole 拿掉 <code>resources: ["*"]</code>,不再連 Secrets 都能讀</h3>
+      <ul>
+        <li>使用者在前一個 session 已經把 <code>roles/oidc_rbac</code>
+          的預設角色從單純綁定內建 <code>view</code>,改成一個自訂的
+          <code>cloudflare-access-default</code> ClusterRole(唯讀所有
+          資源,外加放行刪 pod / 改 configmap / scale deployment 三個
+          寫入操作),但這批修改當時還沒部署也沒 commit。使用者確認
+          「這改動已經完成了」,要求檢查、部署、更新文件、commit。</li>
+        <li>檢查時發現一個問題:自訂角色的唯讀規則寫成
+          <code>apiGroups: ["*"], resources: ["*"]</code>——RBAC 沒有
+          「排除」語法,這代表任何通過 Cloudflare Access 登入的人(目前
+          是整個 <code>doughops</code> GitHub org,不只是
+          <code>oidc_admin_emails</code> 名單)都能讀到 Secrets,包含
+          Grafana admin 密碼、TLS 私鑰、Cloudflare tunnel token——這正是
+          內建 <code>view</code> 角色刻意排除 <code>secrets</code> 的
+          原因。跟使用者確認後,選擇排除 Secrets(推薦選項)。</li>
+        <li>修法:改成兩個 ClusterRoleBinding 疊加,不是用一個 wildcard
+          角色取代 <code>view</code>——繼續綁 <code>view</code>(沿用
+          官方已經審查過、刻意排除 secrets 的 curation),自訂角色改成
+          明確列舉需要額外補上的 cluster-scope 資源類型
+          (<code>nodes</code>/<code>namespaces</code>/
+          <code>persistentvolumes</code>/<code>storageclasses</code>)
+          加三個寫入 verb,完全不碰 wildcard,見
+          <a href="internal-tools.html">內部工具</a>。</li>
+        <li>部署到線上叢集後用 <code>kubectl auth can-i ... --as=system:authenticated</code>
+          逐項驗證:<code>get pods</code>/<code>delete pods</code>/
+          <code>get nodes</code>/<code>patch configmaps</code> 都是
+          <code>yes</code>,<code>get secrets</code>/
+          <code>delete configmaps</code>/<code>update deployments</code>
+          都是 <code>no</code>,跟設計完全一致。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-27 · GitHub Actions self-hosted runner</div>
+      <h3><span class="cl-tag cl-feat">feat</span> bastion 註冊成 doughops org 共用的 runner,Runner Group 刻意留空</h3>
+      <ul>
+        <li>使用者要求把 bastion 註冊成 doughops org 共用的 GitHub
+          Actions self-hosted runner,給還不存在的未來 CD repo 用。
+          先用 <code>gh</code> CLI 評估可行性,發現 doughops 底下 9 個
+          repo 有 8 個是 public——org 層級共用的 runner 預設對所有 repo
+          開放,任何人對任一 public repo 開 PR 就有機會在 bastion 上
+          執行任意程式碼,而 bastion 身上背著 admin.conf、內部 SSH
+          key、Cloudflare tunnel token。跟使用者討論出結論:白名單只
+          解決「誰能觸發」,解決不了「白名單內的 repo 本身被攻破」,
+          真正該做的是讓任何一次執行的傷害趨近於零(短命範圍極窄的
+          部署憑證、runner 跟 bastion 網路隔離、只允許 push/
+          workflow_dispatch 觸發、ephemeral runner)——這些留給有實際
+          CD repo 需求時再實作,見 <a href="role-github-runner.html">Role:
+          github_runner</a>。</li>
+        <li>新增 <code>roles/github_runner</code> +
+          <code>playbooks/github-runner.yml</code>:runner 跑在 bastion
+          上一個獨立的 Docker container(不是 systemd,呼應使用者
+          「要用 docker runner」的要求),用一個只有 "Organization
+          self-hosted runners: Read and write" 權限的 GitHub App 認證
+          (不是個人帳號的 <code>admin:org</code> PAT),
+          <code>files/mint_registration_token.py</code> 只用標準函式庫
+          + <code>openssl</code> 簽 JWT、換 installation token、現領
+          registration token,不需要額外裝 PyJWT/cryptography。註冊時
+          順便建一個 <code>doughops-cd</code> Runner Group,
+          <code>selected_repository_ids: []</code>——runner 已經接上,
+          但故意讓它對任何 repo 都用不到。</li>
+        <li>Dockerfile 在 bastion 上實際 build 驗證過(下載+checksum
+          驗證+<code>installdependencies.sh</code> 全部成功),用假的
+          RSA key 測過 JWT 簽章邏輯本身正確(3 段式結構、payload 內容
+          正確)——GitHub App 還沒建,實際的 API 呼叫(installation
+          token 交換、Runner Group 建立、註冊)還沒有機會端對端測試,
+          <code>secrets.yml</code> 目前是 <code>REPLACE_ME</code>
+          佔位值,assert 已經確認會在缺憑證時清楚報錯而不是靜默失敗。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-27 · GitHub App 設定文件補完</div>
+      <h3><span class="cl-tag cl-test">docs</span> 逐欄位的 GitHub App 建立步驟,誠實補上 fine-grained PAT 這個沒提過的替代方案</h3>
+      <ul>
+        <li>使用者質疑「為什麼要搞 GitHub App 這麼麻煩,直接 create
+          runner 不就好了」——先誠實承認:GitHub 網頁上手動產生
+          registration token 確實是最簡單的做法,複雜度完全是因為
+          「bastion 每次重建要自動註冊」這個需求逼出來的,而且上一輪
+          比較方案時漏掉了一個選項:<strong>fine-grained PAT</strong>
+          一樣可以鎖到只剩 Organization → Self-hosted runners,設定
+          比 GitHub App 簡單得多,只是有強制過期日、綁在個人帳號上。
+          誠實列出三種方式(classic PAT / fine-grained PAT / GitHub
+          App)的取捨表格,讓使用者自己決定,不是只講對自己選擇有利的
+          那一半。使用者確認維持 GitHub App,但要求把設定文件寫完整。</li>
+        <li>發現 <code>secrets.yml.example</code> 原本的 6 步驟說明
+          漏了一堆表單上真的會卡住人的欄位——Webhook 要不要開、
+          Homepage/Callback URL 填什麼、Organization permissions 跟
+          Repository permissions 兩組同名項目容易選錯、Installation ID
+          到底去哪裡找。改成 13 步逐欄位的完整教學搬進
+          <a href="role-github-runner.html">Role: github_runner</a>,
+          <code>secrets.yml.example</code> 改成指過去,不留兩份會
+          之後對不上的重複說明。</li>
+        <li>額外附一段用純 bash + openssl 查 Installation ID 的指令
+          (不用先跑完整個 ansible role),照這個專案一貫的作風,寫進
+          文件前先用假的 RSA key 實測過整條 JWT 組法產生的三段式
+          token 真的能正確解碼,不是憑印象寫的操作步驟。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-27 · GitHub Actions runner 實際跑起來</div>
+      <h3><span class="cl-tag cl-fix">fix</span> 兩個實測才冒出來的 bug:同名 image 混進 container 檢查、UID 對不上讀不到 key</h3>
+      <ul>
+        <li>使用者建好 GitHub App、填完憑證後跑
+          <code>playbooks/github-runner.yml</code>,全部 task 顯示
+          <code>ok</code>/<code>changed</code>,但「起 github-runner
+          container」被跳過、GitHub 上完全看不到 runner。查出來是
+          <code>docker inspect github-runner</code>(沒帶
+          <code>--type</code>)預設會搜尋所有種類的物件,剛好命中前一步
+          <code>docker build -t github-runner</code> 建出來的同名
+          image,永遠回報「已經存在」,<code>docker run</code> 因此永遠
+          被跳過。加上 <code>--type container</code> 把搜尋範圍限定在
+          容器。</li>
+        <li>修完再跑,container 起來了但一直重啟——log 顯示 openssl 對
+          掛進去的 GitHub App private key 檔案 <code>Permission
+          denied</code>。查出來是 Dockerfile 自己
+          <code>useradd -m runner</code> 造新使用者,被 <code>ubuntu:24.04</code>
+          base image 本身內建的 UID 1000 <code>ubuntu</code> 使用者擠到
+          UID 1001,跟 host 上擁有那個 key 檔案的 UID(bastion 的
+          <code>ubuntu</code>,也是 1000)對不上——bind mount 進
+          container 的檔案,權限是照 UID 數字比對,不是看使用者名稱。
+          改成不自己造使用者,直接沿用 base image 內建、UID 剛好對得上
+          host 的 <code>ubuntu</code>。</li>
+        <li>兩個 bug 都修完重跑,container log 印出
+          <code>√ Runner successfully added</code> →
+          <code>√ Connected to GitHub</code> →
+          <code>Listening for Jobs</code>,<code>docker inspect</code>
+          確認 <code>RestartCount: 0</code>——runner 真的活著,不是卡在
+          重啟迴圈裡看起來正常。細節見
+          <a href="role-github-runner.html">Role: github_runner</a>
+          的 Bug 記錄。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-27 · bastion 持久化儲存 + 一次跑完的 rebuild playbook</div>
+      <h3><span class="cl-tag cl-feat">feat</span> bastion 加兩顆 Cinder 資料碟(NFS 匯出、userap),重建流程收斂成一個 playbook</h3>
+      <ul>
+        <li>bastion 額外掛兩顆獨立於 instance 生命週期的 Cinder volume
+          (<code>delete_on_termination=false</code>):<code>nfs-data</code>
+          由 cloud-init 格式化後掛在 <code>/srv/nfs/k8s</code>,交給
+          <code>playbooks/bastion/nfs-server.yml</code> 裝成 NFS server,
+          給叢集內未來的 csi-driver-nfs 當 StorageClass 後端用;
+          <code>user-data</code> 掛在 <code>/data/userdata</code>,把既有
+          <code>/userap</code> 的內容搬進去後用 bind mount 蓋回原路徑。
+          刻意不處理 <code>/home</code>、<code>/root</code>——那兩個是
+          cloud-init 寫入 SSH <code>authorized_keys</code> 的路徑,重建時
+          bind mount 舊資料上去容易在換 keypair 的情境下把自己鎖在外面,
+          風險大於好處。</li>
+        <li>格式化/掛載本身刻意用 cloud-init 做,不等 Ansible
+          步驟——這兩顆 volume 是跟開機碟同一批在 instance
+          建立當下 attach 的,cloud-init 的 <code>user_data</code>
+          只在第一次開機時跑一次,若改用事後才 attach 的
+          <code>openstack_compute_volume_attach_v2</code>,會跟
+          「instance 建立完成」這個 Terraform 步驟之間有 race,
+          cloud-init 很可能在磁碟出現前就跑完了。</li>
+        <li>過程中連續踩了三個環環相扣的 Nova/provider bug,細節見
+          <a href="troubleshooting.html">Bug 事後檢討 #31-33</a>:這朵雲的
+          Nova 不接受 <code>image_name</code> 屬性跟
+          <code>block_device_mapping_v2</code> 混用;改成明確
+          block_device 開機後,provider 自己的驗證邏輯又要求
+          <code>destination_type</code> 必須是
+          <code>"volume"</code> 不能是 <code>"local"</code>,才不會
+          倒過來硬要塞一個衝突的 <code>ImageRef</code>;而這個選擇
+          連帶把整台機器的磁碟匯流排從 <code>vdX</code>(virtio-blk)
+          換成 <code>sdX</code>(SCSI),cloud-init 腳本要跟著改裝置
+          路徑。</li>
+        <li>實際重建 bastion 才發現:internal SSH key 信任、kubectl、
+          admin kubeconfig、<code>k8s-api.internal</code> 這條
+          <code>/etc/hosts</code> 記錄,全部只存在 bastion 自己的
+          ephemeral 開機碟上,過去只在「全新環境第一次架設」時裝過一次,
+          從沒設計成「只有 bastion 單獨重建、叢集其他節點都還活著」這個
+          情境也要能重跑。把 <code>playbooks/kubeadm.yml</code> 最後
+          裝 kubectl + 抓 kubeconfig 那段、跟
+          <code>playbooks/apiserver-lb.yml</code> 的 DNS 那個 play,
+          各自抽成獨立的 <code>playbooks/bastion/kubeconfig.yml</code>、
+          <code>playbooks/bastion/apiserver-dns.yml</code>,細節見
+          <a href="troubleshooting.html">Bug 事後檢討 #34</a>。</li>
+        <li>順手把所有 bastion 專屬的 playbook(access、ssh-tunnel、
+          nfs-server、kubeconfig、apiserver-dns、tools、
+          cloudflare-tunnel、github-runner)用 <code>import_playbook</code>
+          串成單一入口 <code>playbooks/bastion.yml</code>,並搬進
+          <code>playbooks/bastion/</code> 子目錄——bastion 重建之後,
+          只要跑這一個 playbook 就能回到完整可用狀態,不用記得該按什麼
+          順序重跑一串個別檔案。也順便把 #10(Docker MTU 1442 vs 1500)
+          的手動修法補進 <code>bastion-init.sh.tftpl</code>,永久生效,
+          不再只存在於某一台機器的記憶裡。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-27 · NFS CSI driver,叢集第一個 StorageClass</div>
+      <h3><span class="cl-tag cl-feat">feat</span> csi-driver-nfs 接上 bastion 的 NFS export,提供 RWX StorageClass</h3>
+      <ul>
+        <li>用 Helm 裝 <code>csi-driver-nfs</code> v4.13.4(<code>roles/nfs_csi_driver</code>,獨立的 <code>csi-driver-nfs</code> namespace),接上前一則 entry 裡 bastion 已經在跑的 NFS server。兩個 StorageClass、同一個後端,差在 <code>reclaimPolicy</code>:<code>nfs-csi</code>(Delete)跟 <code>nfs-csi-retain</code>(Retain)——Kubernetes 沒有讓 PVC 自己宣告 reclaimPolicy 的欄位,這是 StorageClass/PV 層級的屬性,PVC 只能靠 <code>storageClassName</code> 選,這也是 NetApp Trident 這類其他 CSI driver 平常暴露多顆 StorageClass 的同一個理由,細節見 <code>docs/superpowers/specs/2026-07-27-nfs-csi-driver-design.md</code>。</li>
+        <li><strong>⚠️ 這則 entry 原本這裡宣稱「<code>egressDeny</code> 是單純疊加一條擋規則,不動其他既有行為」——這個說法是錯的,而且這個錯誤直接造成下面
+          <a href="#cl-egress-outage">下一則 entry</a>
+          記錄的約 10 小時叢集 egress 中斷,原文保留、不竄改歷史記錄,正確版本請看下一則。</strong>額外加一條 <code>CiliumClusterwideNetworkPolicy</code>(<code>egressDeny</code>,不是一般的 allow-list <code>egress</code> 規則),限制只有 csi-driver-nfs 的 node plugin(<code>app: csi-nfs-node</code>)能連 bastion 的 NFS port——NFS 自己的存取控制是 IP range-based,不是 Kubernetes RBAC,沒有這條規則的話任何能用 root 身份、連得到 <code>10.10.0.0/24</code> 的 pod 理論上都能直接 mount 整個 export、看到所有 namespace 的 PV 資料。<strong>已知取捨,不是漏洞</strong>:csi-driver-nfs 的 node plugin 本身跑 <code>hostNetwork: true</code>,Cilium 對 hostNetwork pod 的 per-pod policy 本來就不生效(要開 Host Firewall 才會生效,這個叢集沒開,也沒有任何 namespace 設 Pod Security Admission)——這條規則擋得住「不小心」直接連 NFS port 的一般 pod,擋不住蓄意把自己設成 <code>hostNetwork: true</code> 的 pod。三個選項(接受並誠實標註 / 幫其他 namespace 全部加 Pod Security baseline / 開 Cilium Host Firewall)裡選了第一個——這個叢集本來就沒有針對 <code>hostPath</code>/<code>privileged</code> pod 的防護,NFS 這裡多一個同類缺口不算讓情況變更差,真的要補齊的話是一次獨立的叢集安全加固,不屬於這次「加 NFS 儲存」的範圍。</li>
+        <li>驗證步驟(<code>playbooks/nfs-csi.yml</code> 的第二個 play)是真的建一顆 RWX PVC、從一個 worker 節點寫、從另一個 worker 節點讀,確認 RWX 真的跨節點動,不是只看 StorageClass 物件存在;另外從一個沒有 <code>csi-nfs-node</code> 標籤的普通 pod 直連 NFS port,確認真的被上面那條 policy 擋下來,不是只信任 apply 沒報錯。跟 <code>smoke-test.yml</code> 一樣自己建自己清(block/always),可重複執行。</li>
+        <li>第一次跑這個驗證 play 時,三個測試 pod 全部卡在 <code>kubectl wait --for=condition=Ready</code> timeout——連完全沒掛 PVC 的 blocked pod 也一樣卡住,查出來是 <code>demo</code> namespace 開了 Istio 自動注入(<code>demo-app.yml</code> 的展示用),裸 busybox 測試 pod 被硬塞了一個 <code>istio-proxy</code> sidecar,它的 startup probe 永遠連不上、把整個 pod 的 Ready 狀態卡死。三個 <code>kubectl run --overrides</code> 都加
+          <code>sidecar.istio.io/inject:"false"</code> 跳過注入,細節見
+          <a href="troubleshooting.html">Bug 事後檢討 #35</a>。修完重跑,RWX
+          跨節點讀寫、network policy 阻擋,兩項驗證全部通過。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry" id="cl-egress-outage">
+      <div class="cl-date">2026-07-27 · 事後檢討:CiliumClusterwideNetworkPolicy 造成約 10 小時的叢集 egress 中斷</div>
+      <h3><span class="cl-tag cl-fix">fix</span> egressDeny 少了 enableDefaultDeny,幾乎全叢集 pod 斷網,靠最終 code review 才抓到</h3>
+      <ul>
+        <li><strong>發生了什麼:</strong>上一則 entry 裡部署的
+          <code>CiliumClusterwideNetworkPolicy</code>(<code>egressDeny</code>
+          規則,限制誰能連 NFS port)實際上把幾乎全叢集的 pod egress 打成
+          default-deny。根因是 Cilium 的語意跟設計文件當初的理解不一樣:
+          <code>egressDeny</code>-only 的 rule,只要沒有明講
+          <code>enableDefaultDeny: {egress: false}</code>,就會讓「被這條
+          policy 選到的每個 endpoint」直接進入 egress 整個 default-deny
+          ——這條 policy 唯一的 deny 規則只針對 NFS port,但一旦
+          default-deny 生效,叢集裡沒有任何其他 allow rule 能接住其他
+          流量。<code>endpointSelector</code> 用 <code>app NotIn
+          [csi-nfs-node]</code>,幾乎選到全叢集每個 pod(沒有 <code>app</code>
+          label 的 pod 也會被 <code>NotIn</code> 選到)。</li>
+        <li><strong>怎麼被抓到的:</strong>不是靠監控或使用者回報——是這次
+          work 的最後一步,dispatch 一個獨立的 code reviewer 對整個
+          feature branch 做 review 時,reviewer 沒有直接相信設計文件裡
+          「<code>egressDeny</code> 是單純疊加一條擋規則」的說法,直接去讀
+          Cilium v1.19 原始碼(<code>pkg/policy/api/rule_validation.go</code>、
+          <code>pkg/policy/repository.go</code>)驗證這個假設,發現是錯的。
+          回頭查 <code>cilium-dbg endpoint list</code> 的 POLICY (egress)
+          ENFORCEMENT 欄位、實際測 pod 內 DNS 解析,兩者都直接證實:
+          叢集內普通 pod 完全連不到 DNS(<code>kubernetes.default</code>
+          跟外部 DNS 都逾時),<code>cloudflared</code> 兩個 pod 進入
+          crash-loop(<code>lookup cfd-features.argotunnel.com:
+          i/o timeout</code>,165 次重啟),對照 policy 部署的時間點,
+          這個中斷已經持續了將近 10 小時。</li>
+        <li><strong>為什麼完全沒發現:</strong>bastion 上跑 ansible/kubectl
+          全程正常,因為 host network 的流量本來就不受這條 per-pod
+          policy 影響——這正是
+          <a href="troubleshooting.html">Bug 事後檢討 #34</a>
+          已經記錄過的同一個機制(hostNetwork pod 不受 per-pod policy
+          影響),上次是拿來當「bastion 重建後要記得重跑哪些東西」的
+          線索,這次反而變成「操作者完全看不出叢集其他地方已經斷線」的
+          盲點來源。</li>
+        <li><strong>怎麼修的:</strong>立刻刪掉這條 policy 恢復服務,確認
+          DNS 解析恢復、手動重啟卡住的 <code>cloudflared</code> pod;
+          policy 補上 <code>enableDefaultDeny: {egress: false}</code>
+          後重新部署,直接用 <code>cilium-dbg endpoint list</code>、pod
+          內 DNS 測試、<code>cloudflared</code> log 三種方式獨立確認
+          egress 真的恢復正常,不是只看 apply 沒報錯。</li>
+        <li><strong>怎麼避免下次再犯:</strong>驗證步驟原本只有負面斷言
+          (「應該被擋的連線失敗」),沒辦法分辨「精準擋下」跟「整個
+          斷網,剛好包含被測的那個連線」——兩種情況下負面斷言都會通過。
+          補上正面對照組:同一個 pod 連 policy 完全沒提過的另一個 port
+          (bastion 的 22),必須成功,才能證明前面的失敗是精準擋下。
+          也把驗證步驟從共用的 <code>demo</code> namespace 移到專屬的
+          拋棄式 namespace(順便拿掉了造成
+          <a href="troubleshooting.html">Bug 事後檢討 #35</a>
+          的 istio-injection 耦合),並且把設計文件裡「<code>egressDeny</code>
+          是單純疊加」這個已經證明錯誤的說法直接改掉,不是留著不提。細節見
+          <a href="troubleshooting.html">Bug 事後檢討 #36</a>。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-30 · 從 0 建置順序稽核</div>
+      <h3><span class="cl-tag cl-fix">fix</span> <code>bastion.yml</code> 在真正全新的環境上會半路失敗,順便理清 <code>cloudflare-tunnel.yml</code> 到底該掛在哪裡</h3>
+      <ul>
+        <li><strong>起因:</strong>不相信 <code>CLAUDE.md</code>/<code>ansible/README.md</code> 對建置順序的既有描述(先跑完整個 <code>bastion.yml</code>,再跑 <code>k8s.yml</code>),直接照 Terraform/Ansible 原始碼跟 git 歷史重新推演一遍「從 0 建置」的真實順序,結果真的挖出一個沒被文件寫出來的落差,細節見 <a href="https://github.com/khchiang1121/terraform-k8s/blob/main/docs/bootstrap-order-audit.md">bootstrap-order-audit.md</a>。</li>
+        <li><strong>發現的 bug:</strong><code>playbooks/bastion/kubeconfig.yml</code>(Bug #34 的修法產物)直接用 <code>ansible.builtin.fetch</code> 去 masters[0] 抓 <code>/etc/kubernetes/admin.conf</code>,這個檔案要 <code>kubeadm init</code> 跑過才存在——在真正全新的環境上(叢集還沒建立),這一步會直接讓整個 <code>bastion.yml</code> 半路失敗,後面的 <code>apiserver-dns.yml</code>/<code>tools.yml</code>/<code>cloudflare-tunnel.yml</code>/<code>github-runner.yml</code> 完全不會執行到,見 <a href="troubleshooting.html">Bug 事後檢討 #37</a>。</li>
+        <li><strong>順便發現的設計問題:</strong><code>bastion/cloudflare-tunnel.yml</code> 原本被放進 <code>bastion.yml</code> 的 import 鏈,但它部署的 <code>cloudflared</code> Deployment/Secret 活在叢集自己的 etcd、跑在一般 k8s 節點的 pod 上——這根本不是 bastion 本機狀態,bastion 重建完全不影響它。原本以為要仿照 <code>kubeconfig.yml</code> 那樣兩邊各留一份 import,後來確認這個類比是錯的,直接把它從 <code>bastion.yml</code> 移除,只留在 <code>playbooks/k8s.yml</code>(<code>cert-manager.yml</code> 之後)。</li>
+        <li><strong>修法:</strong><code>playbooks/bastion/kubeconfig.yml</code> 抓檔案前先 <code>stat</code> 檢查存不存在,不存在就跳過 fetch/copy(kubectl 本身照裝不受影響);<code>roles/cloudflare_tunnel</code> 比照辦理,檢查 bastion 上有沒有 kubeconfig,沒有就跳過 <code>kubectl apply</code>。效果:<code>bastion.yml</code> 現在不論叢集存在與否都可以直接當一個獨立 playbook 跑,全新建置流程走完 <code>bastion.yml</code> → <code>k8s.yml</code> 兩個聚合 playbook 就結束,不需要任何回頭重跑。</li>
+        <li><strong>文件同步更新:</strong><code>CLAUDE.md</code>、<code>ansible/README.md</code>、<a href="ansible-framework.html">框架設計</a>、<a href="getting-started.html">從零開始建置</a> 對建置順序的描述全部改成跟程式碼一致,不再各自獨立描述、對不上實際行為。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-07-30 · SSH 私鑰處理改回單一 key</div>
+      <h3><span class="cl-tag cl-feat">feat</span> 拿掉「內部 key」+ bootstrap 步驟,全部節點(含 bastion)開機時統一信任同一把 key</h3>
+      <ul>
+        <li><strong>背景:</strong>這個設計來回改過兩次——最早是單一 key(使用者私鑰直接落地在 bastion 上);後來使用者要求改成兩把 key(另開一把跟身份無關的「內部 key」,理由是不想讓自己真正的私密金鑰外流,見更早的 entry);這次使用者重新評估,認為<strong>這把 key 只給這個 lab 使用,外流頂多讓人連進 lab 內部節點,風險可以接受</strong>,決定改回單一 key,不要為了這個取捨多維護一把 key、一個 bootstrap 步驟。</li>
+        <li><strong>改動:</strong><code>main.tf</code> 新增 <code>openstack_compute_keypair_v2.k8s</code>,直接讀 <code>.ssh/id_ed25519.pub</code> 註冊進 OpenStack(取代原本手動 <code>openstack keypair create</code> 那一步),所有 VM 的 <code>key_pair</code> 都指到這一個 resource,Nova 開機時統一埋進全部節點(含 bastion)。拿掉 <code>ansible/roles/internal_ssh_key</code>、<code>playbooks/internal-ssh-key.yml</code>、<code>group_vars/all/main.yml</code> 的 <code>bastion_internal_public_key</code>;<code>scripts/ansible.sh</code> 拿掉 <code>INTERNAL_KEY</code>/<code>CONTAINER_KEY</code>/<code>BOOTSTRAP</code> 這整套邏輯,永遠只用 <code>.ssh/id_ed25519</code> 一把 key(既送去給容器掛用,也留在筆電給 <code>make ssh</code> 用)。</li>
+        <li><strong>效果:</strong>全新環境、新增節點、bastion 單獨重建,都不再需要任何「先借用真實私鑰跑一次 bootstrap playbook」的手動步驟——Nova 開機當下就處理好,直接 <code>scripts/ansible.sh ansible all -m ping</code> 確認連得到就能往下走。</li>
+        <li><strong>文件同步更新:</strong><a href="getting-started.html">從零開始建置</a> Step 2/8 跟「加/刪節點」「VM 全部重建」兩張卡片、<a href="ansible-framework.html">框架設計</a> 的「私鑰處理」整節、<code>ansible/README.md</code>、<code>CLAUDE.md</code>、<code>docs/bootstrap-order-audit.md</code> 都改掉了;舊的兩把 key 設計本身的歷史記錄(<a href="troubleshooting.html">Bug 事後檢討 #34</a>、上面幾則 entry)照舊保留,不竄改歷史。</li>
+      </ul>
+    </div>
+
+    <div class="page-nav">
+      <a class="prev" href="troubleshooting.html"><span class="dir">上一頁</span><span class="ttl">← Bug 事後檢討</span></a>
+      <a class="next" href="index.html"><span class="dir">回到</span><span class="ttl">總覽 →</span></a>
+    </div>
+
+    <footer class="page-footer">
+      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
+      <span>最後更新:2026-07-30</span>
+    </footer>
+  </div>
+</div>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

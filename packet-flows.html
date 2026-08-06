@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>封包路徑實例 — k8s + BGP Lab 技術詳解</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <a class="sidebar-logo-link" href="index.html">
+      <h1>🛰️ k8s + BGP Lab</h1>
+      <span>OpenStack Lab · 技術詳解 v15</span>
+    </a>
+  </div>
+  <nav>
+    <div class="nav-group">
+      <div class="nav-group-label">總覽</div>
+      <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
+      <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
+      <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">網路架構</div>
+      <a class="nav-link" href="network-architecture.html"><span class="icon">🌐</span> 網路架構總覽</a>
+      <a class="nav-link active" href="packet-flows.html"><span class="icon">🔀</span> 封包路徑實例</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">基礎設施</div>
+      <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
+      <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Ansible 自動化</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
+      <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
+      <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
+      <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
+      <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
+      <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
+      <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Cloudflare 手動設定</div>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">專案紀錄</div>
+      <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+    </div>
+  </nav>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" aria-label="Toggle menu">☰</button>
+      <span class="topbar-crumb">Lab Docs / <strong>封包路徑實例</strong></span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">cloudnative.tw · AS 65000</span>
+      <button class="theme-toggle" id="themeToggle" aria-label="切換主題">
+        <span class="icon-moon">🌙</span><span class="icon-sun">☀️</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <h2><span class="eyebrow">網路架構</span>五個具體情境的完整封包路徑</h2>
+    <p class="lede">上一頁(<a href="network-architecture.html">網路架構總覽</a>)講的是
+      「系統怎麼拼起來」,這頁把它換成五個具體情境,逐跳畫出封包實際會走的路徑。
+      每個情境都是這個 lab 實測驗證過的行為,不是理論推導。</p>
+
+    <h3>情境一:Pod ↔ Pod,同一個節點</h3>
+    <p>最簡單的情況——兩個 pod 剛好排程到同一台節點上,完全不需要離開這台機器。</p>
+    <div class="flow">
+      <div class="flow-step"><div class="flow-box green">Pod A<br><small>172.16.4.10</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box">veth pair</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box accent">Cilium eBPF<br><small>datapath,同節點直接轉發</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box">veth pair</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box green">Pod B<br><small>172.16.4.20</small></div></div>
+    </div>
+    <p>這一段完全不會出現在 <code>tcpdump -i ens3</code> 上——封包從頭到尾沒有離開
+      這台主機的 kernel network namespace 邊界,FRR/BGP 完全不參與。</p>
+
+    <h3>情境二:Pod ↔ Pod,跨節點(native routing 的核心場景)</h3>
+    <p>這是整個 <a href="role-cilium.html">Cilium native routing</a> 設計要解決的
+      主要情境,例如 <code>ms-0001</code> 上的 pod 要連到 <code>ap-0002</code>
+      上的 pod:</p>
+    <div class="flow">
+      <div class="flow-step"><div class="flow-box green">Pod A<br><small>172.16.4.10<br>on ms-0001</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box">cilium_host<br><small>本節點 PodCIDR<br>connected route</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box accent">ms-0001 查路由表<br><small>172.16.6.0/24<br>via 10.10.0.41 dev ens3<br>(BGP 學到的)</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box purple">k8s-net(flat L3)<br><small>直接送到 ap-0002<br>的 ens3,一個 IP hop</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box">cilium_host<br><small>ap-0002 本地 PodCIDR</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box green">Pod B<br><small>172.16.6.20<br>on ap-0002</small></div></div>
+    </div>
+    <p class="flow-caption">實測用 tcpdump 在 <code>ms-0001</code> 的 <code>ens3</code>
+      上抓包,看到的是<strong>完全不加密封裝的原始 IP/TCP</strong>,來源/目的地
+      直接是兩個 pod 的真實 IP(<code>10.244.2.6 → 10.244.5.201</code>,CIDR
+      改版前的測試截圖;改版後同樣邏輯,只是位址換成 <code>172.16.x.x</code>)
+      ——沒有任何 VXLAN/Geneve header,這就是「native」routing 這個名字的來源。</p>
+
+    <div class="callout callout-info">
+      <p><strong>為什麼「一個 IP hop」就夠了</strong>:因為 k8s-net 是單一
+      flat subnet(<code>10.10.0.0/24</code>),任何一個節點的 <code>ens3</code>
+      都可以直接 ARP 解析到同網段任何其他節點的 <code>ens3</code>——BGP
+      在這裡的角色不是「決定下一個 IP 路由器」(像傳統多網段的 BGP 網路那樣),
+      而是「決定這個 PodCIDR 應該送去哪一個節點的位址」,決定完之後,實際送達
+      是靠 L2/L3 flat network 本身的直連能力,不需要再多繞路。</p>
+    </div>
+
+    <h3>情境三:Pod → ClusterIP(Service)</h3>
+    <p>Pod 要連一個 Service(例如叢集內部呼叫 <code>kubernetes.default</code>
+      這個內建 Service,ClusterIP 是 <code>172.18.0.1</code>)：</p>
+    <div class="flow">
+      <div class="flow-step"><div class="flow-box green">Pod<br><small>連 172.18.0.1:443</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box danger">本機 iptables<br><small>KUBE-SERVICES chain<br>(kube-proxy 產生)</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box danger">DNAT<br><small>目的地改成某個<br>真實 master fabric_ip:6443</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box accent">查路由表(這時候<br>查的已經是改寫後的目的地)</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box purple">k8s-net<br><small>直接送到目標 master</small></div></div>
+    </div>
+    <p>要注意的是這條路徑跟情境二(Pod↔Pod)完全不共用機制——ClusterIP 從來
+      不是一個「路由得到」的位址,它純粹是 iptables DNAT 表的一個 key。
+      如果流量的發起端是<strong>節點本身</strong>(hostNetwork,不是 pod 裡面),
+      DNAT 生效前的來源位址選擇會因為 <code>172.18.0.0/16</code> 沒有專屬路由
+      而選錯网段——這正是 <a href="network-architecture.html#service-cidr">service-cidr
+      靜態路由</a>要解決的問題,詳見 <a href="role-kubelet.html">Role: kubelet</a>。
+      Pod 內部發起的流量不會有這個問題,因為 pod 的網路 namespace 裡本來就只有
+      <code>cilium_host</code> 這條路可以走,不會意外選到 mgmt-net。</p>
+
+    <h3>情境四:任意節點 → kube-apiserver(HA 入口)</h3>
+    <p>Worker 的 kubelet、其他 master 的 apiserver 互連、或是 bastion 上的
+      <code>kubectl</code>,全部走同一條固定路徑,細節見
+      <a href="role-apiserver-lb.html">Role: apiserver-lb</a>:</p>
+    <div class="flow">
+      <div class="flow-step"><div class="flow-box">任意節點<br><small>連 k8s-api.internal:6443</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box accent">/etc/hosts<br><small>解析成 tor 的<br>fabric_ip(10.10.0.10)</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box purple">tor:6443<br><small>haproxy,mode tcp</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box green">3 台 master 之一<br><small>round robin,health check</small></div></div>
+    </div>
+    <p>這條路徑<strong>刻意不用 DNS server</strong>,而是每個節點的
+      <code>/etc/hosts</code> 各自寫一條靜態紀錄——這個 lab 規模小到不值得為了
+      一個名稱解析架一個真的 DNS server,而且 <code>/etc/hosts</code>
+      在 apiserver 都還沒起來、kube-dns/CoreDNS 都不存在的 kubeadm bootstrap
+      階段也一樣可靠(不依賴叢集本身已經在運作)。</p>
+
+    <h3>情境五:外部 SSH 進入(唯一的公開入口)</h3>
+    <div class="flow">
+      <div class="flow-step"><div class="flow-box">你的筆電</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box accent">floating ip<br><small>只掛在 bastion 上</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box purple">bastion<br><small>唯一的操作入口</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box green">bastion 容器內<br><small>ansible-runner,同一個<br>mgmt-net,直連任何節點</small></div></div>
+    </div>
+    <p>整條路徑只有<strong>一次</strong> SSH(筆電到 bastion),bastion 到其他
+      所有節點是容器直連 mgmt-net,不需要 ProxyJump——詳見
+      <a href="ansible-framework.html">Ansible 框架設計</a>裡「為什麼連線用
+      mgmt-net 不是走 jump host」那段。這個 lab 裡<strong>唯一</strong>一個
+      floating ip 就掛在 bastion 上,任何其他節點都沒有公開可達的位址,
+      整個叢集對外的攻擊面被壓縮到只有 bastion 這一台。</p>
+
+    <h3>情境附錄:DNS 解析(CoreDNS)怎麼融入這個架構</h3>
+    <p>Pod 要解析一個 Service 名稱(例如 <code>kubernetes.default.svc.cluster.local</code>)
+      走的是叢集內建的 CoreDNS,運作方式是「情境一或情境二」(取決於發起 pod
+      跟 CoreDNS pod 是不是同一節點)+「情境三」的組合——kubelet 幫每個 pod
+      注入的 <code>/etc/resolv.conf</code> 指向 CoreDNS 的 ClusterIP,查詢本身
+      先走情境三(Pod → ClusterIP → DNAT 到真正的 CoreDNS pod IP),
+      拿到解析結果之後,真正的資料連線才走情境二(Pod → Pod,原生路由)。
+      這也是為什麼 <a href="role-cilium.html">Cilium 裝完之前</a>,
+      <code>coredns</code> 這兩個 pod 會卡在 <code>Pending</code>——沒有 CNI,
+      連 CoreDNS 自己都排不上 pod 網路,更別提幫其他 pod 解析。</p>
+
+    <div class="page-nav">
+      <a class="prev" href="network-architecture.html"><span class="dir">上一頁</span><span class="ttl">← 網路架構總覽</span></a>
+      <a class="next" href="infrastructure.html"><span class="dir">下一頁</span><span class="ttl">Terraform / OpenStack →</span></a>
+    </div>
+
+    <footer class="page-footer">
+      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
+      <span>最後更新:2026-07-27</span>
+    </footer>
+  </div>
+</div>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

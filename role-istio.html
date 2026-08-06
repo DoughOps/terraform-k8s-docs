@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Role: istio — k8s + BGP Lab 技術詳解</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <a class="sidebar-logo-link" href="index.html">
+      <h1>🛰️ k8s + BGP Lab</h1>
+      <span>OpenStack Lab · 技術詳解 v15</span>
+    </a>
+  </div>
+  <nav>
+    <div class="nav-group">
+      <div class="nav-group-label">總覽</div>
+      <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
+      <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
+      <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">網路架構</div>
+      <a class="nav-link" href="network-architecture.html"><span class="icon">🌐</span> 網路架構總覽</a>
+      <a class="nav-link" href="packet-flows.html"><span class="icon">🔀</span> 封包路徑實例</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">基礎設施</div>
+      <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
+      <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Ansible 自動化</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
+      <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
+      <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
+      <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
+      <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
+      <a class="nav-link active" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
+      <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Cloudflare 手動設定</div>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">專案紀錄</div>
+      <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+    </div>
+  </nav>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" aria-label="Toggle menu">☰</button>
+      <span class="topbar-crumb">Lab Docs / <strong>Role: istio</strong></span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">cloudnative.tw · AS 65000</span>
+      <button class="theme-toggle" id="themeToggle" aria-label="切換主題">
+        <span class="icon-moon">🌙</span><span class="icon-sun">☀️</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <h2><span class="eyebrow">Ansible 自動化</span>Role: istio</h2>
+    <p class="lede">部署 Istio service mesh 的 control plane(istiod)+ ingress
+      gateway,全部裝在 <code>istio</code> namespace——使用者明確要求,不是
+      官方預設的 <code>istio-system</code>。這個 role 只負責「cluster 內部
+      從 ingress gateway 到 pod」這一段路由,真正的對外入口是
+      <a href="role-cloudflare-tunnel.html">Role: cloudflare_tunnel</a>,
+      兩者刻意切開,職責不重疊。</p>
+
+    <div class="callout callout-info">
+      <p><strong>為什麼需要 Istio,cluster 內部不是本來就有 Service 可以路由?</strong>
+      因為對外入口只有一條 Cloudflare Tunnel,但 cluster 裡可能有很多個
+      服務,各自要用不同的子網域區分——Istio 的 Gateway/VirtualService
+      提供「一個共用的 L7 進入點,靠 Host header 分流到不同服務」的機制,
+      不需要每個服務各自開一個對外可連的位址。</p>
+    </div>
+
+    <h3>三個 chart,靠 helm 依序裝,順序不能反</h3>
+    <div class="flow">
+      <div class="flow-step"><div class="flow-box">istio-base<br><small>CRD + cluster 角色</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box accent">istiod<br><small>control plane</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box purple">istio-ingressgateway<br><small>gateway chart</small></div></div>
+    </div>
+
+    <div class="callout callout-warn">
+      <p><strong>istiod 一定要先 ready,gateway 才能真的動起来</strong>
+      ——<code>istio/gateway</code> 這個 chart 部署出來的 pod 本身只是一個
+      帶 <code>sidecar.istio.io/inject: true</code> 注記的空殼
+      Deployment,實際的 Envoy container 是靠 <strong>istiod 的 mutating
+      webhook</strong> 動態注入進去的。順序反過來的話,gateway pod 會卡在
+      沒有 Envoy container 的狀態,永遠不會真正監聽任何 port。這也是為什麼
+      role 裡在裝完 istiod 後,會先<code>kubectl rollout status
+      deployment/istiod</code> 等它完全 ready,才進下一步裝 gateway。</p>
+    </div>
+
+    <h3><code>global.istioNamespace</code> 一定要明確帶</h3>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/istio/tasks/main.yml(精簡)</span></div>
+      <pre><span class="out">kubernetes.core.helm:
+  name: istio-base
+  chart_ref: istio/base
+  release_namespace: "{{ istio_namespace }}"
+  create_namespace: true
+  values:
+    global:
+      istioNamespace: "{{ istio_namespace }}"</span></pre>
+    </div>
+    <p><code>istio-base</code>/<code>istiod</code> 這兩個 chart 預設<strong>寫死
+      指向 <code>istio-system</code></strong>,不會自動對齊
+      <code>release_namespace</code>——只設 <code>release_namespace</code>
+      而不同時設 <code>global.istioNamespace</code>,實際部署出來的
+      control plane 元件仍然會去找 <code>istio-system</code> 底下的
+      資源(像 CA 憑證的 Secret),在 <code>istio</code> namespace 裡
+      根本找不到,啟動會失敗。兩個值必須一起帶,是實測驗證過的,不是
+      看文件猜的。</p>
+
+    <h3>ingress gateway 的 Service:ClusterIP,不是 NodePort</h3>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/istio/templates/gateway-values.yaml.j2</span></div>
+      <pre><span class="out">service:
+  type: ClusterIP</span></pre>
+    </div>
+    <p>早期版本曾經規劃 <code>NodePort</code>(固定 30080/30443),
+      對應的是「透過 bastion 的 floating ip + NodePort 對外 expose」這個
+      被使用者明確否決的方案(見
+      <a href="role-cloudflare-tunnel.html">Role: cloudflare_tunnel</a>
+      關於這段決策轉折的完整說明)。現在對外入口是
+      <strong>cloudflared 從 cluster 內部直接用 ClusterIP DNS 連過來</strong>
+      (<code>istio-ingressgateway.istio.svc.cluster.local:80</code>),
+      完全不需要任何對外開放的 port,<code>ClusterIP</code> 就是最小權限
+      的正確選擇——不多開一個攻擊面。</p>
+
+    <h3>叢集共用的入口 Gateway:一個,不是每個服務各開一個</h3>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/istio/templates/k8s-gateway.yaml.j2</span></div>
+      <pre><span class="out">apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: k8s-gateway
+  namespace: istio
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "{{ ingress_wildcard_hostname }}"   </span><span class="dim"># 目前 *.dough-ops.com</span><span class="out"></span></pre>
+    </div>
+    <p>這個 Gateway 放在 <code>istio</code> namespace,<strong>不是</strong>
+      放進某個 app 自己的 namespace——目的是讓任何 app 的
+      VirtualService,不管自己在哪個 namespace,都可以用
+      <code>gateways: [istio/k8s-gateway]</code> 這種跨 namespace 引用
+      的語法掛上來(見下方 demo app 的例子),不用每個 app 各自重複定義
+      一個 Gateway、重複佔用 80 port。</p>
+
+    <div class="callout callout-tip">
+      <p><strong><code>hosts</code> 設成整個 <code>ingress_wildcard_hostname</code>
+      萬用字元,不代表任何子網域都被對外開放</strong>——這裡只影響 Istio
+      內部比對 Host header 的範圍,真正「外面連得到哪個名稱」完全由
+      Cloudflare 那邊的 DNS/Tunnel ingress 設定決定(見
+      <a href="role-cloudflare-tunnel.html">Role: cloudflare_tunnel</a>)。
+      設寬一點純粹是省得每加一個新服務、新子網域,都要回來改這個共用
+      Gateway。</p>
+    </div>
+
+    <h3>demo app 怎麼掛上這個共用 Gateway</h3>
+    <p>用來證明「Cloudflare Tunnel → Istio ingress gateway →
+      VirtualService → Service → Pod」這條路徑真的通的最小測試服務,由
+      <code>roles/demo_app</code> 部署(獨立的 role,跟 <code>roles/istio</code>
+      分開,因為一個是「共用基礎設施」、一個是「一個具體 app」)。</p>
+
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/demo_app/templates/demo-app.yaml.j2(VirtualService 部分)</span></div>
+      <pre><span class="out">apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: web
+  namespace: demo
+spec:
+  hosts:
+    - "{{ ingress_hostname }}"        </span><span class="dim"># 目前 test.dough-ops.com</span><span class="out">
+  gateways:
+    - "{{ istio_namespace }}/k8s-gateway"   </span><span class="dim"># 跨 namespace 引用</span><span class="out">
+  http:
+    - route:
+        - destination:
+            host: web.demo.svc.cluster.local
+            port:
+              number: 80</span></pre>
+    </div>
+    <p>nginx pod 回應的內容特意帶上 pod 名稱、pod IP、node 名稱(用
+      downward API 注入的環境變數),方便肉眼確認流量真的有到達、而且
+      看得出來是哪個 pod 處理的——不是只看到一個「200 OK」就假設整條
+      路徑通了。</p>
+
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">實測驗證</span></div>
+      <pre><span class="dim">$ curl -s -m 15 https://test.dough-ops.com/</span>
+<span class="out">&lt;html&gt;&lt;body style="font-family: sans-serif; padding: 2rem;"&gt;
+&lt;h1&gt;Istio demo — it works&lt;/h1&gt;
+&lt;p&gt;Served by pod </span><span class="ok">web-74cb8d9cbf-tvfhl</span><span class="out"> (172.16.5.36) on node </span><span class="ok">ap-0002</span><span class="out"></span></pre>
+    </div>
+
+    <h3>命名空間注入:classic label,不是 revision-based</h3>
+    <p><code>demo</code> namespace 上加的是 <code>istio-injection: enabled</code>
+      這個傳統 label,不是 <code>istio.io/rev=&lt;revision&gt;</code>
+      ——因為 <code>roles/istio</code> 裝 istiod 時沒有設
+      <code>--set revision=</code>,走的是預設的單一 revision 安裝模式,
+      sidecar injection webhook 認的也是 classic label,兩邊要對齊。</p>
+
+    <h3>kube-proxy 移除後,這個 role 有沒有受影響</h3>
+    <p>叢集後來移除了 kube-proxy、改用 Cilium 的 eBPF kube-proxy
+      replacement(見 <a href="role-cilium.html">Role: cilium</a>)——這對
+      Istio 完全透明:Istio 的 Gateway/VirtualService 是 L7(HTTP)層面的
+      路由,操作對象是 Kubernetes Service 這個抽象概念,不直接依賴
+      kube-proxy 或任何特定的 Service 實作機制。無論 ClusterIP 的流量是
+      靠 iptables(kube-proxy)還是 eBPF(Cilium)轉發,Istio 這一層的
+      設定完全不用改。</p>
+
+    <div class="page-nav">
+      <a class="prev" href="role-cilium.html"><span class="dir">上一頁</span><span class="ttl">← Role: cilium</span></a>
+      <a class="next" href="role-cloudflare-tunnel.html"><span class="dir">下一頁</span><span class="ttl">Role: cloudflare_tunnel →</span></a>
+    </div>
+
+    <footer class="page-footer">
+      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
+      <span>最後更新:2026-07-27</span>
+    </footer>
+  </div>
+</div>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

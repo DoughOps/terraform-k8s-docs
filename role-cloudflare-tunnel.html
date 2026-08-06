@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Role: cloudflare_tunnel — k8s + BGP Lab 技術詳解</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <a class="sidebar-logo-link" href="index.html">
+      <h1>🛰️ k8s + BGP Lab</h1>
+      <span>OpenStack Lab · 技術詳解 v15</span>
+    </a>
+  </div>
+  <nav>
+    <div class="nav-group">
+      <div class="nav-group-label">總覽</div>
+      <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
+      <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
+      <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">網路架構</div>
+      <a class="nav-link" href="network-architecture.html"><span class="icon">🌐</span> 網路架構總覽</a>
+      <a class="nav-link" href="packet-flows.html"><span class="icon">🔀</span> 封包路徑實例</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">基礎設施</div>
+      <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
+      <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Ansible 自動化</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
+      <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
+      <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
+      <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
+      <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
+      <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link active" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
+      <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Cloudflare 手動設定</div>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">專案紀錄</div>
+      <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+    </div>
+  </nav>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" aria-label="Toggle menu">☰</button>
+      <span class="topbar-crumb">Lab Docs / <strong>Role: cloudflare_tunnel</strong></span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">cloudnative.tw · AS 65000</span>
+      <button class="theme-toggle" id="themeToggle" aria-label="切換主題">
+        <span class="icon-moon">🌙</span><span class="icon-sun">☀️</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <h2><span class="eyebrow">Ansible 自動化</span>Role: cloudflare_tunnel</h2>
+    <p class="lede">在 cluster 內的 <code>cloudflare</code> namespace 裝
+      <code>cloudflared</code>,對 Cloudflare 邊緣建立一條
+      <strong>outbound-only</strong> 的連線——不開任何 inbound port、
+      不用 floating ip、不用 NodePort。這是目前整個 lab 唯一的對外入口,
+      也是這個專案在對外流量這件事上,走過一次錯誤方向又被使用者明確
+      拉回來的地方,值得記錄完整的決策轉折。</p>
+
+    <h3>被否決的第一版方案:bastion floating ip + NodePort + nginx</h3>
+    <p>裝 Istio 之初,第一個直覺方案是延續這個專案一貫「用既有機器
+      解決問題,不多開資源」的風格:在 bastion 的 floating ip 上開一個
+      <code>allow_http</code> 的 security group rule,Istio ingress
+      gateway 改成 <code>NodePort</code>(固定 30080/30443),再裝一個
+      <code>roles/ingress_proxy</code> 在 bastion 上跑 nginx 反向代理,把
+      floating ip 的 80 port 轉給某個 k8s 節點的 NodePort。</p>
+
+    <div class="callout callout-danger">
+      <p><strong>這整個方案被使用者明確否決</strong>,原文:「我跟你說了
+      不要管dns 我沒有要透過這個floating ip expose出去 我已經設定好
+      cloudflare tunnel了」——使用者已經<strong>獨立設定好一條
+      Cloudflare Tunnel</strong>,根本不需要透過 floating ip 對外開放
+      任何東西。收到這個指正後,三個地方被完整清除,不是留著當「備用
+      方案」:Terraform 裡新增的 <code>allow_http</code> security group
+      rule 用 <code>terraform apply</code> 撤銷、<code>roles/ingress_proxy</code>
+      整個 role 目錄刪除、Istio gateway 的 Service 改回
+      <code>ClusterIP</code>(見 <a href="role-istio.html">Role:
+      istio</a>)。</p>
+    </div>
+
+    <h3>現在的路徑:cloudflared 從 cluster 內部直連 Istio</h3>
+    <div class="flow">
+      <div class="flow-step"><div class="flow-box">Client<br><small>瀏覽器</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box accent">Cloudflare 邊緣<br><small>Universal SSL 終止 TLS</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box purple">cloudflared<br><small>cloudflare namespace,outbound 連線</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box green">istio-ingressgateway<br><small>ClusterIP:80</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box">VirtualService<br>→ Service → Pod</div></div>
+    </div>
+    <p>整條路徑<strong>沒有任何一段需要對外開放 port</strong>——
+      <code>cloudflared</code> 是主動對 Cloudflare 邊緣發起的 outbound
+      連線(跟一般的「打洞」/reverse tunnel 同類技術),TLS 在 Cloudflare
+      邊緣就終止了,cluster 內部只需要處理 plain HTTP,這也是
+      <a href="role-istio.html">Role: istio</a> 的 Gateway 只監聽
+      port 80、不處理任何憑證的原因。</p>
+
+    <h3>Deployment manifest</h3>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/cloudflare_tunnel/templates/cloudflare-tunnel.yaml.j2(精簡)</span></div>
+      <pre><span class="out">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared-deployment
+  namespace: cloudflare
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:latest
+          args:
+            - tunnel
+            - --no-autoupdate
+            - --loglevel
+            - info
+            - --metrics
+            - 0.0.0.0:2000
+            - run
+          env:
+            - name: TUNNEL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflare-tunnel-token
+                  key: token
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 2000</span></pre>
+    </div>
+    <p>2 個 replica 是 Cloudflare 官方建議的最低高可用設定——同一條
+      tunnel 可以有多個 <code>cloudflared</code> instance 同時對邊緣建立
+      連線,邊緣自己做負載平衡/failover,不需要 cluster 內部另外處理
+      cloudflared 本身的高可用。</p>
+
+    <div class="callout callout-info">
+      <p><strong>這是「remotely-managed」模式的 tunnel</strong>——
+      <code>cloudflared</code> 啟動時只帶一個 <code>TUNNEL_TOKEN</code>,
+      routing/ingress 規則(「<code>*.dough-ops.com</code> 要轉給哪個
+      cluster 內部服務」)完全在 Cloudflare 那邊的 Tunnel 設定/API 裡
+      管理,<strong>不是</strong>本地 <code>config.yaml</code> ConfigMap
+      的舊模式。這代表這個 ansible role 的責任範圍<strong>只到「把
+      cloudflared 跑起來、連上正確的 tunnel」</strong>,ingress 規則、
+      DNS CNAME 這兩件事都在 Cloudflare 側,不是 ansible 管的,見下方。</p>
+    </div>
+
+    <h3>Cloudflare 側設定(不是 ansible 管的,列出來只是為了完整)</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>項目</th><th>目前設定</th></tr></thead>
+        <tbody>
+          <tr><td>Tunnel</td><td class="mono">openstack-k8s</td></tr>
+          <tr><td>DNS</td><td class="mono">*.dough-ops.com CNAME → &lt;tunnel-id&gt;.cfargotunnel.com(proxied)</td></tr>
+          <tr><td>Tunnel ingress 規則</td><td class="mono">*.dough-ops.com → http://istio-ingressgateway.istio.svc.cluster.local:80</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>重建叢集不會動到這三項——同一條既有的 tunnel、同一個 token,
+      <code>cloudflared</code> 重新啟動後會自動用同一個 tunnel identity
+      重新連上邊緣,DNS/ingress 規則完全不用重設。</p>
+
+    <h3>網域選擇:為什麼是 <code>*.dough-ops.com</code> 這種「第一層」萬用字元</h3>
+    <p>這個入口一開始規劃用使用者既有的 <code>kunchiee.com</code>,命名
+      想法是 <code>*.k8s.kunchiee.com</code>——但實測 Cloudflare 免費方案
+      的 Universal SSL 只涵蓋 <code>kunchiee.com</code> 跟
+      <code>*.kunchiee.com</code>(單層萬用字元),不含
+      <code>*.k8s.kunchiee.com</code> 這種「子網域上的萬用字元」,TLS
+      handshake 在請求到得了 tunnel 之前就先失敗(用
+      <code>/zones/{id}/ssl/certificate_packs</code> API 查證實的,不是
+      猜的)。當時的權宜解法是改用「每個服務各自一個
+      <code>xxx-k8s.kunchiee.com</code> 獨立 exact-match DNS 紀錄」的
+      命名慣例,吃得到既有 <code>*.kunchiee.com</code> 憑證的涵蓋範圍。</p>
+    <p>後來使用者買了全新的 <code>dough-ops.com</code>,同一條既有
+      tunnel 繼續用,不用另外建。<code>*.dough-ops.com</code> 本身就是
+      apex 底下的<strong>第一層</strong>萬用字元,免費方案的 Universal
+      SSL 直接涵蓋(同樣用 API 查證實,狀態是 <code>active</code>),不
+      再需要 exact-match workaround——單一一筆 <code>*.dough-ops.com</code>
+      DNS 紀錄跟一條 tunnel ingress 規則,就能涵蓋任何子網域,新增服務
+      只要在 Istio 那層加 VirtualService 就好,不用每次都回來改
+      Cloudflare 設定。</p>
+
+    <h3>Secret 處理:token 絕對不能進 git</h3>
+    <p>使用者的明確要求。真正的 token 值放在
+      <code>ansible/inventory/group_vars/all/secrets.yml</code>(已被
+      <code>.gitignore</code> 排除),git 裡只留一份範本
+      <code>secrets.yml.example</code>,只寫變數名稱跟一個明顯的佔位值
+      <code>REPLACE_ME</code>,不含真正的 token。跟這個專案處理 SSH
+      私鑰的做法不完全一樣(SSH 私鑰是 ansible-vault 加密後直接進版控,
+      見 <a href="ansible-framework.html">Ansible 框架設計</a>的
+      「私鑰處理」一節)——這裡的 token 沒有走同一套加密機制,單純是
+      「不進版控 + 範本檔案」這個更基本的模式。</p>
+
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/cloudflare_tunnel/tasks/main.yml(assert 部分)</span></div>
+      <pre><span class="out">- assert:
+    that:
+      - cloudflare_tunnel_token is defined
+      - cloudflare_tunnel_token | length > 0
+      - cloudflare_tunnel_token != "REPLACE_ME"
+    fail_msg: "cloudflare_tunnel_token 沒設好,見
+      group_vars/all/secrets.yml.example 的說明"</span></pre>
+    </div>
+    <p>先 assert 再 template/apply——如果有人 clone 這個 repo、忘記照
+      <code>secrets.yml.example</code> 建一份真正的 <code>secrets.yml</code>,
+      這裡會用清楚的錯誤訊息直接中止,不會讓一個帶著
+      <code>REPLACE_ME</code> 字面值的 token 被部署出去、產生一個看起來
+      正常但實際連不上任何 tunnel 的 <code>cloudflared</code> pod。</p>
+
+    <div class="callout callout-danger">
+      <p><strong>Bug:<code>group_vars/secrets.yml</code> 這種扁平檔案
+      永遠不會被自動載入</strong>——第一版直接把 secrets 檔案放在
+      <code>group_vars/secrets.yml</code>(跟 <code>all.yml</code>
+      同一層),結果實測 <code>cloudflare_tunnel_token is undefined</code>
+      ——因為這個檔名不對應任何一個實際存在的 inventory group(沒有
+      叫做「secrets」的 group),ansible 的 <code>group_vars/</code>
+      自動載入機制完全不會理它。</p>
+      <p>修法是改用 <strong>「每個 group 一個目錄」</strong>的寫法:把
+      <code>group_vars/all.yml</code> 整份改名搬進
+      <code>group_vars/all/main.yml</code>,secrets 另外放
+      <code>group_vars/all/secrets.yml</code>——兩個檔案都在
+      <code>all/</code> 這個目錄底下,對應到真正存在的 <code>all</code>
+      group,ansible 會自動合併載入目錄底下的<strong>所有</strong>
+      <code>.yml</code> 檔案。這樣既能把公開變數跟機密變數的檔案分開
+      (機密檔案單獨 gitignore),又能讓兩者同時生效,不用額外的
+      <code>vars_files</code> include。</p>
+    </div>
+
+    <h3>bastion 的角色:唯一有 kubectl/kubeconfig 的地方</h3>
+    <p>這個 role 只在 <code>bastion</code> 上跑(跟
+      <a href="role-istio.html">Role: istio</a> 一樣)——manifest 用
+      <code>kubectl apply -f</code> 直接套用,不透過 helm,因為這只是
+      一個固定的 Deployment + Secret + Namespace,沒有 chart 化的必要。
+      套用完之後用 <code>kubectl -n cloudflare rollout status
+      deployment/cloudflared-deployment</code> 確認兩個 replica 真的
+      Ready,不是只看 <code>kubectl apply</code> 沒噴錯就假設成功。</p>
+
+    <h3>第二條獨立的 Tunnel:<code>roles/bastion_ssh_tunnel</code>,給瀏覽器 SSH 用</h3>
+    <p>使用者明確要求:要透過 Cloudflare Access 用瀏覽器內建終端機 SSH
+      進 bastion,但<strong>不能用</strong>上面這條給 cluster 對外服務用
+      的 <code>openstack-k8s</code> tunnel——兩者刻意完全獨立,不共用
+      tunnel、不共用 token。這裡另外建了一條叫 <code>bastion-ssh</code>
+      的 tunnel,而且 <code>cloudflared</code> 這次<strong>不是</strong>
+      裝在 k8s pod 裡,是直接裝在 bastion 主機本身(systemd
+      service)——道理很簡單:SSH 的目標是 bastion 這台機器,cloudflared
+      要能連到 <code>localhost:22</code>,裝在 cluster 裡反而要多繞一手
+      network namespace。</p>
+
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/bastion_ssh_tunnel/tasks/main.yml(順序)</span></div>
+      <pre><span class="out">1. 加 cloudflared 的官方 apt repo(2026 年輪替後目前有效的簽章金鑰)
+2. apt 裝 cloudflared
+3. 用 stat 檢查 systemd unit 存不存在(見下方冪等性說明)
+4. cloudflared service install &lt;token&gt;(只在第一次跑)
+5. 確保 systemd service started + enabled</span></pre>
+    </div>
+
+    <div class="callout callout-warn">
+      <p><strong><code>cloudflared service install</code> 不是冪等指令</strong>
+      ——如果 systemd unit 已經存在,直接報錯拒絕重跑
+      (<code>cloudflared service is already installed at ...</code>),
+      不像這個專案其他 <code>kubectl apply</code>/helm 操作可以無腦重跑。
+      這裡用 <code>ansible.builtin.stat</code> 先檢查
+      <code>/etc/systemd/system/cloudflared.service</code> 存不存在,
+      整個安裝 task 包在 <code>when: not
+      cloudflared_service_file.stat.exists</code> 底下,只在真正第一次
+      跑。token 會出現在指令列引數裡,task 額外加了
+      <code>no_log: true</code>,避免它被印進 ansible 的執行紀錄。</p>
+    </div>
+
+    <p>Cloudflare 那一側對應的手動設定(建 tunnel、設 ingress 規則、
+      DNS、Access Application)完整記錄在
+      <a href="cloudflare-manual-setup.html">Cloudflare 手動設定
+      清單</a>,包含一個真的撞到的 bug:一般的
+      <code>self_hosted</code> Access Application 沒辦法讓瀏覽器渲染出
+      SSH 終端機,要用專門的 <code>type: "ssh"</code> Application 才行。</p>
+
+    <div class="page-nav">
+      <a class="prev" href="role-istio.html"><span class="dir">上一頁</span><span class="ttl">← Role: istio</span></a>
+      <a class="next" href="role-cert-manager.html"><span class="dir">下一頁</span><span class="ttl">Role: cert_manager →</span></a>
+    </div>
+
+    <footer class="page-footer">
+      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
+      <span>最後更新:2026-07-27</span>
+    </footer>
+  </div>
+</div>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

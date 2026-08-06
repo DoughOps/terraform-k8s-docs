@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Role: apiserver-lb — k8s + BGP Lab 技術詳解</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <a class="sidebar-logo-link" href="index.html">
+      <h1>🛰️ k8s + BGP Lab</h1>
+      <span>OpenStack Lab · 技術詳解 v15</span>
+    </a>
+  </div>
+  <nav>
+    <div class="nav-group">
+      <div class="nav-group-label">總覽</div>
+      <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
+      <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
+      <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">網路架構</div>
+      <a class="nav-link" href="network-architecture.html"><span class="icon">🌐</span> 網路架構總覽</a>
+      <a class="nav-link" href="packet-flows.html"><span class="icon">🔀</span> 封包路徑實例</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">基礎設施</div>
+      <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
+      <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Ansible 自動化</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
+      <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
+      <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
+      <a class="nav-link active" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
+      <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
+      <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
+      <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Cloudflare 手動設定</div>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">專案紀錄</div>
+      <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+    </div>
+  </nav>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" aria-label="Toggle menu">☰</button>
+      <span class="topbar-crumb">Lab Docs / <strong>Role: apiserver-lb</strong></span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">cloudnative.tw · AS 65000</span>
+      <button class="theme-toggle" id="themeToggle" aria-label="切換主題">
+        <span class="icon-moon">🌙</span><span class="icon-sun">☀️</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <h2><span class="eyebrow">Ansible 自動化</span>Role: apiserver_lb / apiserver_dns</h2>
+    <p class="lede">3 台 master 要做 apiserver HA,一定要有某種東西把
+      <code>k8s-api.internal:6443</code> 分派到 3 台 master 的其中一台。
+      這頁記錄怎麼選定「tor 上跑 haproxy」這個方案,以及為什麼放棄了
+      另外兩個看起來更「雲原生」的選項。</p>
+
+    <h3>被放棄的方案一:Cilium BGP-based L4LB(<code>arthurchiao.art</code> 那篇架構)</h3>
+    <p>Cilium 的 BGP Control Plane 可以把 Service 的 VIP 用 BGP 廣播出去,
+      搭配 eBPF 做負載平衡,做出「不需要額外 LB 節點」的架構。這個方案在
+      討論階段被提出過,但有一個直接的矛盾:<strong>這個 lab 裡原本規劃
+      「當 L4LB」的兩個節點(<code>l4-0001</code>/<code>l4-0002</code>),
+      後來決定同時也要當一般的 k8s worker</strong>——它們不是專職的
+      LB 節點。而且更根本的問題是:apiserver 的 HA 是叢集<strong>啟動階段</strong>
+      就需要的東西,Cilium 的 eBPF 資料平面本身要靠 apiserver 才能初始化
+      (要讀 Kubernetes API 物件),這是一個先有雞還是先有蛋的問題——
+      不能用「靠 CNI 才能運作的機制」去解決「CNI 還沒起來之前要怎麼連上
+      apiserver」這件事。</p>
+
+    <h3>被放棄的方案二:另開專用 LB 節點跑 keepalived + haproxy</h3>
+    <p>比較「標準」的 kubeadm HA 教學做法,是另外準備 1~2 台專職的 LB
+      機器,跑 keepalived(VRRP 做 VIP 漂移)+ haproxy。這個方案技術上
+      沒問題,但使用者明確表達不想再多開一台 VM(OpenStack quota
+      吃緊是這整個專案從第一天就有的限制,見
+      <a href="index.html">總覽</a>的建置脈絡)。</p>
+
+    <h3>最終方案:haproxy 直接跑在 tor 上</h3>
+    <p>使用者的原話是「還是用 tor 節點當 haproxy 吧,並且 worker 會用
+      DNS 紀錄存取 apiserver,這個 DNS 紀錄會指向 tor 節點,tor
+      自動轉發給 master 節點,這樣比較單純」——這個決定的關鍵字是
+      「單純」:tor 本來就是一台一定會存在、一定要穩定運作的機器
+      (route reflector),它跟 3 台 master 的網路關係(k8s-net 上的
+      鄰居)本來就已經建立好了,不需要再多解決一次「LB 節點要怎麼加入
+      這個 fabric」的問題。</p>
+
+    <div class="flow">
+      <div class="flow-step"><div class="flow-box">任意節點<br><small>k8s-api.internal:6443</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box accent">/etc/hosts<br><small>apiserver_dns role<br>寫死指向 tor</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box purple">tor:6443<br><small>apiserver_lb role<br>haproxy mode tcp</small></div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box green">3 台 master 之一<br><small>round robin + health check</small></div></div>
+    </div>
+
+    <h3>apiserver_dns:不架真的 DNS server</h3>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/apiserver_dns/tasks/main.yml</span></div>
+      <pre><span class="out">- lineinfile:
+    path: /etc/hosts
+    regexp: '^\S*\s+k8s-api.internal$'
+    line: "10.10.0.10 k8s-api.internal"   </span><span class="dim"># tor 的 fabric_ip</span></pre>
+    </div>
+    <p>每台機器的 <code>/etc/hosts</code> 各自寫一條靜態紀錄——這個 lab
+      規模小到不值得為了一個名稱解析架一個真的 DNS server(CoreDNS 這時候
+      甚至還不存在,叢集都還沒 bootstrap)。<code>lineinfile</code>
+      用 regexp 比對「這一行的格式是任意內容 + apiserver_hostname」,
+      確保重跑時如果 IP 變了(例如 tor 的 fabric_ip 因為某種原因改變),
+      這行紀錄會被<strong>取代</strong>而不是疊加出重複的行。</p>
+    <div class="callout callout-warn">
+      <p><strong>刻意讀 tor 的 <code>fabric_ip</code>,不是 <code>ansible_host</code></strong>
+      ——worker/master/lb 對 apiserver 的存取是走資料平面(k8s-net),
+      跟 ansible 自己用來連線管理的 mgmt-net 是兩個完全不同的網路,
+      這兩個值在 inventory 裡分開存放正是為了避免這種地方搞混
+      (見 <a href="ansible-framework.html">框架設計</a>)。</p>
+    </div>
+
+    <h3>apiserver_lb:haproxy 設定的每一行</h3>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/apiserver_lb/templates/haproxy.cfg.j2</span></div>
+      <pre><span class="out">defaults
+    mode    tcp          </span><span class="dim"># 全域預設,見下方說明</span><span class="out">
+    timeout connect 5s
+    timeout client  1m
+    timeout server  1m
+
+frontend apiserver_front
+    bind 10.10.0.10:6443
+    default_backend apiserver_back
+
+backend apiserver_back
+    balance roundrobin
+    option tcp-check
+    server ms-0001 10.10.0.20:6443 check inter 5s fall 3 rise 2
+    server ms-0002 10.10.0.21:6443 check inter 5s fall 3 rise 2
+    server ms-0003 10.10.0.22:6443 check inter 5s fall 3 rise 2
+
+listen stats
+    mode http            </span><span class="dim"># 蓋掉全域的 tcp,這個 block 專屬 http</span><span class="out">
+    bind 10.10.0.10:8404
+    stats enable
+    stats uri /</span></pre>
+    </div>
+
+    <div class="callout callout-danger">
+      <p><strong>為什麼一定要是 <code>mode tcp</code>,絕對不能在這裡終止 TLS</strong>:
+      kube-apiserver 支援 client certificate 認證——kubelet、其他元件
+      拿它們自己的憑證直接跟 apiserver 做 TLS 交握,apiserver 從憑證裡
+      讀出呼叫者身分。如果 haproxy 在這一層做 TLS termination(變成
+      <code>mode http</code> 反向代理),這個「client 憑證直接被
+      apiserver 驗證」的路徑會被打斷——haproxy 會終止原始的 TLS
+      連線,重新對 apiserver 開一條它自己的連線,apiserver 收到的
+      TLS handshake 資訊來自 haproxy,不是原始 client,client cert
+      認證直接失效。<code>mode tcp</code> 讓 haproxy 純粹做 L4 轉發,
+      整個 TLS session(包含 client cert 交握)完整地從原始
+      client 一路延伸到後端的 kube-apiserver,haproxy 完全不碰
+      加密內容。</p>
+    </div>
+
+    <p><code>frontend</code> 監聽在 tor 自己的 <code>fabric_ip</code>
+      (不是 <code>0.0.0.0</code>)——因為這台機器同時也是 fabric
+      的一員,監聽在特定位址比較明確,而且跟 mgmt-net 上可能存在的
+      其他服務不會混淆。<code>backend</code> 用 Jinja
+      <code>for host in groups['masters'] | sort</code> 迴圈動態產生,
+      新增/移除 master 只要改 <code>terraform.tfvars</code>
+      重新 apply,haproxy 設定會自動反映,不用手動改這個模板。
+      <code>option tcp-check</code> + <code>fall 3 rise 2</code>
+      做健康檢查——3 次探測失敗才標記 DOWN,2 次成功才標記回 UP,
+      避免單一次網路抖動就誤判整台 master 掛了。</p>
+
+    <p><code>listen stats</code> 這個區塊<strong>要單獨蓋回
+      <code>mode http</code></strong>,不然會沿用上面 <code>defaults</code>
+      的 <code>tcp</code>——haproxy 的統計頁面本質上是一個簡單的
+      HTTP 服務,用 <code>tcp</code> 模式監聽它完全無法運作。這個統計頁面
+      只監聽在 fabric 網段(<code>fabric port_security</code> 目前是關閉的,
+      見 <a href="infrastructure.html">Terraform / OpenStack</a>),
+      拿來驗證「3 台 master 是不是都 UP」很方便,
+      <a href="testing.html">k8s/smoke-test.yml</a> 就是直接讀這個頁面的
+      CSV 輸出做自動化驗證。</p>
+
+    <p>套用設定時用 <code>validate: "haproxy -c -f %s"</code>
+      ——ansible 的 <code>template</code> 模組在真正覆蓋掉正式設定檔之前,
+      會先把渲染結果丟給 <code>haproxy -c</code> 做語法檢查,檢查失敗就
+      直接中止、不套用,不會讓一個語法錯誤的設定檔讓 haproxy 重啟失敗、
+      整個 apiserver 入口斷線。</p>
+
+    <div class="callout callout-tip">
+      <p><strong>裝這個 role 的時候,kube-apiserver 根本還沒存在</strong>
+      ——這個 playbook 是在 kubeadm bootstrap<strong>之前</strong>先跑的,
+      所以 haproxy 的 backend health check 一開始全部會是 <code>DOWN</code>,
+      這是預期行為,不代表哪裡壞了。等
+      <a href="role-kubeadm.html">Role: kubeadm</a> 把 apiserver 實際裝起來,
+      backend 會自動變成 <code>UP</code>,不需要回頭改這裡任何設定。</p>
+    </div>
+
+    <div class="page-nav">
+      <a class="prev" href="role-kubeadm.html"><span class="dir">上一頁</span><span class="ttl">← Role: kubeadm</span></a>
+      <a class="next" href="role-cilium.html"><span class="dir">下一頁</span><span class="ttl">Role: cilium →</span></a>
+    </div>
+
+    <footer class="page-footer">
+      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
+      <span>最後更新:2026-07-27</span>
+    </footer>
+  </div>
+</div>
+
+<script src="assets/site.js"></script>
+</body>
+</html>
