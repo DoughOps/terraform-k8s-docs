@@ -782,6 +782,39 @@
       </ul>
     </div>
 
+    <div class="cl-entry">
+      <div class="cl-date">2026-08-06 · Grafana/Prometheus/Alertmanager 靜態 PV 持久化</div>
+      <h3><span class="cl-tag cl-feat">feat</span> 從「不掛 PVC」改成固定 NFS 子目錄的靜態 PV,資料撐過整個環境重建</h3>
+      <ul>
+        <li><strong>起因:</strong>使用者問「grafana, alert manager跟prometheus都有掛pvc了嗎?確保我將環境全部拆除重建後
+          這些資料還在」——查了 <code>roles/kube_prometheus_stack/templates/values.yaml.j2</code> 才發現三個都是 chart
+          預設值(<code>storageSpec</code>/<code>storage</code>/<code>persistence.enabled</code> 全空/false),是先前明確的取捨
+          (見 <a href="internal-tools.html">內部工具</a> 該節),但沒有實際掛 PVC。</li>
+        <li><strong>為什麼不直接用既有的動態 StorageClass:</strong><code>roles/nfs_csi_driver</code> 裝的
+          <code>nfs-csi</code>/<code>nfs-csi-retain</code> 兩顆 StorageClass 每次動態佈建都會建一個全新、隨機命名的 NFS
+          子目錄,<code>reclaimPolicy: Retain</code> 只保護「PVC 被誤刪但叢集還活著」,保護不了「整個 openstack 環境重建、k8s
+          etcd 全新」——這種情況下舊 PVC 根本不存在,新裝的 Prometheus/Grafana 只會拿到全新空目錄。</li>
+        <li><strong>改法:</strong>新增 <code>templates/persistent-volumes.yaml.j2</code>,建三顆固定名字的靜態 PV,各自綁
+          bastion NFS export 底下固定命名的子目錄(<code>tasks/main.yml</code> 直接在 bastion 上建目錄);
+          <code>values.yaml.j2</code> 對應的 PVC 用 <code>volumeName</code> 欄位手動指定要綁哪一顆 PV、
+          <code>storageClassName: ""</code> 關掉動態佈建路線。Prometheus/Alertmanager 走 Prometheus Operator 的
+          <code>StatefulSet</code> + <code>volumeClaimTemplate</code>,實際 PVC 名稱是 operator 自己組的——不需要事先猜或
+          手動建立那個 PVC,<code>volumeName</code> 預先綁定機制本身就會處理;先查了
+          <a href="https://github.com/prometheus-operator/prometheus-operator/blob/main/pkg/prometheus/common.go">prometheus-operator
+          原始碼</a>確認過命名規則,只是為了驗證理解,不是綁定成功的必要條件。三顆都用 <code>ReadWriteMany</code>,順便避開
+          Grafana <code>Deployment</code> 用 <code>RollingUpdate</code> 策略時新舊 pod 搶佔同一顆
+          <code>ReadWriteOnce</code> volume 卡住的問題。<code>playbooks/k8s.yml</code> 的 <code>k8s/nfs-csi.yml</code>
+          順序往前移到 <code>kube-prometheus-stack.yml</code> 之前(CSI driver 要先存在,PV 才綁得到)。</li>
+        <li><strong>驗證:</strong>本機用 <code>helm template</code> 對著真正的 chart 版本(<code>87.19.2</code>)先確認 values
+          渲染出來的 PVC/CR 內容符合預期,才實際套用到叢集;套用後 <code>kubectl get pv/pvc</code> 確認三顆都
+          <code>Bound</code>,到 bastion 上看 NFS 子目錄底下確實有 <code>grafana.db</code>、Prometheus/Alertmanager 的
+          TSDB 目錄,擁有者自動變成跟 pod 的 <code>fsGroup</code>(2000/2000/472)一致——<code>csi-driver-nfs</code>
+          4.13.4 預設開啟的 <code>fsGroupPolicy: File</code> 自動做的 recursive chown,不用手動管理 NFS 子目錄權限。</li>
+        <li><strong>文件同步更新:</strong><a href="internal-tools.html">內部工具</a> 的「不掛 PVC」整節改寫成現在這個靜態 PV
+          設計的說明。</li>
+      </ul>
+    </div>
+
     <div class="page-nav">
       <a class="prev" href="troubleshooting.html"><span class="dir">上一頁</span><span class="ttl">← Bug 事後檢討</span></a>
       <a class="next" href="index.html"><span class="dir">回到</span><span class="ttl">總覽 →</span></a>
@@ -789,7 +822,7 @@
 
     <footer class="page-footer">
       <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
-      <span>最後更新:2026-07-30</span>
+      <span>最後更新:2026-08-06</span>
     </footer>
   </div>
 </div>
