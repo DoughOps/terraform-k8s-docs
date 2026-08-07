@@ -45,6 +45,8 @@
       <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
       <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
       <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="role-vault.html"><span class="icon">🔒</span> Role: vault</a>
+      <a class="nav-link" href="role-keycloak-dex.html"><span class="icon">🪪</span> Role: keycloak / dex</a>
       <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
       <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
       <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
@@ -350,51 +352,68 @@ RUN ansible-galaxy collection install -r requirements.yml</span></pre>
         <thead><tr><th>Playbook</th><th>用途</th></tr></thead>
         <tbody>
           <tr><td class="mono">ping.yml</td><td>健檢,確認 inventory/SSH/bastion 這條路徑整個通</td></tr>
-          <tr><td class="mono">bastion.yml</td><td>一次跑完全部 bastion 專屬設定的入口(<code>import_playbook</code> 串起下面所有 <code>bastion/*.yml</code>),bastion 單獨重建之後只要跑這一個</td></tr>
-          <tr><td class="mono">bastion/access.yml</td><td>讓 bastion 能用同一把 key 直接連到所有其他節點,見下方</td></tr>
-          <tr><td class="mono">k8s.yml</td><td>全新環境架設時一次跑完的入口(<code>import_playbook</code> 串起下面所有 <code>k8s/*.yml</code>),不含 <code>kubeadm-reset.yml</code>(破壞性操作)。不要求 bastion 已經有 kubectl——<code>k8s/kubeadm.yml</code> 最後一步會自己把 kubeconfig 裝回 bastion,<code>bastion.yml</code> 只要先跑過(nfs-server 匯出好)即可,不需要它先建好 kubectl</td></tr>
-          <tr><td class="mono">k8s/crio.yml</td><td>在 <code>k8s_nodes</code> 上安裝並啟用 CRI-O</td></tr>
-          <tr><td class="mono">k8s/apiserver-lb.yml</td><td>在 tor 上架 haproxy 轉發 apiserver,寫入 <code>/etc/hosts</code></td></tr>
-          <tr><td class="mono">k8s/kubeadm.yml</td><td>裝 kubeadm/kubelet/kubectl、init 控制平面(<code>--skip-phases=addon/kube-proxy</code>)、其餘節點 join</td></tr>
-          <tr><td class="mono">k8s/cilium.yml</td><td>部署 Cilium(<code>cilium</code> namespace,eBPF kube-proxy replacement),native routing 整合既有 FRR fabric</td></tr>
+          <tr><td class="mono">kubeadm-reset.yml</td><td>危險操作:整個叢集狀態清空(kubeadm reset + 清 CNI/FRR 殘留),只在要改「初始化時就固定死」的參數才用,刻意不放進 <code>k8s.yml</code> 的 import 鏈</td></tr>
+          <tr><td class="mono">k8s.yml</td><td>全新環境架設時一次跑完的入口(<code>import_playbook</code> 串起下面所有 <code>k8s/*.yml</code>,<code>cert-manager.yml</code> 之後還會再匯入一次 <code>bastion/cloudflare-tunnel.yml</code>),不含 <code>kubeadm-reset.yml</code>(破壞性操作)、<code>ping.yml</code>(跟部署無關)</td></tr>
+          <tr><td class="mono">k8s/crio.yml</td><td>在 <code>k8s_nodes</code> 上安裝並啟用 CRI-O,見 <a href="role-crio.html">Role: crio</a></td></tr>
+          <tr><td class="mono">k8s/nfs-client.yml</td><td>在 <code>k8s_nodes</code> 上裝 <code>nfs-common</code>(<code>mount.nfs</code> helper),原生 nfs volume 跟 csi-driver-nfs 的 PV 都要靠它</td></tr>
+          <tr><td class="mono">k8s/apiserver-lb.yml</td><td>在 tor 上架 haproxy 轉發 apiserver,並在所有節點寫入 <code>/etc/hosts</code> 固定進入點</td></tr>
+          <tr><td class="mono">k8s/kubeadm.yml</td><td>裝 kubeadm/kubelet/kubectl、init 控制平面(<code>--skip-phases=addon/kube-proxy</code>)、其餘節點 join,最後一步把 admin kubeconfig 抓到 bastion,見 <a href="role-kubeadm.html">Role: kubeadm</a>、<a href="role-kubelet.html">Role: kubelet</a></td></tr>
+          <tr><td class="mono">k8s/cilium.yml</td><td>部署 Cilium(<code>cilium</code> namespace,eBPF kube-proxy replacement),native routing 整合既有 FRR fabric,見 <a href="role-cilium.html">Role: cilium</a></td></tr>
+          <tr><td class="mono">k8s/smoke-test.yml</td><td>驗證整個 k8s + Cilium + FRR native routing 是不是真的在動,可重複執行,自己建自己清</td></tr>
+          <tr><td class="mono">k8s/node-labels.yml</td><td>幫 <code>workers</code>/<code>lbs</code> 節點打上 <code>node-role.kubernetes.io/*</code> 標籤,補 kubeadm 沒自動打的 ROLES</td></tr>
           <tr><td class="mono">k8s/istio.yml</td><td>部署 Istio(<code>istio</code> namespace)+ 叢集共用的入口 Gateway,見 <a href="role-istio.html">Role: istio</a></td></tr>
+          <tr><td class="mono">k8s/hubble-expose.yml</td><td>把 Cilium 的 Hubble UI 透過 Istio Gateway/VirtualService 對外 expose,跟其他子網域一樣被萬用字元 Cloudflare Access 擋住,前置條件是 <code>k8s/istio.yml</code> 已經跑過</td></tr>
           <tr><td class="mono">k8s/cert-manager.yml</td><td>裝 cert-manager + Cloudflare origin-ca-issuer,簽 <code>*.dough-ops.com</code> wildcard 憑證,見 <a href="role-cert-manager.html">Role: cert_manager</a></td></tr>
           <tr><td class="mono">bastion/cloudflare-tunnel.yml</td><td>部署 <code>cloudflared</code>(<code>cloudflare</code> namespace),對外唯一入口,見 <a href="role-cloudflare-tunnel.html">Role: cloudflare_tunnel</a>。只被 <code>k8s.yml</code>(<code>cert-manager.yml</code> 之後)匯入——它部署的東西活在叢集 etcd/pod 裡,不是 bastion 本機狀態,所以不放進 <code>bastion.yml</code>;Cloudflare 那邊 tunnel token 換了要重新套用時,直接單獨跑這個 playbook</td></tr>
+          <tr><td class="mono">k8s/nfs-csi.yml</td><td>部署 csi-driver-nfs,提供 <code>nfs-csi</code>/<code>nfs-csi-retain</code> 兩個 RWX StorageClass,背後接 bastion 那份 NFS export</td></tr>
           <tr><td class="mono">k8s/dashboard.yml</td><td>裝 Kubernetes Dashboard,見 <a href="internal-tools.html">內部工具</a></td></tr>
-          <tr><td class="mono">k8s/kube-prometheus-stack.yml</td><td>裝 Prometheus/Alertmanager/Grafana,見 <a href="internal-tools.html">內部工具</a></td></tr>
+          <tr><td class="mono">k8s/kube-prometheus-stack.yml</td><td>裝 Prometheus/Alertmanager/Grafana,靜態 PV 綁定 <code>/userap</code> 之外的固定 NFS 子目錄,重建後資料不丟,見 <a href="internal-tools.html">內部工具</a>,前置條件是 <code>k8s/nfs-csi.yml</code> 已經跑過</td></tr>
           <tr><td class="mono">k8s/demo-app.yml</td><td>部署測試用 nginx + VirtualService,驗證整條 ingress 路徑通不通</td></tr>
-          <tr><td class="mono">k8s/node-labels.yml</td><td>幫 <code>workers</code>/<code>lbs</code> 節點打上 <code>node-role.kubernetes.io/worker</code>/<code>l4</code> 標籤,補 kubeadm 沒自動打的 ROLES</td></tr>
-          <tr><td class="mono">bastion/tools.yml</td><td>在 bastion 上裝 k9s、開 kubectl 自動補全、加 <code>k</code> 這個 alias</td></tr>
+          <tr><td class="mono">k8s/showcase.yml</td><td>部署對外成果展示頁(靜態 HTML),跟其他子網域一樣被萬用字元 Cloudflare Access 擋住</td></tr>
+          <tr><td class="mono">k8s/docs-site.yml</td><td>部署整份技術文件站(這個網站本身),用 <code>nfs-csi</code> 動態佈建的 PVC 掛,必須排在 <code>k8s/nfs-csi.yml</code> 之後</td></tr>
           <tr><td class="mono">k8s/oidc-auth.yml</td><td>讓 kube-apiserver 信任 Cloudflare Access 的 OIDC 身份,見 <a href="internal-tools.html">內部工具</a></td></tr>
           <tr><td class="mono">k8s/oidc-rbac.yml</td><td>幫 OIDC 身份配 RBAC(唯讀預設 + 個別 email cluster-admin)</td></tr>
-          <tr><td class="mono">bastion/ssh-tunnel.yml</td><td>在 bastion 上裝獨立的 Cloudflare Tunnel,給瀏覽器內建 web SSH 用</td></tr>
-          <tr><td class="mono">bastion/nfs-server.yml</td><td>把 bastion 上 cloud-init 已格式化/掛好的資料碟(<code>/srv/nfs/k8s</code>)裝成 NFS server,給叢集內 csi-driver-nfs 當 StorageClass 後端</td></tr>
-          <tr><td class="mono">bastion/vault.yml</td><td>在 bastion 上裝 HashiCorp Vault,資料放在持久化的 <code>/userap/vault</code>,見 <a href="role-vault.html">Role: vault</a></td></tr>
-          <tr><td class="mono">bastion/kubeconfig.yml</td><td>從第一台 master 抓 admin kubeconfig、在 bastion 上裝 kubectl——這兩樣只存在 bastion 的 ephemeral 開機碟上,重建後會不見,需要重跑</td></tr>
-          <tr><td class="mono">bastion/apiserver-dns.yml</td><td>在 bastion 上寫 <code>/etc/hosts</code> 的 <code>k8s-api.internal</code> 記錄,跟 <code>k8s/apiserver-lb.yml</code> 背後同一個 <code>roles/apiserver_dns</code>,只是刻意只對 bastion 跑</td></tr>
-          <tr><td class="mono">bastion/github-runner.yml</td><td>把 bastion 註冊成 doughops org 共用的 GitHub Actions self-hosted runner,見 <a href="role-github-runner.html">Role: github_runner</a></td></tr>
-          <tr><td class="mono">kubeadm-reset.yml</td><td>危險操作:整個叢集狀態清空,只在要改「初始化時就固定死」的參數才用,刻意不放進 <code>k8s.yml</code> 的 import 鏈</td></tr>
-          <tr><td class="mono">k8s/smoke-test.yml</td><td>驗證整個 k8s + Cilium + FRR native routing 是不是真的在動</td></tr>
-          <tr><td class="mono">k8s/nfs-csi.yml</td><td>部署 csi-driver-nfs,提供 <code>nfs-csi</code>/<code>nfs-csi-retain</code> 兩個 RWX StorageClass,背後接 <code>bastion/nfs-server.yml</code> 的 NFS export</td></tr>
           <tr><td class="mono">k8s/vault-secrets-operator.yml</td><td>裝 vault-secrets-operator,讓任何 namespace 都能用 <code>VaultStaticSecret</code> 掛載 <code>bastion/vault.yml</code> 裝的 Vault,見 <a href="role-vault.html">Role: vault</a>。前置條件是 <code>bastion/vault.yml</code> 已經跑過</td></tr>
-          <tr><td class="mono">k8s/argocd.yml</td><td>裝 ArgoCD(GitOps),內建 <code>in-cluster</code> target,見 <a href="internal-tools.html">內部工具</a></td></tr>
+          <tr><td class="mono">k8s/argocd.yml</td><td>裝 ArgoCD(GitOps),內建 <code>in-cluster</code> target,見 <a href="internal-tools.html">內部工具</a>,前置條件是 <code>k8s/istio.yml</code> 已經跑過</td></tr>
+          <tr><td class="mono">k8s/dex.yml</td><td>部署 Dex(叢集內的 OIDC broker,namespace <code>dex</code>),connector 指向 <code>bastion/keycloak.yml</code> 裝的 Keycloak,見 <a href="role-keycloak-dex.html">Role: keycloak / dex</a>。要讀 keycloak 那步寫在 bastion <code>/userap</code> 上的 client secret,必須排在它之後</td></tr>
+          <tr><td class="mono">k8s/dex-test-app.yml</td><td>部署這次 Dex/Keycloak PoC 的測試 app(<code>oauth2-proxy</code> + <code>whoami</code>,namespace <code>whoami</code>),provider 指向 <code>dex.yml</code> 裝的 Dex,必須排在它之後,見 <a href="role-keycloak-dex.html">Role: keycloak / dex</a></td></tr>
+          <tr><td class="mono">bastion.yml</td><td>bastion 重建之後一次跑完的入口:混合了 inline play(<code>bastion_access</code>/<code>bastion_ssh_tunnel</code>/<code>nfs_server</code>/<code>apiserver_dns</code>/<code>bastion_tools</code>/<code>github_runner</code> 這幾個角色直接寫在檔案裡)跟 <code>import_playbook</code>(<code>bastion/vault.yml</code>、<code>bastion/keycloak.yml</code>、<code>bastion/kubeconfig.yml</code> 才是真正的獨立檔案),不含 <code>cloudflare-tunnel.yml</code>。在全新環境、叢集還不存在時也能直接整個跑——<code>kubeconfig.yml</code> 會偵測到叢集不存在就安全跳過</td></tr>
+          <tr><td class="mono">bastion.yml(inline play,role <code>bastion_access</code>)</td><td>讓 bastion 本機可以直接 ssh 到所有其他節點,跟叢集重建沒有相依性。<strong>不是獨立檔案</strong>——直接寫在 <code>bastion.yml</code> 裡面,沒有 <code>playbooks/bastion/access.yml</code> 這個檔案可以單獨執行</td></tr>
+          <tr><td class="mono">bastion.yml(inline play,role <code>bastion_ssh_tunnel</code>)</td><td>在 bastion 上裝獨立的 Cloudflare Tunnel,給瀏覽器內建 web SSH 用。同上,寫在 <code>bastion.yml</code> 裡面,不是獨立檔案</td></tr>
+          <tr><td class="mono">bastion.yml(inline play,role <code>nfs_server</code>)</td><td>把 bastion 上 cloud-init 已格式化/掛好的資料碟(<code>/srv/nfs/k8s</code>)裝成 NFS server,給叢集內 csi-driver-nfs 當 StorageClass 後端。同上,不是獨立檔案</td></tr>
+          <tr><td class="mono">bastion/vault.yml</td><td>在 bastion 上裝 HashiCorp Vault,資料放在持久化的 <code>/userap/vault</code>,見 <a href="role-vault.html">Role: vault</a></td></tr>
+          <tr><td class="mono">bastion/keycloak.yml</td><td>在 bastion 上裝獨立的 Keycloak(Docker 容器 + Postgres,不是 k8s workload),當 Dex → Keycloak → Cloudflare Access PoC 的中間層,資料放 <code>/userap/keycloak/pgdata</code>,見 <a href="role-keycloak-dex.html">Role: keycloak / dex</a></td></tr>
+          <tr><td class="mono">bastion/kubeconfig.yml</td><td>從第一台 master 抓 admin kubeconfig、在 bastion 上裝 kubectl——這兩樣只存在 bastion 的 ephemeral 開機碟上,重建後會不見,需要重跑</td></tr>
+          <tr><td class="mono">bastion.yml(inline play,role <code>apiserver_dns</code>)</td><td>在 bastion 上寫 <code>/etc/hosts</code> 的 <code>k8s-api.internal</code> 記錄,跟 <code>k8s/apiserver-lb.yml</code> 背後同一個 <code>roles/apiserver_dns</code>,只是刻意只對 bastion 跑。同上,不是獨立檔案</td></tr>
+          <tr><td class="mono">bastion.yml(inline play,role <code>bastion_tools</code>)</td><td>在 bastion 上裝 k9s、開 kubectl 自動補全、加 <code>k</code> 這個 alias。同上,不是獨立檔案</td></tr>
+          <tr><td class="mono">bastion.yml(inline play,role <code>github_runner</code>)</td><td>把 bastion 註冊成 doughops org 共用的 GitHub Actions self-hosted runner,見 <a href="role-github-runner.html">Role: github_runner</a>。同上,不是獨立檔案</td></tr>
         </tbody>
       </table>
     </div>
     <p>裝一個全新叢集,現在只要兩個聚合 playbook 各跑一次:
       <code>bastion.yml</code>(不要求叢集已存在,<code>kubeconfig.yml</code>
-      那步會安全跳過)→ <code>k8s.yml</code>(內部順序是
+      那步會安全跳過,內部順序是 <code>bastion_access</code> →
+      <code>bastion_ssh_tunnel</code> → <code>nfs_server</code> →
+      <code>vault.yml</code> → <code>keycloak.yml</code>(這兩個 import
+      各自獨立,只是排在一起,見 <a href="role-keycloak-dex.html">Role:
+      keycloak / dex</a>)→ <code>kubeconfig.yml</code> →
+      <code>apiserver_dns</code> → <code>bastion_tools</code> →
+      <code>github_runner</code>)→ <code>k8s.yml</code>(內部順序是
       <code>crio.yml</code>(kubeadm 需要先有 container runtime)→
-      <code>apiserver-lb.yml</code> → <code>kubeadm.yml</code>(結束時把
+      <code>nfs-client.yml</code> → <code>apiserver-lb.yml</code> →
+      <code>kubeadm.yml</code>(結束時把
       kubeconfig 裝回 bastion)→ <code>cilium.yml</code> →
       <code>smoke-test.yml</code> → <code>node-labels.yml</code> →
-      <code>istio.yml</code> → <code>cert-manager.yml</code>(Gateway 的 443
+      <code>istio.yml</code> → <code>hubble-expose.yml</code> →
+      <code>cert-manager.yml</code>(Gateway 的 443
       server block 要靠這一步簽出來的憑證才會真的生效)→
       <code>bastion/cloudflare-tunnel.yml</code>(叢集現在活了,這裡是它第一次
-      真的部署成功的時間點)→ <code>dashboard.yml</code> /
-      <code>kube-prometheus-stack.yml</code> / <code>demo-app.yml</code> /
+      真的部署成功的時間點)→ <code>nfs-csi.yml</code> →
+      <code>dashboard.yml</code> /
+      <code>kube-prometheus-stack.yml</code>(綁靜態 PV,必須排在
+      <code>nfs-csi.yml</code> 之後)/ <code>demo-app.yml</code> /
       <code>showcase.yml</code>(這幾個先後順序不重要,互相獨立,都只是掛一個
-      新的 VirtualService 到同一個共用 Gateway 上)→ <code>nfs-csi.yml</code> →
+      新的 VirtualService 到同一個共用 Gateway 上)→
       <code>docs-site.yml</code>(這步要排在 <code>nfs-csi.yml</code> 之後——
       用一顆普通的 <code>nfs-csi</code> 動態佈建 PVC,NFS export 只能經由
       PVC 存取,不允許原生 <code>nfs:</code> volume 繞過
@@ -402,7 +421,12 @@ RUN ansible-galaxy collection install -r requirements.yml</span></pre>
       <code>kubectl exec</code>/<code>kubectl cp</code> 經 Kubernetes API
       寫進 PVC,不直接碰 bastion 上 PVC 背後實際落地的目錄,細節見
       <code>roles/docs_site</code>)→ <code>oidc-auth.yml</code> →
-      <code>oidc-rbac.yml</code>)。不需要在 <code>k8s.yml</code> 跑完後回頭
+      <code>oidc-rbac.yml</code> → <code>vault-secrets-operator.yml</code>
+      →<code>argocd.yml</code> → <code>dex.yml</code>(讀
+      <code>keycloak.yml</code> 寫在 bastion <code>/userap</code> 上的
+      client secret,必須排在它之後)→
+      <code>dex-test-app.yml</code>(同理必須排在 <code>dex.yml</code>
+      之後))。不需要在 <code>k8s.yml</code> 跑完後回頭
       重跑 <code>bastion.yml</code>。Cloudflare 那邊的 DNS/Tunnel
       ingress/Access 設定不在這個順序裡——那些是手動用 Cloudflare API
       設一次就永久生效,不需要每次重建叢集都重做,見

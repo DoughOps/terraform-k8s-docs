@@ -46,6 +46,7 @@
       <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
       <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
       <a class="nav-link" href="role-vault.html"><span class="icon">🔒</span> Role: vault</a>
+      <a class="nav-link" href="role-keycloak-dex.html"><span class="icon">🪪</span> Role: keycloak / dex</a>
       <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
       <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
       <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
@@ -303,6 +304,25 @@
           成員登入後才連得到——一次設定,新增任何服務都自動涵蓋在內。
         </div>
       </li>
+      <li>
+        <div>
+          <strong>Phase 6 · Dex → Keycloak → Cloudflare Access:模擬「叢集
+          內建 OIDC broker + 公司獨立 SSO」的聯邦 PoC</strong>
+          Phase 5 讓內部工具都靠 Cloudflare Access 做邊緣驗證,對這個 lab
+          本身已經夠用,但沒有回答一個現實問題:真實公司環境裡,
+          Keycloak/Okta 這類 SSO 通常是跨團隊共用、獨立於任何單一叢集的
+          資源,而每個叢集各自的工具不該直接綁死上游是哪一套 IdP。這個
+          階段在 bastion 上另外裝一個獨立的 Keycloak(模擬公司既有
+          SSO),叢集內裝 Dex 當這個叢集專屬的 OIDC broker,只透過 Dex
+          去談 Keycloak——驗證的是這條「Dex 代理 Keycloak,末端工具只認
+          Dex」的鏈路真的能打通、能靜默通過(見
+          <a href="role-keycloak-dex.html">Role: keycloak / dex</a>)。
+          過程中重新確認了一個容易被忽略的前提:Dex 對 Keycloak 的呼叫是
+          機器對機器的連線,一樣要通過 Cloudflare Access,不能為了讓它
+          「連得到」就整個繞過邊緣驗證——正確作法是額外開一條精準比對的
+          bypass policy,只放行 Dex 真正需要打的路徑。
+        </div>
+      </li>
     </ol>
 
     <h3>怎麼讀這份文件</h3>
@@ -358,6 +378,13 @@
           <div class="card-icon">🔒</div>
           <h4>Role: vault</h4>
           <p>HashiCorp Vault 跑在 bastion(不是叢集內),資料在重建後自動復原,含三個實測 bug。</p>
+        </div>
+      </a>
+      <a class="card-link" href="role-keycloak-dex.html">
+        <div class="card">
+          <div class="card-icon">🪪</div>
+          <h4>Role: keycloak / dex</h4>
+          <p>Dex → Keycloak → Cloudflare Access 聯邦 PoC,模擬叢集 OIDC broker 串公司獨立 SSO,含五個實測 bug。</p>
         </div>
       </a>
       <a class="card-link" href="troubleshooting.html">

@@ -46,6 +46,7 @@
       <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
       <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
       <a class="nav-link" href="role-vault.html"><span class="icon">🔒</span> Role: vault</a>
+      <a class="nav-link" href="role-keycloak-dex.html"><span class="icon">🪪</span> Role: keycloak / dex</a>
       <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
       <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
       <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
@@ -815,6 +816,52 @@
       </ul>
     </div>
 
+    <div class="cl-entry">
+      <div class="cl-date">2026-08-06 · Phase 6:Dex → Keycloak → Cloudflare Access 聯邦 PoC</div>
+      <h3><span class="cl-tag cl-feat">feat</span> 模擬「叢集內建 OIDC broker + 公司獨立 SSO」,含五個實測 bug</h3>
+      <ul>
+        <li><strong>起因:</strong>使用者的真實公司環境裡,Keycloak 是跨團隊共用的獨立 SSO 來源,每個叢集只用 Dex 當
+          per-cluster 的 OIDC broker,不直接串上游 IdP。這個 lab 原本的 Cloudflare Access 對這個 lab 本身已經夠用,但沒
+          有驗證過這種拓樸——先討論了 Dex/Keycloak/Cloudflare Access 三者的角色分工,使用者接著明確要求「實作看看」,
+          於是用 <a href="ansible-framework.html">subagent-driven-development</a> 流程分成六個任務完整落地,見
+          <code>docs/superpowers/specs/2026-08-06-dex-keycloak-federation-poc-design.md</code>。</li>
+        <li><span class="cl-tag cl-feat">feat</span> <span class="cl-hash">25fcbe2</span> 在 bastion 上裝獨立的 Keycloak
+          (Docker + Postgres),資料放 <code>/userap/keycloak/pgdata</code>,重建後自動接回,見
+          <a href="role-keycloak-dex.html">Role: keycloak / dex</a>。</li>
+        <li><span class="cl-tag cl-fix">fix</span> <span class="cl-hash">50a4275</span>/<span class="cl-hash">59abee5</span>
+          Keycloak 26 的健康檢查搬到獨立的 management port(<code>9000</code>),要顯式開
+          <code>KC_HEALTH_ENABLED=true</code>。</li>
+        <li><span class="cl-tag cl-feat">feat</span> <span class="cl-hash">18d5af0</span> 用 admin REST API 自動 provision
+          realm/client/Cloudflare Access IdP broker;<span class="cl-hash">fee2189</span>/<span class="cl-hash">523e03e</span>
+          補上多處外洩明碼 secret 的 <code>no_log</code>。</li>
+        <li><span class="cl-tag cl-feat">feat</span> <span class="cl-hash">55ddc5e</span> 叢集內裝 Dex 當 OIDC broker,
+          connector 指向 Keycloak。</li>
+        <li><span class="cl-tag cl-fix">fix</span> <span class="cl-hash">c9271bc</span> Dex 對 Keycloak 是機器對機器連線,
+          被既有萬用字元 Cloudflare Access 擋住——使用者直接點出「兩邊應該都繼續過 Cloudflare,只是另開一條精準比對的
+          bypass policy」,不是讓 Dex 繞過邊緣驗證;<span class="cl-hash">2143194</span> 最終審查時把這條 bypass 的比對
+          範圍從整個 <code>keycloak.dough-ops.com</code> 收斂到 <code>/realms/{realm}/*</code>,避免曝露 admin console
+          跟 master realm token 端點。</li>
+        <li><span class="cl-tag cl-feat">feat</span> <span class="cl-hash">eb285ac</span> 部署 <code>oauth2-proxy</code> +
+          <code>whoami</code> 測試 app,驗證整條鏈路;<span class="cl-tag cl-fix">fix</span>
+          <span class="cl-hash">053bde5</span> 使用者實際跑瀏覽器驗證後回報的三個問題:cloudflared QUIC 連線不穩(既有
+          infra 問題,自行恢復)、Dex 每次都跳「Grant Access」同意畫面(<a
+          href="https://github.com/dexidp/dex/issues/4560" target="_blank">Dex 本身沒有瀏覽器 session 的已知限制</a>,
+          搭配 <code>approval_prompt=force</code> 目前無法用設定關掉,見上游 <a
+          href="https://github.com/oauth2-proxy/oauth2-proxy/issues/3426" target="_blank">oauth2-proxy#3426</a>)、
+          oauth2-proxy 500(id_token 的 email 沒有 verified 旗標,加 <code>insecure-oidc-allow-unverified-email</code>)。</li>
+        <li><strong>後續加固:</strong><span class="cl-tag cl-feat">feat</span>
+          <span class="cl-hash">647287f</span>/<span class="cl-hash">0cc226d</span> Keycloak 官方沒有「安裝時直接建永久
+          管理員」的作法,固定會產生 temporary admin——這個 role 自動化「建永久帳號 → 指派 admin role → 驗證登入 → 刪除
+          temporary admin」整段流程,密碼改成讀 <code>secrets.yml</code> 的 <code>keycloak_permanent_admin_password</code>
+          (使用者自訂、可重跑更換),不是每次安裝都重新隨機產生。</li>
+        <li><strong>文件同步更新:</strong><span class="cl-hash">096292f</span> 更新 <code>CLAUDE.md</code> 的完整叢集
+          bring-up 順序、<code>ansible/README.md</code> 補齊所有相關 playbook 列(順便修正 6 列既有的
+          inline-play-當成獨立檔案 誤植);新增 <a href="role-keycloak-dex.html">Role: keycloak / dex</a> 這頁,
+          <a href="ansible-framework.html">框架設計</a> 的 playbook 表格/順序說明同步改寫,<a
+          href="index.html">總覽</a> 補上 Phase 6。</li>
+      </ul>
+    </div>
+
     <div class="page-nav">
       <a class="prev" href="troubleshooting.html"><span class="dir">上一頁</span><span class="ttl">← Bug 事後檢討</span></a>
       <a class="next" href="index.html"><span class="dir">回到</span><span class="ttl">總覽 →</span></a>
@@ -822,7 +869,7 @@
 
     <footer class="page-footer">
       <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
-      <span>最後更新:2026-08-06</span>
+      <span>最後更新:2026-08-07</span>
     </footer>
   </div>
 </div>
