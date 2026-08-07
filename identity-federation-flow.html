@@ -80,184 +80,179 @@
 
   <div class="content">
 
-    <h2><span class="eyebrow">身份驗證</span>身份聯邦登入流程:元件介紹 + 完整走一遍</h2>
-    <p class="lede">開瀏覽器打 <code>whoami.dough-ops.com</code> 這個測試網址,到最後看到頁面印出自己的身份資訊,中間其實
-      經過五個獨立的元件、跳了兩次 Cloudflare。<a href="role-keycloak-dex.html">Role: keycloak / dex</a> 那頁記錄的是
-      「為什麼這樣設計」跟「實測撞到的五個 bug」,<strong>這頁專門補那頁刻意跳過的部分</strong>:每個元件是什麼、
-      在這條鏈裡各自扮演什麼角色,以及一次登入實際會經過哪些跳轉。</p>
+    <h2><span class="eyebrow">身份驗證</span>身份聯邦登入流程</h2>
+    <p class="lede">開瀏覽器連到 <code>whoami.dough-ops.com</code>,到看到頁面印出自己的身份資訊,中間會經過六個節點。
+      <a href="role-keycloak-dex.html">Role: keycloak / dex</a> 那頁講的是「為什麼要這樣設計」,以及過程中撞到的五個
+      bug。這頁講的是「整個系統長什麼樣子」跟「一次登入實際會怎麼走」。</p>
 
-    <h3>牽涉到的五個元件</h3>
-    <p>先建立一個共同的詞彙表,後面的流程圖會直接用這些名字,不再重新解釋。</p>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>元件</th><th>它是什麼</th><th>在這條鏈裡的角色</th><th>對應的實際設定</th></tr></thead>
-        <tbody>
-          <tr>
-            <td>Cloudflare Access</td>
-            <td>Cloudflare Zero Trust 底下的反向代理驗證層——請求先到 Cloudflare 的邊緣節點,通過身份檢查才放行到真正的
-              origin。這個 lab 裡每個 <code>*.dough-ops.com</code> 網址預設都先過這一關(GitHub org 成員限定)。</td>
-            <td>這裡出現<strong>兩次、是兩個不同的 Access Application</strong>:一次是 whoami/dex/keycloak 三個
-              hostname 共用的萬用字元 Application(擋一般瀏覽器流量);另一次是 Keycloak 拿 Cloudflare Access 當
-              upstream OIDC provider 用的 <code>keycloak-sso</code>(<code>type = "saas"</code>,讓 Cloudflare
-              自己扮演一個標準 OIDC IdP,不是擋流量用的)。</td>
-            <td><code>cloudflare/access.tf</code> 的 <code>wildcard</code> / <code>keycloak_sso</code> /
-              <code>keycloak_direct</code> 三個 resource</td>
-          </tr>
-          <tr>
-            <td>oauth2-proxy</td>
-            <td>開源的認證反向代理——本身不管理任何使用者資料,只認<strong>一個</strong>上游 OIDC provider,驗證通過後
-              把身份轉成 HTTP header 塞給後面真正的 app,自己再維護一份 session cookie 避免每個請求都重新驗證一次。</td>
-            <td>擋在 <code>whoami</code>(測試 app 本體)前面,上游指向 <strong>Dex</strong>,不是直接指向 Keycloak 或
-              Cloudflare——app 只需要認識 oauth2-proxy 幫它轉出來的 header,不需要自己懂 OIDC。</td>
-            <td><code>roles/dex_test_app</code>,<code>oidc-issuer-url: https://dex.dough-ops.com</code></td>
-          </tr>
-          <tr>
-            <td>Dex</td>
-            <td><a href="https://dexidp.io/" target="_blank">dexidp/dex</a>,一個 OIDC broker——本身不管密碼,只是把
-              一個標準 OIDC 介面轉接到後面各種不同的「connector」(可以是 LDAP、SAML、另一個 OIDC provider……)。</td>
-            <td>叢集內唯一對外的 OIDC issuer(<code>https://dex.dough-ops.com</code>)。叢集裡的工具(這次只接了
-              <code>whoami</code> 一個)都只需要認識 Dex,不需要各自知道公司實際用的是 Keycloak——這是
-              <a href="role-keycloak-dex.html">Role: keycloak / dex</a> 頁裡「為什麼中間要多一層 Dex」那段的答案。</td>
-            <td><code>roles/dex</code>,connector <code>type: oidc</code>,指向 Keycloak 的 <code>doughops</code> realm</td>
-          </tr>
-          <tr>
-            <td>Keycloak</td>
-            <td>開源的身份與存取管理系統(IAM)——可以自己管帳號密碼,也可以反過來當 broker,把驗證動作轉發給上游另一個
-              IdP。</td>
-            <td>這裡模擬「公司既有、獨立於任何一個叢集的 SSO 來源」。它自己<strong>不直接管密碼</strong>——realm 裡設定了一個
-              type = OIDC 的 Identity Provider,指向上面的 <code>keycloak-sso</code>,把真正的登入動作再轉一手給
-              Cloudflare Access 的 GitHub org policy。</td>
-            <td><code>roles/keycloak_server</code>,realm <code>doughops</code>,IdP alias <code>cloudflare-access</code></td>
-          </tr>
-          <tr>
-            <td>whoami</td>
-            <td><a href="https://github.com/traefik/whoami" target="_blank">traefik/whoami</a>,一個只會把收到的
-              HTTP request 原封不動印出來的極簡測試網站。</td>
-            <td>純粹拿來驗證整條鏈最後有沒有把正確的身份資訊帶到——不是真正要用的應用,看到的 header 就是驗收結果。</td>
-            <td><code>roles/dex_test_app</code></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="callout callout-info">
-      <p>OAuth2/OIDC 本身的規格(authorization code flow、id_token 是什麼)這裡不重講——上面這張表已經是這個 PoC
-        需要知道的全部背景,把每個元件當成一個「收到請求 → 可能轉發給下一個 → 帶著結果往回傳」的黑盒子就夠讀懂下面的流程圖。</p>
-    </div>
-
-    <h3>拓樸總覽</h3>
+    <h3>整體架構</h3>
     <div class="flow">
       <div class="flow-step"><div class="flow-box green">瀏覽器</div></div>
       <div class="flow-arrow">→</div>
-      <div class="flow-step"><div class="flow-box accent">oauth2-proxy<br><small>whoami.dough-ops.com</small></div></div>
+      <div class="flow-step"><div class="flow-box danger">Cloudflare Access<br><small>邊緣閘門</small></div></div>
       <div class="flow-arrow">→</div>
-      <div class="flow-step"><div class="flow-box accent">Dex<br><small>dex.dough-ops.com</small></div></div>
+      <div class="flow-step"><div class="flow-box accent">oauth2-proxy</div></div>
       <div class="flow-arrow">→</div>
-      <div class="flow-step"><div class="flow-box purple">Keycloak<br><small>keycloak.dough-ops.com</small></div></div>
+      <div class="flow-step"><div class="flow-box accent">Dex</div></div>
       <div class="flow-arrow">→</div>
-      <div class="flow-step"><div class="flow-box danger">Cloudflare Access<br><small>keycloak-sso(SaaS)</small></div></div>
+      <div class="flow-step"><div class="flow-box purple">Keycloak</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="flow-box danger">Cloudflare Access<br><small>Keycloak 的上游 IdP</small></div></div>
     </div>
-    <p class="flow-caption">四個元件串成一條鏈,<strong>Cloudflare Access 的萬用字元 Application 疊在最外層</strong>——
-      whoami/Dex/Keycloak 三個 hostname 的一般瀏覽器流量都先經過它,圖上沒有畫出來是因為它不是鏈上的一個「跳轉點」,
-      而是每一站都可能先被攔一次的共同閘門。</p>
+    <p class="flow-caption">瀏覽器沿著這條路徑一路往右,走到最後一站再沿原路被送回來,最後停在 whoami 頁面。下一節會逐站
+      說明每個節點在做什麼;完整的來回順序留到「登入流程」那節再細看。</p>
 
-    <h3>完整流程走一遍(第一次登入,乾淨的瀏覽器)</h3>
-    <p><strong>第 1 步:whoami → oauth2-proxy → Dex</strong></p>
+    <div class="callout callout-info">
+      <p><strong>Cloudflare Access 在圖上出現兩次,是兩個完全獨立的設定。</strong>第一個是擋在最外層的邊緣閘門——任何人
+        開任何一個 <code>*.dough-ops.com</code> 網址,都會先經過它,確認是 <code>doughops</code> GitHub org 的成員。
+        第二個是 Keycloak 專門拿來當「上游身份來源」用的另一組設定,只有 Keycloak 自己會呼叫它,一般瀏覽器流量不會直接
+        碰到。兩者只是剛好用同一個產品做兩件不同的事,彼此獨立設定、獨立的 session。</p>
+    </div>
+
+    <h3>六個節點,各自負責什麼</h3>
+
+    <h4>Cloudflare Access(邊緣閘門)</h4>
+    <p>Cloudflare 的反向代理驗證層。請求先到 Cloudflare 的邊緣節點,確認身份之後才放行到真正的伺服器。這個 lab 裡每個
+      <code>*.dough-ops.com</code> 網址預設都掛在這一關底下,只放行 <code>doughops</code> GitHub org 的成員。</p>
+
+    <h4>oauth2-proxy</h4>
+    <p>擋在 <code>whoami</code> 前面的認證反向代理。它自己不管理任何使用者資料,只認一個上游 OIDC provider——這裡是
+      Dex,不是 Keycloak 或 Cloudflare。驗證通過後,它把身份轉成 HTTP header 塞給後面的 <code>whoami</code>,自己另外
+      維護一份 session cookie,不用每個請求都重新驗證一次。</p>
+
+    <h4>Dex</h4>
+    <p><a href="https://dexidp.io/" target="_blank">dexidp/dex</a>,叢集內唯一對外的 OIDC issuer
+      (<code>https://dex.dough-ops.com</code>)。它本身不管密碼,只是把一個標準的 OIDC 介面,轉接到後面某一個
+      「connector」——這裡接的是 Keycloak。叢集裡的工具只需要認識 Dex 這一個 issuer,不需要各自知道公司實際用的是
+      Keycloak,這是<a href="role-keycloak-dex.html">為什麼中間要多一層 Dex</a>的原因。</p>
+
+    <h4>Keycloak</h4>
+    <p>開源的身份與存取管理系統,模擬「公司既有、獨立於任何一個叢集的 SSO 來源」。它自己不直接管密碼——realm 裡設定了
+      一個 Identity Provider,把真正的登入動作再轉一手給下一個節點:Cloudflare Access。</p>
+
+    <h4>Cloudflare Access(Keycloak 的上游 IdP)</h4>
+    <p>跟第一站是同一個產品,設定完全獨立,名字叫 <code>keycloak-sso</code>。它讓 Cloudflare 反過來扮演一個標準
+      OIDC provider,給 Keycloak 當上游用——所以 Keycloak 自己也不用管密碼,一路把驗證責任往外推,最終落在
+      Cloudflare 的 GitHub org 檢查上。</p>
+
+    <h4>whoami</h4>
+    <p><a href="https://github.com/traefik/whoami" target="_blank">traefik/whoami</a>,一個只會把收到的 HTTP
+      request 原封不動印出來的測試網站。它不是真正要用的應用,純粹用來驗證整條鏈最後有沒有把正確的身份資訊帶到——你在
+      瀏覽器看到的那些 header,就是驗收結果。</p>
+
+    <h3>登入流程,一步一步走(乾淨瀏覽器,第一次登入)</h3>
+
+    <p><strong>第 1 步:whoami → 邊緣閘門 → oauth2-proxy → Dex</strong></p>
     <div class="flow">
       <div class="flow-step"><div class="flow-box green">瀏覽器開<br>whoami.dough-ops.com</div></div>
       <div class="flow-arrow">→</div>
-      <div class="flow-step"><div class="flow-box danger">Cloudflare Access<br><small>萬用字元,GitHub org<br>還沒 session 才會跳出畫面</small></div></div>
+      <div class="flow-step"><div class="flow-box danger">Cloudflare Access<br><small>還沒 session,跳出<br>GitHub org 登入畫面</small></div></div>
       <div class="flow-arrow">→</div>
-      <div class="flow-step"><div class="flow-box accent">oauth2-proxy<br><small>沒有自己的 session</small></div></div>
+      <div class="flow-step"><div class="flow-box accent">oauth2-proxy<br><small>還沒自己的 session</small></div></div>
       <div class="flow-arrow">→</div>
-      <div class="flow-step"><div class="flow-box accent">導去 Dex<br><small>/auth?client_id=whoami…</small></div></div>
+      <div class="flow-step"><div class="flow-box accent">導去 Dex</div></div>
     </div>
-    <p>oauth2-proxy 檢查自己的 <code>_oauth2_proxy</code> cookie,沒有就把瀏覽器導去它設定的上游 OIDC provider——這裡是
-      Dex,不是 Keycloak 或 Cloudflare。</p>
+    <p>過了邊緣閘門之後,oauth2-proxy 檢查自己的 <code>_oauth2_proxy</code> cookie。沒有的話,就把瀏覽器導去它設定的
+      上游 OIDC provider,也就是 Dex。</p>
 
-    <p><strong>第 2 步:Dex → Keycloak 的登入頁</strong></p>
+    <p><strong>第 2 步:Dex → Keycloak 登入頁</strong></p>
     <div class="flow">
-      <div class="flow-step"><div class="flow-box accent">Dex<br><small>沒有自己的瀏覽器 session<br>(見 Bug #4)</small></div></div>
+      <div class="flow-step"><div class="flow-box accent">Dex<br><small>沒有自己的 session</small></div></div>
       <div class="flow-arrow">→</div>
-      <div class="flow-step"><div class="flow-box purple">Keycloak 登入頁<br><small>/realms/doughops/protocol/<br>openid-connect/auth</small></div></div>
+      <div class="flow-step"><div class="flow-box purple">Keycloak 登入頁</div></div>
       <div class="flow-arrow">→</div>
       <div class="flow-step"><div class="flow-box">帳密欄位<br>+「Login with Cloudflare」</div></div>
     </div>
-    <p>Dex 的 <code>oidc</code> connector 把瀏覽器導去 Keycloak 的 authorize 端點。這條路徑落在
-      <code>keycloak_direct</code> 那個精準比對的 bypass Application 範圍內(見
-      <a href="role-keycloak-dex.html">Bug #3</a>),所以 Keycloak 自己的登入頁能直接渲染出來,不會被外層的萬用字元
-      Application 擋下來。頁面上除了 Keycloak 自己的帳密欄位,還有一個「Login with Cloudflare」——這是 realm 裡設定的
-      <code>cloudflare-access</code> Identity Provider 產生出來的按鈕。</p>
+    <p>Dex 把瀏覽器導去 Keycloak 的登入頁面。頁面上有兩個選項:輸入 Keycloak 自己的帳密,或是點「Login with
+      Cloudflare」——後者是 realm 裡設定的 Identity Provider 產生出來的按鈕,對應 <a href="role-keycloak-dex.html">Bug
+      #3</a> 修好之後,Cloudflare 特別放行給這個頁面用的那條路徑。</p>
 
-    <p><strong>第 3 步:點「Login with Cloudflare」→ Keycloak 再繞去 Cloudflare 一次(這次是 SaaS Application)</strong></p>
+    <p><strong>第 3 步:點「Login with Cloudflare」→ 再過一次 Cloudflare Access</strong></p>
     <div class="flow">
-      <div class="flow-step"><div class="flow-box purple">Keycloak<br><small>/broker/cloudflare-access/login</small></div></div>
+      <div class="flow-step"><div class="flow-box purple">Keycloak</div></div>
       <div class="flow-arrow">→</div>
-      <div class="flow-step"><div class="flow-box danger">Cloudflare Access<br><small>keycloak-sso(SaaS)<br>通常只要點一下 GitHub</small></div></div>
+      <div class="flow-step"><div class="flow-box danger">Cloudflare Access<br><small>keycloak-sso<br>通常點一下就過</small></div></div>
       <div class="flow-arrow">→</div>
-      <div class="flow-step"><div class="flow-box purple">Keycloak broker callback<br><small>/broker/cloudflare-access/endpoint</small></div></div>
+      <div class="flow-step"><div class="flow-box purple">回到 Keycloak</div></div>
     </div>
-    <p>這是整條鏈裡<strong>唯一會讓人覺得「怎麼又跳出 Cloudflare」</strong>的地方——因為 <code>keycloak-sso</code> 是
-      跟第 1 步的萬用字元完全不同的一個 Access Application,即使底層 GitHub session 還在,Cloudflare 通常還是會擋一個
-      選擇/確認身份提供者的畫面,只是不需要重新輸入帳密,點一下就過。Keycloak 用 IdP 設定裡的
-      <code>authorizationUrl</code>/<code>tokenUrl</code>/<code>userInfoUrl</code>(都是
-      <code>{cloudflare_access_team_domain}/cdn-cgi/access/sso/oidc/{client_id}/…</code>這個固定形狀)完成
-      OIDC code exchange,拿到 Cloudflare 那邊核發的身份(<code>email</code> claim),用
-      <code>syncMode: IMPORT</code> 匯入成 Keycloak 自己 realm 裡的一個使用者,並且<strong>在
-      <code>keycloak.dough-ops.com</code> 這個 hostname 上建立它自己的 realm SSO session</strong>——這個 session 是
-      下面「為什麼第二次是靜默的」能成立的關鍵之一。</p>
+    <p>這是整條鏈裡唯一會讓人覺得「怎麼又跳出 Cloudflare」的地方。原因很單純:<code>keycloak-sso</code> 跟第 1 步的
+      邊緣閘門是兩個不同的 Access Application,Cloudflare 需要重新確認一次。底層的 GitHub 登入狀態通常還在,所以只要
+      點一下,不用重新輸入帳密。Keycloak 拿到 Cloudflare 核發的身份之後,會在 <code>keycloak.dough-ops.com</code>
+      這個網址上建立自己的一份 realm session——這份 session 是下一節「為什麼重新整理會直接過」的關鍵。</p>
 
     <p><strong>第 4 步:Keycloak → Dex → oauth2-proxy → whoami</strong></p>
     <div class="flow">
       <div class="flow-step"><div class="flow-box purple">Keycloak</div></div>
       <div class="flow-arrow">→</div>
-      <div class="flow-step"><div class="flow-box accent">Dex<br><small>/callback,換 id_token</small></div></div>
+      <div class="flow-step"><div class="flow-box accent">Dex<br><small>簽自己的 id_token</small></div></div>
       <div class="flow-arrow">→</div>
-      <div class="flow-step"><div class="flow-box accent">oauth2-proxy<br><small>/oauth2/callback</small></div></div>
+      <div class="flow-step"><div class="flow-box accent">oauth2-proxy<br><small>設 session cookie</small></div></div>
       <div class="flow-arrow">→</div>
       <div class="flow-step"><div class="flow-box green">whoami<br><small>印出收到的 header</small></div></div>
     </div>
-    <p>Keycloak 把授權碼交還給 Dex 的 <code>redirectURI</code>(<code>https://dex.dough-ops.com/callback</code>),
-      Dex 拿它跟 Keycloak 換 token、用自己的身份重新簽發一份<strong>自己的</strong> id_token(<code>iss</code> 是
-      <code>https://dex.dough-ops.com</code>,不是 Keycloak),導回 oauth2-proxy 的
-      <code>redirect-url</code>(<code>https://whoami.dough-ops.com/oauth2/callback</code>)。oauth2-proxy 驗證
-      這份 id_token(<code>--insecure-oidc-allow-unverified-email</code> 這個 flag 就是在這一步生效,見
-      <a href="role-keycloak-dex.html">Bug #5</a>)、設定自己的 <code>_oauth2_proxy</code> session cookie,最後才把
-      請求真的轉發給 <code>whoami</code>,順便注入 <code>Authorization</code>(帶 Dex 簽的 id_token)、
-      <code>X-Forwarded-Email</code>、<code>X-Forwarded-User</code> 這些 header——<code>whoami</code> 把收到的原始
-      request 印出來,就是你在瀏覽器上看到的那頁。</p>
+    <p>Keycloak 把結果交還給 Dex,Dex 拿它去跟 Keycloak 換 token,再用自己的身份簽出一份新的 id_token
+      (<code>iss</code> 是 <code>https://dex.dough-ops.com</code>,不是 Keycloak)。這份 id_token 交給
+      oauth2-proxy,oauth2-proxy 驗證通過(<a href="role-keycloak-dex.html">Bug #5</a> 那個
+      <code>--insecure-oidc-allow-unverified-email</code> 就是在這一步生效)、設好自己的 session cookie,最後才把
+      請求轉發給 <code>whoami</code>,同時附上 <code>Authorization</code>、<code>X-Forwarded-Email</code> 這些
+      header。<code>whoami</code> 把收到的 request 印出來,就是你看到的那頁。</p>
 
-    <h3>為什麼第二次(靜默)登入不會跳任何畫面</h3>
-    <p>整條鏈上有四層各自獨立的 session,生命週期互不相同:</p>
+    <h3>為什麼重新整理會直接過</h3>
+    <p>上面走完一輪之後,鏈上四個節點各自留下一份 session,彼此獨立、有效期也不同:</p>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>層級</th><th>session 存在哪</th><th>有效期</th><th>沒了會發生什麼</th></tr></thead>
+        <thead><tr><th>節點</th><th>session 存在哪</th><th>有效期</th></tr></thead>
         <tbody>
-          <tr><td>Cloudflare Access(萬用字元)</td><td class="mono">CF_Authorization cookie</td><td class="mono">24h</td><td>重新跳 GitHub org 選擇畫面(通常瞬間過,因為 GitHub 自己的瀏覽器 session 還在)</td></tr>
-          <tr><td>Cloudflare Access(keycloak-sso)</td><td class="mono">CF_Authorization + CF_AppSession cookie</td><td class="mono">730h(~30 天)</td><td>Keycloak 點「Login with Cloudflare」時要重新過一次確認畫面</td></tr>
-          <tr><td>Keycloak(doughops realm)</td><td class="mono">Keycloak 自己在 keycloak.dough-ops.com 設的 session cookie</td><td>Keycloak realm 預設 SSO session 設定</td><td>Dex 導過去時,Keycloak 的登入頁/broker 按鈕會重新出現,不是自動通過</td></tr>
-          <tr><td>oauth2-proxy</td><td class="mono">_oauth2_proxy cookie</td><td>helm values 設定的 cookie expire</td><td>整個瀏覽器流程從第 1 步重新跑一次</td></tr>
+          <tr><td>Cloudflare Access(邊緣閘門)</td><td class="mono">CF_Authorization cookie</td><td class="mono">24h</td></tr>
+          <tr><td>Cloudflare Access(keycloak-sso)</td><td class="mono">CF_Authorization + CF_AppSession cookie</td><td class="mono">730h(約 30 天)</td></tr>
+          <tr><td>Keycloak(doughops realm)</td><td>Keycloak 在 keycloak.dough-ops.com 上設的 session cookie</td><td>realm 的預設 SSO session 設定</td></tr>
+          <tr><td>oauth2-proxy</td><td class="mono">_oauth2_proxy cookie</td><td>helm values 設定的 cookie expire</td></tr>
         </tbody>
       </table>
     </div>
-    <p>單純重新整理 <code>whoami.dough-ops.com</code>(跟你剛剛實測的一樣)通常連 Dex 都不會再打——oauth2-proxy 自己的
-      <code>_oauth2_proxy</code> cookie 還有效的話,它會直接放行,完全不會發出上面任何一次跳轉。真正驗證「整條聯邦鏈的
-      session 都還在」的情境,是 <code>_oauth2_proxy</code> 這個 cookie 過期或被清掉之後再訪問一次——這時候流程會重新從
-      第 1 步跑,但因為 Keycloak/Cloudflare 那三層的 session 都還沒過期,<strong>每一站都是瞬間直接被放行,不需要任何
-      手動點擊</strong>,只有 Dex 這一站因為<a href="role-keycloak-dex.html">天生沒有自己的 session</a>,一定會物理上
-      重新跳轉一次去問 Keycloak,只是這一次 Keycloak 秒答,肉眼看不出來。這正是
-      <a href="https://github.com/khchiang1121/terraform-k8s/blob/main/docs/superpowers/specs/2026-08-06-dex-keycloak-federation-poc-design.md" target="_blank">設計文件</a>
-      驗收標準裡「第二次完全靜默」要驗證的東西。</p>
+    <p>單純重新整理 <code>whoami.dough-ops.com</code>,通常連 Dex 都不會再打:oauth2-proxy 自己的
+      <code>_oauth2_proxy</code> cookie 還有效,它就直接放行,上面四步都不會發生。</p>
+    <p>比較嚴格的驗證方式,是等 <code>_oauth2_proxy</code> 這個 cookie 過期或被清掉之後再訪問一次。這時候流程會重新從
+      第 1 步跑,但因為 Keycloak 跟兩個 Cloudflare Access 的 session 都還在,每一站都是瞬間放行,不需要任何手動點擊。
+      唯一的例外是 Dex——它<a href="role-keycloak-dex.html">天生沒有自己的 session</a>,一定會重新跳轉一次去問
+      Keycloak,只是 Keycloak 這邊秒答,肉眼看不出來。這正是設計文件裡「第二次完全靜默」這條驗收標準要驗證的事。</p>
 
     <h3>自己重新驗證一次</h3>
-    <p>跟 <a href="role-keycloak-dex.html">Role: keycloak / dex</a> 頁「驗證方式」那段是同一套檢查,這裡補一個對照:</p>
+    <p>跟 <a href="role-keycloak-dex.html">Role: keycloak / dex</a> 頁「驗證方式」那段是同一套檢查:</p>
     <ul>
-      <li>清 cookie(或無痕視窗)開 <code>whoami.dough-ops.com</code>,應該依序看到:Cloudflare GitHub org 畫面 →
-        Keycloak 登入頁(帳密欄位 + Login with Cloudflare)→ 點下去之後可能再跳一次 Cloudflare 確認畫面 → 落地在
-        whoami,印出的 <code>Authorization</code> header 是一段 JWT,<code>iss</code> 解出來應該是
-        <code>https://dex.dough-ops.com</code>。</li>
-      <li>同一個分頁重新整理:應該完全不跳任何畫面,直接看到 whoami 頁——這一步如果又跳出任何畫面,回頭查上面那張表,是
-        哪一層的 session 先過期了。</li>
+      <li>清 cookie(或用無痕視窗)開 <code>whoami.dough-ops.com</code>,依序應該看到:Cloudflare GitHub org 畫面 →
+        Keycloak 登入頁 → 點「Login with Cloudflare」後可能再跳一次 Cloudflare 確認畫面 → 落地在 whoami。印出的
+        <code>Authorization</code> header 解開來,<code>iss</code> 應該是 <code>https://dex.dough-ops.com</code>。</li>
+      <li>同一個分頁重新整理:應該完全不跳任何畫面,直接看到 whoami 頁。如果又跳出畫面,回頭查上面那張表,看是哪一層的
+        session 先過期了。</li>
     </ul>
+
+    <div class="callout callout-warn">
+      <p><strong>已知現象:第一次(或很久沒登入之後)點下 Cloudflare 頁面上的 GitHub 按鈕,可能會卡 10-20 秒。</strong>
+        用瀏覽器 DevTools 的 Network 分頁實測過:卡住的是 <code>doughops.cloudflareaccess.com</code> 這個網域自己的
+        兩個請求(GitHub 授權碼的 callback、Access for SaaS 自己的 token 端點),各自要 2.8 秒左右,是 Cloudflare
+        Access 驗證 GitHub 身份、核發這個 SaaS Application token 的內部處理時間,不是 Keycloak、不是這裡的測試 app、
+        也不是網路品質問題——這幾層都在幾百毫秒內處理完。同一個瀏覽器再測一次(session 還在的情況下)通常會秒過。</p>
+    </div>
+
+    <h3>另外兩個變體:少一層、再少一層</h3>
+    <p>同一條「App → … → Keycloak → Cloudflare Access」的鏈,還有兩個刻意拿掉中間層的版本,拿來對照每一層實際在
+      做什麼:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>變體</th><th>網址</th><th>拿掉了什麼</th><th>id_token 的 iss</th></tr></thead>
+        <tbody>
+          <tr><td>本頁講的 whoami</td><td class="mono">whoami.dough-ops.com</td><td>(基準版本)</td><td class="mono">https://dex.dough-ops.com</td></tr>
+          <tr><td>oauth2-keycloak-demo</td><td class="mono">oauth2-keycloak-demo.dough-ops.com</td><td>拿掉 Dex——oauth2-proxy 直接對 Keycloak 做標準 OIDC discovery</td><td class="mono">https://keycloak.dough-ops.com/realms/doughops</td></tr>
+          <tr><td>keycloak-demo</td><td class="mono">keycloak-demo.dough-ops.com</td><td>連 oauth2-proxy 也拿掉——app 自己是一支純 Python 標準函式庫寫的 OIDC relying party,手刻 authorization code flow</td><td class="mono">https://keycloak.dough-ops.com/realms/doughops</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>細節分別見
+      <a href="https://github.com/khchiang1121/terraform-k8s/blob/main/docs/superpowers/specs/2026-08-07-keycloak-direct-oauth2-proxy-poc-design.md" target="_blank">oauth2-keycloak-demo 的設計文件</a>
+      跟
+      <a href="https://github.com/khchiang1121/terraform-k8s/blob/main/docs/superpowers/specs/2026-08-07-keycloak-native-oidc-app-poc-design.md" target="_blank">keycloak-demo 的設計文件</a>——
+      架構上都是本頁「整體架構」那張圖拿掉一到兩個節點,登入流程跟 session 行為完全比照上面幾節,不重複講一次。</p>
 
     <div class="page-nav">
       <a class="prev" href="role-keycloak-dex.html"><span class="dir">上一頁</span><span class="ttl">← Role: keycloak / dex</span></a>
