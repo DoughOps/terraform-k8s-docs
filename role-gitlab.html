@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Role: gitlab — k8s + BGP Lab 技術詳解</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <a class="sidebar-logo-link" href="index.html">
+      <h1>🛰️ k8s + BGP Lab</h1>
+      <span>OpenStack Lab · 技術詳解 v15</span>
+    </a>
+  </div>
+  <nav>
+    <div class="nav-group">
+      <div class="nav-group-label">總覽</div>
+      <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
+      <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
+      <a class="nav-link" href="user-guide.html"><span class="icon">🧑‍💻</span> 叢集使用手冊</a>
+      <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">網路架構</div>
+      <a class="nav-link" href="network-architecture.html"><span class="icon">🌐</span> 網路架構總覽</a>
+      <a class="nav-link" href="packet-flows.html"><span class="icon">🔀</span> 封包路徑實例</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">基礎設施</div>
+      <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
+      <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Ansible 自動化</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
+      <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
+      <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
+      <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
+      <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
+      <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
+      <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="role-vault.html"><span class="icon">🔒</span> Role: vault</a>
+      <a class="nav-link" href="role-keycloak-dex.html"><span class="icon">🪪</span> Role: keycloak / dex</a>
+      <a class="nav-link" href="identity-federation-flow.html"><span class="icon">🧩</span> 身份聯邦登入流程</a>
+      <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
+      <a class="nav-link active" href="role-gitlab.html"><span class="icon">🦊</span> Role: gitlab</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Cloudflare 手動設定</div>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">專案紀錄</div>
+      <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+    </div>
+  </nav>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" aria-label="Toggle menu">☰</button>
+      <span class="topbar-crumb">Lab Docs / <strong>Role: gitlab</strong></span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">cloudnative.tw · AS 65000</span>
+      <button class="theme-toggle" id="themeToggle" aria-label="切換主題">
+        <span class="icon-moon">🌙</span><span class="icon-sun">☀️</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <h2><span class="eyebrow">Ansible 自動化</span>Role: gitlab</h2>
+    <p class="lede">在 bastion 上跑一套完全自架的 GitLab CE(<code>roles/gitlab_server</code>)
+      跟一個 instance-wide 的 GitLab Runner(<code>roles/gitlab_runner</code>)。
+      跟 <a href="role-vault.html">Role: vault</a>、<a href="role-keycloak-dex.html">Role:
+      keycloak / dex</a> 是同一個大方向——<strong>服務跑在 bastion,不是叢集內
+      workload</strong>,資料在 bastion 重建後自動復原。這頁涵蓋:為什麼是
+      container based、Cloudflare Access 怎麼做到「過了邊緣驗證就直接登入
+      GitLab、不再跳第二次登入畫面」、GitLab Runner 的 Docker executor
+      怎麼接 host 的 Docker daemon,以及過程中撞到、後來又整個推翻重做一次的
+      密鑰管理設計。</p>
+
+    <h3>為什麼是 container based,不是 Helm chart</h3>
+    <p>GitLab 官方提供好幾種安裝模式(Helm chart、Operator、omnibus 套件直接裝
+      在 host 上、Docker container)。這個 lab 明確選 container
+      based——單一 <code>gitlab/gitlab-ce</code> omnibus image,資料
+      bind mount 到 <code>/userap/gitlab/{config,logs,data}</code>(bastion
+      的 <code>user-data</code> 這顆持久化 Cinder volume,同一顆 volume 上
+      還有 Vault、Keycloak 的資料),跟 Kubernetes 完全無關——這是刻意的
+      取捨,不是還沒來得及做成 Helm chart。omnibus image 本身已經包了
+      nginx/puma/postgresql/redis/sidekiq 全部元件,不需要像
+      <a href="role-keycloak-dex.html">Keycloak 那樣</a>額外開一個獨立的
+      Postgres container。</p>
+
+    <h3>Cloudflare Access:兩層防線疊加,不是取代</h3>
+    <p><code>gitlab.dough-ops.com</code> 先過既有的萬用字元 Cloudflare Access
+      Application(<code>doughops</code> GitHub org 成員才放行,跟
+      dashboard/grafana/vault 是同一層),再疊加 GitLab 自己的
+      OmniAuth OIDC(對應 Cloudflare 另一個「Access for SaaS」
+      Application,<code>gitlab-sso</code>)——defense-in-depth,跟
+      <a href="role-vault.html">Vault 的 OIDC 登入</a>同一種模式。</p>
+    <div class="callout callout-warn">
+      <p><strong>關鍵設定是 <code>omniauth_auto_sign_in_with_provider</code>
+      ——沒有這行,OmniAuth 只是在 GitLab 登入頁多一顆「Sign in with
+      OIDC」按鈕,還要手動點。</strong>設了之後,瀏覽器一開
+      <code>gitlab.dough-ops.com</code>,GitLab 直接跳過自己的登入頁、
+      立刻重導向 OIDC provider,外層 wildcard Access 通常已經有有效
+      session,整段重導無感,直接落地在 GitLab 首頁。</p>
+    </div>
+    <p>Break-glass:這個設定同時會讓 <code>/users/sign_in</code> 直接被導去
+      OIDC provider,密碼表單根本不會渲染——GitLab 官方文件記載的 escape
+      hatch 是加 query string:</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">break-glass 登入網址</span></div>
+      <pre><span class="out">https://gitlab.dough-ops.com/users/sign_in?auto_sign_in=false</span></pre>
+    </div>
+    <p>這個網址還是卡在同一個萬用字元 Access Application 底下——只是跳過
+      GitLab 自己的自動導向,不是跳過 Cloudflare 的登入檢查。這條路能用的
+      前提是 doughops org 成員身份還有效;真的要繞過 Cloudflare 整層,
+      只能靠這個 role 額外開的 <code>gitlab-direct</code> bypass
+      Application(見下面「Git 存取:一個新的 bypass Application」)。</p>
+
+    <h3>Git 存取:一個新的 bypass Application</h3>
+    <p>設計最初只打算走 HTTPS + Personal Access Token clone/push,後來在
+      whole-branch review 才發現一個沒想到的缺口:<code>git clone</code>
+      跟 PAT-based API 呼叫沒辦法走完 Cloudflare Access 那套互動式 GitHub
+      org 登入,萬用字元 Application 會直接把它們擋在外面——不管走不走
+      SSH,HTTPS 這條路一樣打不通。</p>
+    <p>修法是照抄 <code>keycloak_direct</code>(見
+      <a href="role-keycloak-dex.html">Role: keycloak / dex</a>)已經驗證過的
+      模式:另開一個 <strong>path-scoped bypass Application</strong>,只放行
+      <code>gitlab.dough-ops.com/*.git/*</code> 跟
+      <code>/api/v4/*</code> 這兩組路徑,<code>decision = "bypass"</code>。
+      這兩條路徑範圍外的一般瀏覽頁面完全不受影響,還是要先過萬用字元
+      Access。取捨很直接:這兩條路徑底下,GitLab 自己的 PAT/HTTP Basic
+      驗證變成唯一防線,TLS 還是 Cloudflare 在做,只是不再額外要求先過
+      GitHub org 這關。</p>
+
+    <h3>密鑰管理:從「bastion 自動產生存檔案」整個推翻重做</h3>
+    <p>這是這個 role 裡變動最大的一段。GitLab 端需要一組給自動化用的
+      Personal Access Token(<code>api</code> scope,綁在 root 帳號上),
+      拿去呼叫 REST API 做 <code>oidc_admin_emails</code> allowlist
+      upsert、幫 <a href="#gitlab-runner">GitLab Runner</a> 註冊 CI
+      runner。</p>
+    <p><strong>第一版</strong>比照 <code>roles/keycloak_server</code> 既有的
+      手法:<code>openssl rand</code> 在 bastion 上產生一次、存成檔案
+      (<code>/userap/gitlab/secrets/automation-pat</code>),之後每次
+      重跑都讀回這個檔案。這個做法可以動,但使用者後來提出兩個更嚴格的
+      要求,把整個機制推翻重做:</p>
+    <ol>
+      <li><strong>所有密鑰都要放進 <code>secrets.yml</code>,禁止依賴
+        bastion 的檔案系統</strong>——「bastion 上有一個只有 SSH 進去才
+        看得到的密鑰檔案」本身就是一種難以維護的狀態,想知道/輪替這組值
+        得先 SSH 進 bastion 找檔案。</li>
+      <li><strong><code>secrets.yml</code> 本身要加密後 commit 進
+        GitHub</strong>——不是留在本機、gitignore 排除。</li>
+    </ol>
+    <p>第一點其實有辦法完全做到:GitLab 本來就不會把已存在 token 的明碼
+      回吐出來,所以「這組值到底是誰選的」根本不重要——第一版讓 bastion
+      自己 <code>openssl rand</code> 沒有必要,乾脆讓**這組值從一開始就
+      只存在 <code>secrets.yml</code>**,由人(或這次由 AI)在本機用
+      <code>openssl rand -hex 32</code> 選一次,直接寫進去:</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/gitlab_server/templates/bootstrap_pat.rb.j2</span></div>
+      <pre><span class="out">user = User.find_by_username('root')
+token = user.personal_access_tokens.find_by(name: 'ansible-automation')
+token ||= user.personal_access_tokens.create(
+  name: 'ansible-automation',
+  scopes: [:api],
+  expires_at: 365.days.from_now
+)
+token.set_token('{{ gitlab_automation_pat }}')
+token.save!</span></pre>
+    </div>
+    <p><code>gitlab_automation_pat</code> 直接引用 <code>secrets.yml</code>
+      的一般變數,這個 role 不再有任何「產生 → 存檔 → slurp 讀回」的
+      task。這份腳本同時改成<strong>真正的 upsert</strong>——不管
+      GitLab 裡那個名字的 token 存不存在,每次都無條件把值設成
+      <code>secrets.yml</code> 現在這組,不是「找不到才建」。這代表以後
+      要輪替這組密鑰,只要換 <code>secrets.yml</code> 裡的值、重跑
+      playbook,GitLab 那邊會自動同步,不用先手動去後台刪舊的。</p>
+    <p>第二點沿用這個 repo 已經有的先例——<code>ansible/files/ssh/id_ed25519</code>
+      整份檔案本身就是 <code>ansible-vault</code> 的加密輸出、進版控,不是
+      包在某個 YAML 變數裡。同一招套用到 <code>secrets.yml</code>:</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">整檔加密,從 .gitignore 移除</span></div>
+      <pre><span class="out">ansible-vault encrypt ansible/inventory/group_vars/all/secrets.yml
+# → $ANSIBLE_VAULT;1.1;AES256 開頭,Ansible 對 group_vars/ 底下任何
+#   vault 加密的 YAML 檔案都會透明解密,不用額外設定</span></pre>
+    </div>
+    <div class="callout callout-warn">
+      <p>這個原則沒辦法無限上綱套用到全部密鑰——HashiCorp Vault 自己的
+      root token/unseal key,是 <code>vault operator init</code> 當下由
+      Vault 自己產生、回吐給你的,沒辦法「預先決定」這個值再塞給它,這是
+      Vault 這個工具本身的機制,不是這個 lab 的設計選擇。<code>gitlab_automation_pat</code>
+      能這樣做,剛好是因為它從來就不是 GitLab 自己生的,只是我們自己選一個
+      隨機字串、透過 Rails console 硬塞進去而已。</p>
+    </div>
+
+    <h3>Bug:<code>bootstrap_pat.rb</code> 用 <code>0600</code> 權限,git 使用者讀不到</h3>
+    <p>第一次對真實 bastion 跑這個 role,<code>gitlab-rails runner</code>
+      直接回報找不到檔案:</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">實測錯誤</span></div>
+      <pre><span class="bad">'load': cannot load such file -- /etc/gitlab/bootstrap_pat.rb (LoadError)</span></pre>
+    </div>
+    <p>檔案明明存在(<code>docker exec gitlab ls -la /etc/gitlab/</code>
+      看得到)。查了 <code>/opt/gitlab/bin/gitlab-rails</code> 這支 wrapper
+      script 才發現:<code>docker exec</code> 預設是 root 身份,但
+      <code>gitlab-rails</code> 內部用 <code>chpst -u git:git</code> 把
+      權限從 root 降成 <code>git</code> 這個 unix 使用者才真的去跑
+      <code>bundle exec rails runner</code>——這份腳本原本是
+      <code>mode: "0600"</code>(root-only),<code>git</code> 使用者根本
+      讀不到,Ruby 的 <code>Kernel#load</code> 把「permission denied」誤報
+      成「檔案不存在」,看起來像路徑錯了,實際上是權限問題。修法是把 mode
+      改成 <code>0644</code>——這份腳本本來就是一次性的,執行完立刻刪除,
+      世界可讀的時間窗很短,仍在 <code>/userap</code> 這個已信任的磁碟
+      邊界內。</p>
+
+    <h3>Bug:忘了關掉 Let's Encrypt,第一次 reconfigure 差點失敗</h3>
+    <p>final review 抓到的一個潛在地雷,還沒真的炸開就先修掉了:Omnibus
+      只要看到 <code>external_url</code> 是 <code>https</code>、又沒有另外
+      設定憑證,預設會自動開 Let's Encrypt、<strong>每次 reconfigure
+      都嘗試續期</strong>。這個 lab 的 TLS 是在 Cloudflare 邊緣終止(見
+      下面 nginx 設定),bastion 也沒有對外開放的 <code>:80</code> 給
+      ACME <code>http-01</code> challenge 打,憑證申請一定會失敗、拖垮
+      甚至卡住 reconfigure。明確關掉:</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/gitlab_server/templates/gitlab.rb.j2</span></div>
+      <pre><span class="out">nginx['listen_port'] = 80
+nginx['listen_https'] = false
+letsencrypt['enable'] = false</span></pre>
+    </div>
+
+    <h3>Bug:<code>gitlab_signup_enabled = false</code> 只在第一次 seed 生效</h3>
+    <p>這個 lab 的帳號設計是一律透過 OmniAuth(過 Cloudflare Access 才自動
+      建立)產生,GitLab 自己的帳密註冊表單理論上該關掉,不然多開一個不受
+      <code>oidc_admin_emails</code> allowlist 約束的建帳號管道。第一版在
+      <code>gitlab.rb</code> 裡設定
+      <code>gitlab_rails['gitlab_signup_enabled'] = false</code>,重跑
+      reconfigure,admin dashboard 卻還是顯示「Check your sign-up
+      restrictions」的警告。</p>
+    <p>原因是這個設定只在 <code>ApplicationSettings</code> 這張表<strong>第一次
+      被 seed 出來時</strong>生效(GitLab 官方 <code>db:seed_fu</code> 的
+      行為),既有安裝重跑 reconfigure 不會回頭覆蓋已經存在的設定值。修法
+      是額外加一個每次都執行的 API upsert,跟 admin allowlist 那段是同一種
+      取捨:</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/gitlab_server/tasks/main.yml</span></div>
+      <pre><span class="out">PUT /api/v4/application/settings
+  signup_enabled: false</span></pre>
+    </div>
+
+    <h3 id="gitlab-runner">GitLab Runner:Docker executor,全域共用</h3>
+    <p><code>roles/gitlab_runner</code> 在 bastion 上另外跑一個
+      <code>gitlab/gitlab-runner</code> container,<strong>以 root 執行</strong>
+      (不額外指定 <code>--user</code>),直接 mount host 的
+      <code>/var/run/docker.sock</code>,註冊成 GitLab 的 instance-wide
+      runner——對 doughops 底下所有 project 都可見。註冊流程是 GitLab 16
+      起的新版兩階段:先用 automation PAT 呼叫
+      <code>POST /api/v4/user/runners</code> 拿一次性的 authentication
+      token,再拿那個 token 去 <code>gitlab-runner register
+      --non-interactive</code>。</p>
+    <div class="callout callout-warn">
+      <p><strong>CI job 能自己 <code>docker build</code>/<code>docker
+      push</code></strong>——<code>[runners.docker]</code> 的
+      <code>volumes</code> 也把 <code>/var/run/docker.sock</code> mount
+      進每一個 job container,不是只給 gitlab-runner 自己建立 job
+      container 用。這是刻意接受的取捨:job 腳本理論上能操控整台 bastion
+      共用的同一個 Docker daemon,跟 host 之間沒有隔離,使用者明確要求這個
+      行為。</p>
+    </div>
+    <p>不持久化 runner 身份——<code>config.toml</code> 只活在 container
+      自己的檔案系統裡,不 bind mount 到 <code>/userap</code>。bastion
+      重建就是全新註冊一次,比維護一份「舊 token 是否還有效」的偵測邏輯
+      簡單,CI runner 的身份本來就是可以隨時重新發放的東西。
+      <code>concurrent = 20</code>(全域最大同時執行 job 數,使用者明確
+      要求的值)。</p>
+
+    <h3 id="cd-repo">CD Repo:只放 pipeline、不放程式碼,手動觸發 clone GitHub 來跑</h3>
+    <p><code>roles/gitlab_cd_repo</code> 在 GitLab 上建一個
+      <code>doughops/k8s-central-cd</code> project(放在 <code>doughops</code>
+      這個 group 底下,不是 root 個人 namespace),內容只有一個
+      <code>.gitlab-ci.yml</code>——手動在 GitLab UI 按「Run pipeline」、
+      填一個 <code>PLAYBOOK_PATH</code>,pipeline 執行當下才去 GitHub
+      clone <code>terraform-k8s</code> 的最新內容、跑指定的那支
+      ansible playbook。跟 GitHub Actions 那邊已經有的
+      <a href="role-github-runner.html">手動觸發 playbook</a> 功能是同一件事的
+      GitLab 版本,兩者並存。</p>
+    <p>這個方向原本想走 GitLab 內建的 Pull Mirroring(把整個 repo 內容
+      鏡像過去,不用每次 clone)——實測發現 GitLab CE 完全沒有
+      Repository Mirroring 這個功能,不管 push 還是 pull 都被整個放進
+      Premium 付費層,不是設定沒開對,是產品分層問題,這個方向直接
+      放棄改走現在這個設計。</p>
+    <p><strong>任何登入過這個 GitLab 的使用者,預設就有這個 group 的
+      Developer 權限</strong>(能實際觸發 pipeline,不是只能看)。GitLab
+      沒有「新帳號自動加入某個 group」的內建機制,這個 role 用跟
+      <code>oidc_admin_emails</code> allowlist 同一種 upsert 手法:每次
+      重跑都對一次 <code>GET /api/v4/users</code> 列出的全部使用者清單,
+      查+補齊 <code>doughops</code> group 的 membership(Developer,
+      只升不降,已經是 Maintainer/Owner 的帳號不會被降級)——新登入過
+      的帳號下次重跑這個 role 就會自動補進去,不用手動邀請。Project 跟
+      group 本身也都設成 <code>internal</code> 可見度,任何登入過的
+      使用者預設就看得到。</p>
+
+    <div class="callout callout-danger">
+      <p><strong>Bug:fine-grained GitHub PAT 的 Packages 權限不支援真的
+      pull GHCR image。</strong>Pipeline 需要拉
+      <code>ghcr.io/doughops/terraform-k8s-ansible-runner</code> 這個
+      private image,原始設計用同一組 fine-grained PAT(<code>Contents</code>
+      +<code>Packages</code> 都 Read-only)當 <code>DOCKER_AUTH_CONFIG</code>
+      的憑證。實測 <code>docker login ghcr.io</code> 用這組 PAT 會成功
+      (憑證格式沒問題),但接著 <code>docker pull</code> 仍然回
+      <code>denied</code>——查證後確認這是 GitHub 目前的產品限制:
+      fine-grained PAT 的 Packages 權限只涵蓋 Packages REST API(列清單、
+      看 metadata),實際 pull/push container image 目前只認 classic
+      PAT 的 <code>read:packages</code> scope。改法:把這個 image 設成
+      public(本身只有 ansible 執行環境,沒有程式碼或密鑰,公開沒有
+      風險),<code>DOCKER_AUTH_CONFIG</code> 整個拿掉,pipeline 不需要
+      任何認證就能拉到這個 image。</p>
+    </div>
+
+    <div class="callout callout-warn">
+      <p><strong>Bug:剛 clone 下來的 <code>ansible.cfg</code> 指向一個
+      這個 job container 沒有的 vault 密碼路徑。</strong>
+      <code>src/ansible/ansible.cfg</code> 的 <code>vault_password_file</code>
+      寫死指向 <code>/ansible-key/vault-password</code>——那是
+      <code>scripts/ansible.sh</code> 自己 <code>docker run</code> 時才會
+      掛出來的路徑,CD repo 這個 job container 完全沒有這個掛載,直接跑
+      <code>ansible-playbook</code> 會報「vault password file … was not
+      found」。修法比照
+      <a href="role-github-runner.html">GitHub Actions 那份已經驗證過的做法</a>:
+      把 <code>ANSIBLE_VAULT_PASSWORD</code> 這個 CI/CD 變數的值寫成一個
+      檔案,用 <code>ANSIBLE_VAULT_PASSWORD_FILE</code> 環境變數蓋掉
+      <code>ansible.cfg</code> 那個寫死的路徑(環境變數優先權比
+      <code>ansible.cfg</code> 高)。</p>
+    </div>
+
+    <p>SSH 身份不用另外處理——<code>roles/gitlab_runner</code> 在 runner
+      層級的 <code>--docker-volumes /root/.ssh:/root/.ssh</code>(GitLab
+      的 Docker executor 不像 GitHub Actions 那樣讓個別 job 在 pipeline
+      檔案裡自己指定額外的 host volume mount,只能在 runner 這個層級
+      設定)讓 job container 直接拿到 bastion 主機自己已經解密好的 SSH
+      身份,不用在 CI 這邊重新走一次 vault 解密金鑰的流程。端對端驗證
+      過:手動觸發一次 pipeline,`PLAYBOOK_PATH=ping.yml`,job log
+      看得到它 clone GitHub、對全部 10 個節點(bastion、tor、3 台
+      master、2 台 lb、3 台 worker)ping 成功;`PLAYBOOK_PATH` 故意填
+      路徑跳脫的值,pipeline 在真的執行 <code>ansible-playbook</code>
+      之前就明確失敗,不是靜默略過。</p>
+
+    <h3>驗證方式</h3>
+    <ul>
+      <li>登入流程:無痕視窗開 <code>gitlab.dough-ops.com</code>,應該
+        先看到 Cloudflare GitHub org 驗證畫面(沒有現成 session 的話),
+        接著<strong>不出現任何 GitLab 自己的登入頁</strong>,直接落地在
+        GitLab 首頁。</li>
+      <li>Admin 權限:用 <code>oidc_admin_emails</code> 清單裡的帳號登入,
+        <code>/admin/users</code> 確認該帳號 <code>is_admin: true</code>;
+        清單外的帳號應該是一般使用者。</li>
+      <li>Break-glass:<code>/users/sign_in?auto_sign_in=false</code> +
+        <code>secrets.yml</code> 的 <code>gitlab_root_password</code>
+        能直接登入,不經過 OIDC。</li>
+      <li>Runner:<code>/admin/runners</code> 看得到一個線上(綠燈)的
+        instance runner;跑一個不指定 <code>image</code> 的最簡單
+        pipeline,job log 裡 <code>docker version</code> 印出的是 host
+        真正的 Docker daemon 資訊,不是假的。</li>
+      <li>冪等性:重跑 <code>playbooks/bastion/gitlab.yml</code>、
+        <code>playbooks/bastion/gitlab-runner.yml</code> 兩次,
+        <code>failed=0</code>,不會重複建立 PAT/runner。</li>
+    </ul>
+
+    <div class="page-nav">
+      <a class="prev" href="role-github-runner.html"><span class="dir">上一頁</span><span class="ttl">← Role: github_runner</span></a>
+      <a class="next" href="internal-tools.html"><span class="dir">下一頁</span><span class="ttl">內部工具(Dashboard/Hubble/監控) →</span></a>
+    </div>
+
+    <footer class="page-footer">
+      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
+      <span>最後更新:2026-08-11</span>
+    </footer>
+  </div>
+</div>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

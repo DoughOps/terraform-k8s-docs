@@ -49,6 +49,7 @@
       <a class="nav-link" href="role-keycloak-dex.html"><span class="icon">🪪</span> Role: keycloak / dex</a>
       <a class="nav-link" href="identity-federation-flow.html"><span class="icon">🧩</span> 身份聯邦登入流程</a>
       <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
+      <a class="nav-link" href="role-gitlab.html"><span class="icon">🦊</span> Role: gitlab</a>
       <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
       <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
     </div>
@@ -324,6 +325,28 @@
           bypass policy,只放行 Dex 真正需要打的路徑。
         </div>
       </li>
+      <li>
+        <div>
+          <strong>Phase 7 · 自架 GitLab CE + Runner,補上一套完整的 Git
+          服務跟 CI 執行環境</strong>
+          在 bastion 上裝一套 container based 的 GitLab CE(見
+          <a href="role-gitlab.html">Role: gitlab</a>),延續 Phase 5/6 的
+          Cloudflare Access 邊緣驗證模式,疊加 GitLab 自己的 OmniAuth OIDC
+          做到「過了邊緣驗證就直接登入,不再跳第二次登入畫面」。這個階段
+          也補上一個 instance-wide 的 GitLab Runner(Docker executor,
+          直接接 host 的 Docker daemon),讓 CI pipeline 真的有地方執行。
+          過程中把最初「bastion 自動產生密鑰、存成檔案」的設計整個推翻
+          重做——密鑰改成一律放進 <code>secrets.yml</code>(整檔
+          <code>ansible-vault</code> 加密、進版控),不依賴 bastion 的
+          檔案系統,連帶發現並修掉三個實測 bug(Rails runner 權限、
+          Let's Encrypt 誤觸發、註冊表單設定只在第一次 seed 生效)。這個
+          階段最後補上一個只放 pipeline、不放程式碼的 GitLab CD
+          repo(手動觸發、指定 playbook 路徑,執行當下才去 GitHub clone
+          最新內容來跑),跟既有 GitHub Actions 的手動觸發 playbook 功能
+          並存——原本想走 GitLab 內建的 Pull Mirroring,實測發現那個功能
+          整個是 Premium 付費層、自架 CE 完全沒有,才改走這個設計。
+        </div>
+      </li>
     </ol>
 
     <h3>怎麼讀這份文件</h3>
@@ -393,6 +416,13 @@
           <div class="card-icon">🧩</div>
           <h4>身份聯邦登入流程</h4>
           <p>Cloudflare Access / oauth2-proxy / Dex / Keycloak 各是什麼、一次登入實際跳幾次轉,搭配流程圖走一遍。</p>
+        </div>
+      </a>
+      <a class="card-link" href="role-gitlab.html">
+        <div class="card">
+          <div class="card-icon">🦊</div>
+          <h4>Role: gitlab</h4>
+          <p>自架 GitLab CE + instance-wide Runner,Cloudflare Access 靜默登入,密鑰管理從檔案改成整檔加密 secrets.yml。</p>
         </div>
       </a>
       <a class="card-link" href="troubleshooting.html">
