@@ -184,6 +184,29 @@
       其餘欄位照抄即可。新增/刪除節點只要改這個檔案裡的 <code>vms</code>
       map,細節見 <a href="infrastructure.html">Terraform / OpenStack</a>。</p>
 
+    <h3>Step 3.5 · State backend 的憑證(<code>AWS_ACCESS_KEY_ID</code>/<code>AWS_SECRET_ACCESS_KEY</code>)</h3>
+    <p><code>openstack/</code>、<code>cloudflare/</code> 這兩份 Terraform state 都存在
+      跟你 OpenStack 帳號同一個環境的 S3 相容 object storage(不是本機檔案),
+      Step 4/Step 6 的 <code>terraform init</code> 都要先有這組憑證才連得上。用
+      Keystone 的 <code>OS-EC2</code> credentials API 簽發(跟 Step 1 的
+      <code>clouds.yaml</code> 帳密是同一個身分,只是換一種呈現形式給 S3 協定用):</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">簽發 EC2 access/secret key,存進 .env</span></div>
+      <pre><span class="out">POST {auth_url}/v3/users/{user_id}/credentials/OS-EC2
+Header: X-Auth-Token: &lt;先用 clouds.yaml 帳密換到的 token&gt;
+Body:   {"tenant_id": "&lt;project_id&gt;"}</span>
+<span class="dim"># 回應的 access/secret 兩個欄位,寫進 .env(gitignored):</span>
+<span class="prompt">$</span> <span class="cmd">echo 'AWS_ACCESS_KEY_ID=...' >> .env</span>
+<span class="prompt">$</span> <span class="cmd">echo 'AWS_SECRET_ACCESS_KEY=...' >> .env</span></pre>
+    </div>
+    <p>下面 Step 4/Step 6 的指令、以及之後 <code>make ssh</code>/
+      <code>scripts/ansible.sh</code>/<code>scripts/build.sh</code>/
+      <code>scripts/teardown.sh</code>/<code>scripts/sync-cloudflare-secrets.sh</code>
+      這些會呼叫 <code>terraform output</code>/<code>plan</code>/<code>apply</code>
+      的 script,都會自動從 <code>.env</code> 讀這兩個值、export 出來,不用每次手動
+      <code>export</code>。細節見
+      <code>docs/superpowers/specs/2026-08-12-terraform-state-s3-backend-design.md</code>。</p>
+
     <h3>Step 4 · 跑 Terraform,建出 OpenStack 資源</h3>
     <div class="term">
       <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">openstack/ 目錄</span></div>

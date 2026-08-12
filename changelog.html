@@ -1057,6 +1057,48 @@
       </ul>
     </div>
 
+    <div class="cl-entry">
+      <div class="cl-date">2026-08-12 · Terraform state 搬進 S3 相容 backend</div>
+      <h3><span class="cl-tag cl-feat">feat</span> <code>openstack/</code>、<code>cloudflare/</code> 的 state 不再只活在筆電上,搬到共用的 S3 相容 bucket</h3>
+      <ul>
+        <li><strong>起因:</strong>使用者要在
+          <a href="role-gitlab.html#cd-repo">CD Repo</a>(<code>doughops/k8s-central-cd</code>)上加一個
+          <code>EXECUTION</code> 變數,讓 CI 能直接 <code>terraform destroy</code>/<code>apply</code>
+          砍掉/建回 VM——CI job 每次都從 GitHub 全新 clone,完全碰不到本機才有的 state,才發現這件事必須先解決。
+          原本規劃用 Terraform 的 <code>swift</code> backend,寫實作計畫前查證發現該 backend 早已被 Terraform
+          標記 deprecated、目前版本已經整個移除;改查這個環境的 object-store endpoint,發現它其實同時支援
+          S3 協定(Ceph RGW 雙協定端點),改用官方仍在維護的 <code>s3</code> backend + 自訂 endpoint。見
+          <code>docs/superpowers/specs/2026-08-12-terraform-state-s3-backend-design.md</code>。</li>
+        <li><span class="cl-tag cl-feat">feat</span> <span class="cl-hash">e77301d</span>/<span class="cl-hash">f7ac31f</span>
+          <code>openstack/main.tf</code>、<code>cloudflare/providers.tf</code> 各自加
+          <code>backend "s3" {}</code>,共用同一個 bucket(<code>terraform-state-k8s</code>,
+          <code>https://s3.cloudnative.tw:6780</code>),用 <code>key</code> 前綴區分兩份 state;
+          認證改用 Keystone <code>OS-EC2</code> API 簽發的 access/secret key(環境變數傳遞,不進 git)。
+          兩邊都用「遷移前後 state 內容逐一比對、byte-for-byte 相同」驗證過搬遷過程本身沒有資料流失。</li>
+        <li><span class="cl-tag cl-fix">fix</span> <span class="cl-hash">fcdf851</span>
+          搬完才發現:<code>make ssh</code>、<code>scripts/ansible.sh</code>、
+          <code>scripts/build.sh</code>/<code>teardown.sh</code>、
+          <code>scripts/sync-cloudflare-secrets.sh</code>、pre-commit hook(重新產生
+          <code>ansible/inventory/hosts.ini</code> 那支)全部都會 shell 出去呼叫
+          <code>terraform output</code>/<code>state</code>/<code>plan</code>/<code>apply</code>/<code>destroy</code>,
+          但都沒有匯出這組新的 access/secret key——逐一補上,跟既有的
+          <code>OS_PASSWORD</code>/<code>CLOUDFLARE_API_TOKEN</code> 用同一套「從 <code>.env</code> 讀值再
+          export」慣例。</li>
+        <li><strong>順手查到的既有問題(跟這次遷移無關):</strong>遷移後 <code>terraform plan</code>
+          顯示 <code>bastion</code> 這台 VM 會被判定需要整台重建——直接比對遷移前後的 state 內容證實這不是
+          遷移造成的,根因是 <code>openstack/templates/bastion-init.sh.tftpl</code> 在 bastion 上次真的
+          <code>apply</code> 之後被後續的 cilium/docker 修復 commit 動過內容,但沒有人再重新 apply 過。
+          使用者選擇先不處理,留待之後決定;這次遷移只如實記錄現況,沒有嘗試修復或掩蓋。</li>
+        <li><strong>額外要求:</strong>把 <code>cloudflare/</code> 的 state 一起搬進來之前,使用者要求先確認
+          沒有任何 token 能操控整個 Cloudflare 帳號或其他網域——直接對 Cloudflare API 查證(不是憑程式碼推測):
+          <code>CLOUDFLARE_API_TOKEN</code> 跟 <code>cloudflare_origin_ca_api_token</code> 都限定在
+          <code>dough-ops.com</code> 這一個 zone,帳號層級的權限只有 Tunnel/Access(這兩個 Zero Trust
+          功能本身沒有 zone-scoped 版本);實測對帳號底下另一個 zone(<code>kings28.org</code>)發請求確認
+          真的被拒絕。稽核範圍限於這個 repo 實際在用的兩顆 token,不含整個帳號的地毯式清查(兩組可用憑證都沒有
+          <code>API Tokens Read</code> 權限,查不到)。</li>
+      </ul>
+    </div>
+
     <div class="page-nav">
       <a class="prev" href="troubleshooting.html"><span class="dir">上一頁</span><span class="ttl">← Bug 事後檢討</span></a>
       <a class="next" href="index.html"><span class="dir">回到</span><span class="ttl">總覽 →</span></a>
