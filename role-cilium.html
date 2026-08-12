@@ -50,6 +50,7 @@
       <a class="nav-link" href="identity-federation-flow.html"><span class="icon">🧩</span> 身份聯邦登入流程</a>
       <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
       <a class="nav-link" href="role-gitlab.html"><span class="icon">🦊</span> Role: gitlab</a>
+      <a class="nav-link" href="role-argocd.html"><span class="icon">🐙</span> Role: argocd</a>
       <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
       <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
     </div>
@@ -445,6 +446,91 @@ not 10.10.0.10</span></pre>
       自己配發 CiliumNode 的速度不依賴 kube-controller-manager 的
       static pod 重啟週期。</p>
 
+    <h3 id="remote-node-masquerade">⚠️ 偏離原始設計意圖的設定:<code>enable-remote-node-masquerade</code></h3>
+    <div class="callout callout-danger">
+      <p><strong>這個小節記錄的是一個 workaround,不是一個乾淨的架構決定——先講清楚它跟原本想要的
+        東西差在哪裡。</strong>整個 native routing 設計的前提(見上面「<code>ipv4NativeRoutingCIDR</code>」
+        那一列、跟 <a href="network-architecture.html">網路架構總覽</a>)是「pod 對外一律帶真實
+        pod IP,只有 Cilium 認定<strong>真的離開叢集</strong>的流量才需要 masquerade,叢集內部
+        (不管是 pod↔pod 還是 pod→node)完全不用 NAT」。<code>CLAUDE.md</code>「Architecture
+        notes」的「NAT happens exactly once, at TOR」也是同一個前提的另一種說法。</p>
+      <p>這裡打開的 <code>extraConfig.enable-remote-node-masquerade: "true"</code>
+        <strong>違反了這個前提</strong>:它讓「pod → 叢集內其他節點的真實 host IP」這一類流量,
+        來源位址被強制改寫成發起節點自己的 IP,不再是 pod 的真實位址。目前唯一會踩到這條路徑的
+        情境是 pod → <code>kubernetes</code> 這個 no-selector Service(Endpoints 直接指向三台
+        master 的 <code>6443</code>),但只要以後有其他東西讓 pod 直接連某個節點的真實 IP
+        (不是透過 Pod IP 或一般有 selector 的 Service),都會被這條規則悄悄 SNAT 掉,行為跟
+        native routing 原本承諾的不一樣。</p>
+    </div>
+
+    <p>完整的排錯過程記在 <a href="troubleshooting.html">Bug 事後檢討 #47</a>,這裡只講
+      <strong>為什麼</strong>要打開這個設定、以及打開之後具體改變了什麼。</p>
+
+    <h4>根因不在 Cilium,也不在這個 repo 管得到的任何設定裡</h4>
+    <p>用分層測試把「pod → apiserver 全新連線逾時」這個症狀收斂到一個很乾淨的規律:<strong>pod →
+      TOR 本身</strong>暢通無阻;<strong>節點自己真實 IP → 任何其他節點</strong>(不管是不是
+      TOR)也暢通無阻;唯獨<strong>pod-CIDR 來源 → 除了 TOR 以外的任何節點</strong>,封包在
+      OpenStack fabric 裡消失,兩端 <code>tcpdump</code> 同步抓包,發送端看得到封包送出、
+      接收端完全零封包——不是任何一台 VM 內部的規則擋掉的,是「線」上的問題。<code>cilium-dbg
+      monitor</code> 證實 Cilium 每次都放行、把封包送上 <code>ens3</code>(<code>action: allow</code>),
+      跟 Cilium 的 policy/datapath 無關;Neutron port 的 <code>port_security_enabled</code>、
+      MAC、IP 也都逐一查過沒有異常。往下需要 OVN Southbound DB 或 hypervisor OVS flow table
+      才能繼續,這個共享雲(<code>openstack.cloudnative.tw</code>)只有一般 project 身份,查不到。</p>
+
+    <h4>為什麼是 <code>enable-remote-node-masquerade</code> 這個設定</h4>
+    <p>因為「節點自己真實 IP 來源」的封包永遠暢通,而「pod-CIDR 來源」的封包永遠不通(除非目的地
+      是 TOR),最直接的繞路方式就是讓 pod 發往節點真實 IP 的封包,在離開節點之前先偽裝成
+      「節點自己真實 IP 來源」——這正是 Cilium 官方
+      <a href="https://docs.cilium.io/en/stable/network/concepts/masquerading/" target="_blank">masquerading 文件</a>
+      裡這個選項的原始設計目的,只是通常用在別的情境(讓 remote node 的 firewall 規則能用單一
+      節點 IP 辨識流量),不是拿來繞開底層 fabric 的問題。文件也解釋了為什麼原本的
+      <code>ipv4NativeRoutingCIDR</code>(設成整個 pod CIDR)攔不住這條流量——BPF masquerade
+      對「目的地是 remote-node/kube-apiserver identity」的流量有寫死的豁免,不受這個 CIDR 控制,
+      要另外用這個旗標明確關掉那個豁免。</p>
+
+    <h4>Helm value 沒有這個欄位,要用 <code>extraConfig</code> escape hatch</h4>
+    <p>Cilium chart 的 <code>values.yaml</code> 沒有把這個 cilium-agent flag 包成獨立的
+      camelCase 欄位——用 chart 官方支援的 <code>extraConfig</code>(直接把 kebab-case 的
+      ConfigMap key 塞進去,繞過 Helm 的欄位對照層)：</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/cilium/templates/cilium-values.yaml.j2</span></div>
+      <pre><span class="out">extraConfig:
+  enable-remote-node-masquerade: "true"</span></pre>
+    </div>
+
+    <div class="callout callout-warn">
+      <strong>陷阱:改 <code>extraConfig</code> 只會更新 ConfigMap,不會自動重啟 agent</strong>
+      <p>套用之後 <code>helm upgrade</code> 跟 <code>kubectl rollout status daemonset/cilium</code>
+        都回報成功——但那只代表「DaemonSet 的 pod template 沒變,沒有 pending rollout 要等」,
+        <strong>agent pod 實際上完全沒有被重啟過</strong>。<code>enable-remote-node-masquerade</code>
+        這種會改變編譯後 BPF 程式邏輯的設定,agent 不重啟就不會重新產生/載入新的 BPF 程式,
+        ConfigMap 改了也不會生效。第一次驗證時就是照著標準流程(改 values → 跑
+        <code>k8s/cilium.yml</code> → 重測)卻完全沒效果才發現這個坑——一定要另外手動：</p>
+      <div class="term">
+        <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">套用後必做的一步</span></div>
+        <pre><span class="out">kubectl -n cilium rollout restart daemonset/cilium
+kubectl -n cilium rollout status daemonset/cilium --timeout=180s</span></pre>
+      </div>
+    </div>
+
+    <h4>驗證方式跟代價</h4>
+    <p>用 <code>tcpdump</code> 確認生效前後的差異:生效前,pod → 節點真實 IP 的 SYN 來源位址是
+      pod IP(<code>172.16.1.x</code>);生效後,同一條連線的 SYN 來源位址變成發起節點自己的
+      IP(<code>10.10.0.x</code>),完整三向交握成功。卡住的 <code>argocd-application-controller-0</code>
+      不需要重建就從 <code>0/1</code> 自動恢復成 <code>1/1 Running</code>。</p>
+    <p>代價是<strong>apiserver 看到的來源位址不再是真正發起連線的 pod</strong>——同一個節點上
+      所有 pod 對 apiserver 的連線,在 apiserver 的 audit log / 連線來源欄位都會顯示成同一個
+      節點 IP,失去「哪個 pod 打了這次 API 呼叫」的可追蹤性。這個範圍只限「pod → 節點真實
+      IP」,<strong>不影響</strong>pod↔pod、pod→一般有 selector 的 ClusterIP 這些情境——那些
+      流量繼續帶著真實 pod IP,native routing 的核心設計沒有被推翻,只是多開了這一個例外。
+      Cilium 官方文件也提醒這個選項會限制 ingress host firewall 對「pod → node」方向的政策
+      執行能力——這個叢集目前沒有依賴 <code>remote-node</code> entity 的
+      NetworkPolicy/CiliumNetworkPolicy,但以後加的話要重新確認這條警告。</p>
+    <p>如果之後 <code>openstack.cloudnative.tw</code> 的維運方查出並修好底層 fabric 的問題,
+      這個 <code>extraConfig</code> 設定理論上可以整段拿掉,讓 pod 對 apiserver 的連線恢復帶著
+      真實 pod IP——這是繞過症狀的修法,不是解決根因的修法,拿掉之前要重新驗證底層問題是否
+      真的已經不存在。</p>
+
     <div class="page-nav">
       <a class="prev" href="role-apiserver-lb.html"><span class="dir">上一頁</span><span class="ttl">← Role: apiserver-lb</span></a>
       <a class="next" href="role-istio.html"><span class="dir">下一頁</span><span class="ttl">Role: istio →</span></a>
@@ -452,7 +538,7 @@ not 10.10.0.10</span></pre>
 
     <footer class="page-footer">
       <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
-      <span>最後更新:2026-08-06</span>
+      <span>最後更新:2026-08-12</span>
     </footer>
   </div>
 </div>

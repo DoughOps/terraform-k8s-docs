@@ -50,6 +50,7 @@
       <a class="nav-link" href="identity-federation-flow.html"><span class="icon">🧩</span> 身份聯邦登入流程</a>
       <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
       <a class="nav-link" href="role-gitlab.html"><span class="icon">🦊</span> Role: gitlab</a>
+      <a class="nav-link" href="role-argocd.html"><span class="icon">🐙</span> Role: argocd</a>
       <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
       <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
     </div>
@@ -924,6 +925,116 @@
         <li><strong>文件同步更新:</strong>新增 <a href="role-gitlab.html">Role: gitlab</a> 這頁(含 CD Repo 那段),
           <a href="index.html">總覽</a> 補上 Phase 7,<a href="troubleshooting.html">Bug 事後檢討</a> 補上
           Bug #39–43。</li>
+        <li><span class="cl-tag cl-feat">feat</span> <span class="cl-hash">61c279d</span> CD repo 搬到
+          <code>doughops</code> 這個 group 底下(原本在 <code>root</code> 個人 namespace),用 Project
+          Transfer API 搬家後另外補一個 upsert task 把 visibility 從 <code>private</code>(搬家不會自動繼承
+          建立時的 <code>internal</code> 設定)修回 <code>internal</code>,group 本身也一樣。任何登入過的使用者
+          預設自動取得這個 group 的 Developer 權限(不是只能看)——沿用 <code>oidc_admin_emails</code> 那套
+          「每次都對一次 <code>GET /api/v4/users</code>」的 upsert 手法補齊 membership,只升不降,已經是
+          Maintainer/Owner 的帳號不會被降級。</li>
+        <li><span class="cl-tag cl-fix">fix</span> <span class="cl-hash">fd64bcb</span> 使用者實測按「Run
+          pipeline」回報畫面上沒有任何預設欄位或說明——<code>PLAYBOOK_PATH</code> 原本宣告在
+          <code>job.variables</code>(job 層級),但 GitLab 這個手動觸發表單只讀頂層 <code>variables</code>,
+          也只有頂層支援 <code>{description, value}</code> 這種會被渲染成說明文字的擴充寫法。搬到頂層後順便新增
+          <code>GIT_REF</code>(預設 <code>main</code>)這個頂層變數,讓 pipeline 也能指定要 clone 的分支/tag
+          (<code>git clone --branch "$GIT_REF"</code>),方便合併回 <code>main</code> 之前先測 feature
+          branch。兩者都用一次真的觸發的測試 pipeline 驗證過。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-08-12 · ArgoCD 登入後不到半小時就被登出</div>
+      <h3><span class="cl-tag cl-fix">fix</span> Cloudflare Access 的 SaaS/OIDC <code>access_token_lifetime</code> 預設 5 分鐘,ArgoCD 的 session 又直接跟著上游 <code>id_token</code> 到期</h3>
+      <ul>
+        <li><strong>起因:</strong>使用者回報 ArgoCD 登入後不到半小時就被
+          強制登出,同一套 Cloudflare Access SSO 機制底下的 Grafana/
+          Vault 都沒這個問題。查 <code>cloudflare/terraform.tfstate</code>
+          裡的實際欄位值確認:<code>argocd-sso</code>(還有
+          <code>grafana-sso</code>/<code>vault-sso</code>/
+          <code>keycloak-sso</code>)的
+          <code>saas_app.access_token_lifetime</code> 全部沒設,吃到
+          Cloudflare 的預設值 5 分鐘——這個欄位是實際核發給下游 app 的
+          <code>id_token</code> 效期,跟同一個資源上另一個欄位
+          <code>session_duration</code>(管多久要重新對 IdP 完整認證)
+          是兩件不同的事。其他三個 app 沒事,是因為各自維護跟上游 token
+          效期脫鉤的本地 session;ArgoCD 是已知的例外
+          (<a href="https://github.com/argoproj/argo-cd/issues/27041" target="_blank">argoproj/argo-cd
+          issue #27041</a> 等)——它自己核發的 session 效期直接跟著
+          <code>id_token</code> 的 <code>exp</code> claim走,Web UI 又不會
+          用 refresh token 續期。</li>
+        <li><span class="cl-tag cl-fix">fix</span> <code>cloudflare/access.tf</code> 的
+          <code>argocd_sso</code>(只改這個,其他三個目前沒人回報有問題):
+          <code>saas_app.access_token_lifetime</code> 拉到 Cloudflare
+          允許的上限 <code>"24h"</code>;<code>session_duration</code>
+          拉到 <code>"730h"</code>(約 1 個月,跟 vault-sso/keycloak-sso
+          同值)——即使前者已經拉滿,ArgoCD 這裡的 session 每 24h 還是會
+          因為上游 <code>id_token</code> 到期重走一次 OIDC flow,但只要
+          後者(<code>session_duration</code>)還沒過期,這次重走對使用者
+          是無感的,不會被要求重新對 GitHub org 認證。真正決定「使用者
+          感受上多久要重新登入一次」的是 <code>session_duration</code>,
+          不是 <code>access_token_lifetime</code>。已用
+          <code>terraform apply -target</code> 套用到正式環境,
+          <code>terraform plan</code> 確認無其他 drift。</li>
+        <li><strong>文件同步更新:</strong><a href="internal-tools.html">內部工具</a>
+          的 ArgoCD OIDC 段落新增這個 bug 的說明。</li>
+      </ul>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">2026-08-12 · Phase 8:ArgoCD 串接自架 GitLab</div>
+      <h3><span class="cl-tag cl-feat">feat</span> 讓既有的 ArgoCD 也能從自架 GitLab 的私有 repo pull manifests、自動 sync,不是只能接公開 GitHub</h3>
+      <ul>
+        <li><strong>起因:</strong>使用者要求進一步證明 <a href="role-argocd.html">Role: argocd</a>
+          裝好的 ArgoCD 也能接 <a href="role-gitlab.html">Phase 7 自架的 GitLab</a>,從一個私有 repo pull、
+          自動 sync,不是只能接公開的 GitHub guestbook 範例。範例 app 刻意保持最小(單一 Deployment +
+          Service,不接 Istio 對外曝露)——重點在證明 ArgoCD ↔ GitLab 這段認證/連線通,不是 app 本身。見
+          <code>docs/superpowers/specs/2026-08-12-argocd-gitlab-integration-design.md</code>。</li>
+        <li><span class="cl-tag cl-feat">feat</span> <span class="cl-hash">c6737df</span>
+          <code>secrets.yml.example</code>/<code>secrets.yml</code> 新增
+          <code>argocd_gitlab_repo_token</code> 欄位;順便發現並修掉一個既有問題——
+          <code>secrets.yml</code> 這份「文件上寫是 gitignored」的檔案其實先前兩個 commit 就已經被
+          意外 <code>git add</code> 進版控(所幸內容本身是整檔 <code>ansible-vault</code> 加密,沒有明碼外洩),
+          這次一併 <code>git rm --cached</code> + 修正 <code>.gitignore</code>。</li>
+        <li><span class="cl-tag cl-feat">feat</span> <span class="cl-hash">ba99694</span> 新 role
+          <code>gitlab_gitops_demo</code>:建立 <code>doughops/gitops-demo</code> project、commit 一份
+          <code>manifests/app.yaml</code>(nginx 起頁,自報 pod/node 名稱),沿用
+          <a href="role-gitlab.html#cd-repo">CD Repo</a> 一模一樣的 GitLab API upsert 手法;
+          <span class="cl-hash">c1ccfef</span> 排進 <code>bastion.yml</code>,接在
+          <code>bastion/gitlab-cd-repo.yml</code> 之後(需要它建的 <code>doughops</code> group 已經存在)。</li>
+        <li><span class="cl-tag cl-fix">fix</span> <span class="cl-hash">07f162d</span> 對真實 GitLab 第一次跑通時撞到
+          <code>400 You are not allowed to push into this branch</code>——<code>gitlab_cd_repo</code>
+          的預設 membership 迴圈原本把所有人(含自動化帳號自己)封在 Developer(30),低於 protected 分支 push 要求的
+          Maintainer(40)。<code>doughops/k8s-central-cd</code> 沒撞到,是因為它原本建在
+          <code>root</code> 個人 namespace(建立者自動 Owner)、事後才搬家,搬家不動 membership;
+          <code>doughops/gitops-demo</code> 直接建在 group 底下才第一次真的踩到。修法:預設權限提升到
+          Owner(50),範圍只限 <code>doughops</code> group;順帶發現 GitLab 拒絕透過一般 members API
+          修改 Group/Project Access Token 的 bot 帳號(403),補上 <code>not (item.item.bot | default(false))</code>
+          排除。</li>
+        <li><span class="cl-tag cl-feat">feat</span> <span class="cl-hash">b63d481</span>
+          <code>roles/argocd</code> 新增 <code>argocd.argoproj.io/secret-type: repo-creds</code> 類型的
+          Secret(URL prefix 比對,涵蓋 <code>doughops/</code> 底下所有 repo,不綁單一 repo),
+          <code>argocd_applications</code> 清單新增 <code>gitops-demo</code> 這一項。</li>
+        <li><strong>決策(非自動化):</strong>認證方式原本設計 Ansible 自動呼叫 GitLab API
+          產生 Group Access Token,實作前發現架構限制:<code>secrets.yml</code> 是筆電上的檔案,靠
+          <code>scripts/ansible.sh</code> <strong>單向</strong> rsync 到 bastion——產生 token 的邏輯若放在
+          bastion 上的 role 裡,寫回的只是下次 rsync 就被覆蓋的暫存複本,筆電上真正的
+          <code>secrets.yml</code> 永遠拿不到這個值。使用者明確選擇手動建立(GitLab 16.0 之後也沒有
+          「永久不過期」這個選項可選了),自動化留給以後真的需要時再做。見
+          <a href="role-argocd.html">Role: argocd</a> 的完整決策記錄。</li>
+        <li><span class="cl-tag cl-fix">fix</span> 排查叢集內 pod → apiserver 逾時問題時,順手抓到並修掉兩個
+          真實 bug(跟這次 GitOps 整合本身無關,是驗證過程中撞到的):bastion 的 <code>keycloak-net</code>
+          Docker network 撞上叢集 Service ClusterIP CIDR(<code>172.18.0.0/16</code>),
+          <code>/etc/docker/daemon.json</code> 加 <code>default-address-pools</code> 切到不重疊的
+          <code>10.99.0.0/16</code>,同步補進 <code>openstack/templates/bastion-init.sh.tftpl</code>;
+          Cilium 一直停在 legacy iptables masquerade 模式,沒有真的用上 <code>kubeProxyReplacement</code>
+          帶來的 BPF host routing,補上 <code>bpf.masquerade: true</code>。兩者都真實存在且已驗證修復,
+          但排查後確認都不是 apiserver 逾時問題本身的根因,詳見 <a href="troubleshooting.html">Bug 事後檢討</a>
+          #45/#46 跟同頁的「尚未解決」段落(問題收斂到 OpenStack Neutron OVS / hypervisor underlay 這一層,
+          VM 內部已經查不下去)。</li>
+        <li><strong>文件同步更新:</strong>新增 <a href="role-argocd.html">Role: argocd</a> 這頁,
+          <a href="getting-started.html">從零開始建置</a> Step 9 插入手動建立 GitLab Group Access Token 的步驟,
+          <a href="index.html">總覽</a> 補上 Phase 8,<a href="troubleshooting.html">Bug 事後檢討</a> 補上
+          Bug #45–46。</li>
       </ul>
     </div>
 
@@ -934,7 +1045,7 @@
 
     <footer class="page-footer">
       <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
-      <span>最後更新:2026-08-07</span>
+      <span>最後更新:2026-08-12</span>
     </footer>
   </div>
 </div>

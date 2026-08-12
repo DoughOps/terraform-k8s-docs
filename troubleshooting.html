@@ -50,6 +50,7 @@
       <a class="nav-link" href="identity-federation-flow.html"><span class="icon">🧩</span> 身份聯邦登入流程</a>
       <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
       <a class="nav-link" href="role-gitlab.html"><span class="icon">🦊</span> Role: gitlab</a>
+      <a class="nav-link" href="role-argocd.html"><span class="icon">🐙</span> Role: argocd</a>
       <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
       <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
     </div>
@@ -87,7 +88,7 @@
       症狀 → 根因 → 修法的極簡版,完整脈絡在對應頁面連結裡。</p>
 
     <div class="stat-row">
-      <div class="stat"><div class="n">36</div><div class="l">記錄在案的 bug</div></div>
+      <div class="stat"><div class="n">47</div><div class="l">記錄在案的 bug</div></div>
       <div class="stat"><div class="n">8</div><div class="l">Phase 1(DSR/L4LB)</div></div>
       <div class="stat"><div class="n">14</div><div class="l">Phase 3(k8s/Ansible)</div></div>
       <div class="stat"><div class="n">5</div><div class="l">Phase 4(kube-proxy/Istio/Cloudflare)</div></div>
@@ -195,8 +196,61 @@
           <tr><td class="mono">41</td><td><code>gitlab.rb</code> 設定 <code>gitlab_rails['gitlab_signup_enabled'] = false</code>、重跑 reconfigure,GitLab admin dashboard 卻還是持續顯示「Check your sign-up restrictions」的警告,帳密註冊表單實際上沒有真的關掉</td><td>這個設定只在 <code>ApplicationSettings</code> 這張表<strong>第一次被 seed 出來時</strong>生效(GitLab 官方 <code>db:seed_fu</code> 的行為),既有安裝重跑 <code>reconfigure</code> 不會回頭覆蓋已經存在的設定值——跟改 <code>gitlab.rb</code> 就能無條件生效的其他設定項不是同一類</td><td>額外加一個每次都執行的 <code>PUT /api/v4/application/settings</code>(<code>signup_enabled: false</code>)API upsert,不依賴 seed 時機,跟 <code>oidc_admin_emails</code> allowlist 那段是同一種「每次都對一次」的取捨</td></tr>
           <tr><td class="mono">42</td><td>GitLab CD repo(<a href="role-gitlab.html#cd-repo">Role: gitlab</a> 的 CD Repo 那段)的 pipeline job 用 fine-grained GitHub PAT 當 <code>DOCKER_AUTH_CONFIG</code> 的憑證,<code>docker login ghcr.io</code> 成功,但緊接著 <code>docker pull</code> 私有 image 仍然回 <code>denied</code></td><td>fine-grained GitHub PAT 的 <code>Packages: Read-only</code> 權限目前只涵蓋 Packages REST API(列清單、看 metadata),<strong>實際 pull/push container image 目前只認 classic PAT 的 <code>read:packages</code> scope</strong>——這是 GitHub 目前的產品限制,不是這次設定錯誤,直接在 bastion 上手動 <code>docker login</code>+<code>docker pull</code> 重現同樣的「認證成功、授權失敗」現象才確認下來</td><td>把 <code>ghcr.io/doughops/terraform-k8s-ansible-runner</code>(這張 image 本身只有 ansible 執行環境,沒有程式碼或密鑰)設成 public,pipeline 拉取完全不需要認證,<code>DOCKER_AUTH_CONFIG</code> 這個 CI/CD 變數整個拿掉</td></tr>
           <tr><td class="mono">43</td><td>GHCR image 問題修好之後,pipeline 前進到下一步,<code>ansible-playbook</code> 直接報 <code>The vault password file /ansible-key/vault-password was not found</code></td><td>剛從 GitHub clone 下來的 <code>src/ansible/ansible.cfg</code> 裡 <code>vault_password_file</code> 寫死指向 <code>/ansible-key/vault-password</code>——那個路徑只有 <code>scripts/ansible.sh</code> 自己 <code>docker run</code> 時才會掛出來,CD repo 的 job container 完全沒有這個掛載</td><td>比照 <code>.github/workflows/run-playbook.yml</code> 已經驗證過的做法:script 裡把 <code>ANSIBLE_VAULT_PASSWORD</code> 這個 CI/CD 變數的值寫成 <code>$CI_PROJECT_DIR/.vault-password</code>,用 <code>ANSIBLE_VAULT_PASSWORD_FILE</code> 環境變數蓋掉 <code>ansible.cfg</code> 寫死的路徑(環境變數優先權比 ansible.cfg 高)</td></tr>
+          <tr><td class="mono">44</td><td>使用者在 GitLab CD repo 按「Run pipeline」,畫面上完全沒有任何預設欄位或說明,不知道要填什麼</td><td><code>PLAYBOOK_PATH</code> 原本宣告在 <code>job.variables</code>(job 層級)——GitLab「Run pipeline」手動觸發畫面的變數輸入框,只會預先列出宣告在<strong>頂層</strong>(pipeline 層級)<code>variables</code> 的變數,且只有頂層支援 <code>{description, value}</code> 擴充物件寫法(畫面渲染成說明文字),job 層級的變數完全不會出現在這個表單裡</td><td>把 <code>PLAYBOOK_PATH</code> 搬到頂層 <code>variables</code>,加上 <code>description</code>;job 不用重複宣告,頂層變數本來就會自動傳給底下每個 job。同時新增 <code>GIT_REF</code>(預設 <code>main</code>)這個頂層變數,讓「Run pipeline」也能指定要 clone 的分支/tag(<code>git clone --branch "$GIT_REF"</code>),方便在合併回 <code>main</code> 之前先測 feature branch。用一次真的觸發的測試 pipeline(暫時放寬 <code>workflow.rules</code> 接受 <code>api</code> 來源)驗證過語法正確、<code>status: success</code>,見 <a href="role-gitlab.html#cd-repo">Role: gitlab</a></td></tr>
         </tbody>
       </table>
+    </div>
+
+    <h3>Phase 8 · ArgoCD ↔ GitLab GitOps 整合</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>症狀</th><th>根因</th><th>修法</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">45</td><td>驗證 ArgoCD 對接自架 GitLab 時,叢集內幾乎所有 pod 對 apiserver(不管 ClusterIP <code>172.18.0.1:443</code> 還是三台 master 的 <code>6443</code>)一律 <code>Connection timed out</code>,但已經跑很久、沒重啟過的 pod(coredns、cilium-operator 等)完全正常</td><td>bastion 的 <code>keycloak-net</code> 這個 Docker 自訂 network,靠 Docker 預設「新 network 依序往上分配 <code>/16</code>」的規則(<code>172.17</code>、<code>172.18</code>、<code>172.19</code>……),剛好撞進 <code>172.18.0.0/16</code>——跟這個叢集的 Service ClusterIP CIDR 完全重疊。bastion 同時有 <code>ip_forward=1</code> 又實際參與 BGP fabric,任何目的地在 <code>172.18.0.0/16</code> 的封包只要行經 bastion,就會被導去本機的 <code>keycloak-net</code> bridge、到不了真正的 apiserver ClusterIP。三點同步 <code>tcpdump</code>(master/TOR/worker)才追出這個地址重疊</td><td>停用/移除 <code>keycloak-net</code> 跟相關 container(資料留在 <code>/userap</code> 沒動),<code>/etc/docker/daemon.json</code> 加 <code>"default-address-pools": [{"base": "10.99.0.0/16", "size": 24}]</code>,把以後所有新建的 Docker network 都切到一個跟 k8s-net/pod CIDR/Service CIDR/mgmt-net 都不重疊的範圍,重跑 <code>keycloak.yml</code> 用 IaC 乾淨重建;同步補進 <code>openstack/templates/bastion-init.sh.tftpl</code>,不然又是 #10/#34/#38 那個「手動修的 fix 沒寫進 code」的坑</td></tr>
+          <tr><td class="mono">46</td><td>追查上面那個逾時問題時發現,<code>cilium-dbg status --verbose</code> 顯示 <code>Routing: Host: Legacy</code>、<code>Masquerading: IPTables</code>——照理說這個叢集拿掉 kube-proxy、全交給 Cilium eBPF 資料平面,不應該還停在 legacy iptables masquerade 模式</td><td><code>kubeProxyReplacement: true</code> 只決定「Service 負載平衡用不用 eBPF」,不會連帶打開 <code>bpf.masquerade</code>——這是 chart 裡兩個獨立的開關,<code>cilium-values.yaml.j2</code> 從沒明確設過後者,預設值就是 <code>false</code>(legacy 模式),不是跑起來自動降級。kernel 6.8、Cilium 1.19.6 都遠超過 BPF host routing 官方要求的 5.10+,原本就具備條件</td><td><code>cilium-values.yaml.j2</code> 明確加 <code>bpf: {masquerade: true}</code>,重跑 <code>k8s/cilium.yml</code> + 重啟 daemonset,<code>cilium-dbg status --verbose</code> 確認變成 <code>Host: BPF</code>/<code>Masquerading: BPF</code>——這是真實存在的設定缺口,但驗證後<strong>跟 #45 一樣,都不是 #45 症狀（apiserver 連線逾時）的根因</strong>,修完之後同一個逾時問題原封不動</td></tr>
+          <tr><td class="mono">47</td><td>接續 #45/#46:排除掉那兩個之後,<code>pod → 節點真實 IP</code>(唯一會踩到的情境是 <code>kubernetes</code> service 直接指向三台 master <code>6443</code>)的新連線依然 100% 逾時,一路查到 OpenStack Neutron OVS / hypervisor underlay,tenant 身份查無可查</td><td><strong>不是這個 repo 管得到的層級</strong>:pod-CIDR(<code>172.16.0.0/16</code>)來源的封包,在 OpenStack fabric 裡被靜默丟棄——<strong>但只限「目的地不是 TOR」的情況</strong>;pod → TOR 本身、以及節點自己真實 IP 來源的封包(不管目的地是誰,包含 TOR/master/worker/L4LB)都 100% 暢通。用 <code>cilium-dbg monitor</code> 證實 Cilium 每次都乖乖把 SYN 送上 <code>ens3</code>(<code>action: allow</code>,沒有任何 drop event),問題不在 Cilium 的 policy/datapath;Neutron port 的 MAC/IP 也逐一查過沒有衝突。可疑的是同一個 project 下新增了 3 台不是這個 repo 管理的 VM(<code>hw-k8s-1/2/3</code>,跟既有節點的 port 設定明顯不同——它們是預設 <code>port_security_enabled: true</code> + 掛 security group,既有節點統一是 <code>false</code>),時間點吻合但因為租戶身份查不到 OVN Southbound DB / hypervisor OVS flow table,<strong>無法證明因果關係,只能證明相關性</strong></td><td><strong>繞過,不是修好底層問題</strong>:Cilium 官方本來就有專門對付這個情境的旗標 <code>enable-remote-node-masquerade</code>(文件明講「BPF masquerade 預設會跳過對 remote-node/kube-apiserver identity 的 SNAT,不受 <code>ipv4NativeRoutingCIDR</code> 控制」,完全對應觀察到的行為)——在 <code>cilium-values.yaml.j2</code> 用 <code>extraConfig</code> escape hatch 打開,把 pod → 節點真實 IP 這條流量的來源位址強制 SNAT 成節點自己的 IP,讓它在 fabric 眼裡跟「一直都暢通」的節點對節點流量沒有分別。<strong>這是這次唯一一個違背原始架構意圖(pod 內部一律帶真實 IP、NAT 只在 TOR 發生一次)的設定</strong>,細節與取捨見 <a href="role-cilium.html#remote-node-masquerade">Role: cilium</a> 跟 <code>CLAUDE.md</code>「Architecture notes」。有個容易漏掉的陷阱:改 <code>extraConfig</code> 只會更新 ConfigMap,<code>helm upgrade</code> 的 <code>kubectl rollout status</code> 會回報「成功」但其實<strong>沒有真的重啟任何 pod</strong>(DaemonSet 的 pod template 沒變),BPF 程式不會重新編譯載入——一定要手動 <code>kubectl -n cilium rollout restart daemonset/cilium</code> 才會生效</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-tip">
+      <strong>✅ #47 已解決(繞過),但讀這段之前務必看清楚:這是 workaround,不是「原來根因就在這裡」</strong>
+      <p>#45、#46 都是真實存在、已修好的 bug,但修完之後 <code>argocd-application-controller</code>
+        這類需要對 apiserver 建立<strong>全新連線</strong>的 pod 仍然逾時,問題沒解決——這才發現
+        #45/#46 只是順路撞到的另外兩個坑,不是主因。用分層測試(pod↔pod 同節點/跨節點、
+        pod→一般 Service ClusterIP、pod→apiserver ClusterIP/直接後端 IP)精準收斂出唯一會壞的
+        路徑是「pod 發起、目的地是節點真實 IP(k8s-net host IP,不是 pod IP)」——<code>kubernetes</code>
+        這個 service 沒有 selector,Endpoints 直接指向三台 master 的 <code>6443</code>,剛好命中這條路徑。</p>
+      <p>用 <code>cilium-dbg monitor</code> + 三點同步 <code>tcpdump</code>(來源 pod 所在節點 / 收到連線的
+        master / TOR)定位:SYN 從 pod 以 <code>orig-ip 0.0.0.0</code>(未 masquerade,native routing
+        模式下這是設計上正確的行為)直接從節點的 <code>ens3</code> 送出,master 準時收到、立刻回
+        SYN-ACK 且依標準 TCP 行為重傳 4 次;master 的路由(<code>via TOR dev ens3</code>)跟 ARP
+        (跟 TOR 自己回報的 MAC 完全吻合,非快取過期)都正確——但 TOR 那端同步抓包,對這個目的地
+        <strong>完全零封包</strong>。tcpdump 抓包點在 kernel 網路層最前端,比 routing/iptables/rp_filter
+        都早,0 封包代表這個 SYN-ACK 沒有從 master 的虛擬網卡送到 TOR 的虛擬網卡之間的這段線上,
+        不是任何一台 VM 內部的規則擋掉的。</p>
+      <p>已經排除的可能:Cilium 的 masquerade/routing 設定(#46,行為符合設計)、bastion 的 Docker
+        CIDR 衝突(#45)、Cilium daemonset 本身狀態、ARP 快取過期、Terraform 宣告的 Neutron port
+        security(<code>openstack/main.tf</code> 的 <code>openstack_networking_port_v2.fabric</code>
+        對<strong>所有節點</strong>——不只 TOR/L4LB/worker——都是 <code>port_security_enabled = false</code>,
+        master 沒有被漏掉)、Neutron port 的 MAC/IP 衝突(逐一查過 <code>k8s-net</code> 上所有 port,沒有
+        重複)、跨租戶網路洩漏(<code>k8s-net</code> 沒有標成 shared,新增的 3 台 VM 屬於同一個
+        project,不是別人接進來的)。也解釋了為什麼「舊的 pod 都沒事」:coredns、cilium-operator 這類
+        已經跑了好幾天沒重啟過的 pod,對 apiserver 的長連線是在這個問題出現之前就建立好的,連線只要沒斷
+        就不需要重新握手,唯一會踩到這條路徑的是任何需要對 apiserver 建全新連線的 pod。</p>
+      <p><strong>真正的根因沒有解開,只是繞過了</strong>——它在 OpenStack Neutron OVS / hypervisor
+        underlay 這一層,VM 內部(包含這個 repo 管得到的所有 Ansible/Terraform 設定)已經無法再往下查:
+        master 跟 TOR 是否在同一台 compute host 上、對應 <code>br-int</code> 的 OVS flow table
+        (<code>ovs-ofctl dump-flows</code>)、OVN Southbound DB 裡每個 logical port 的 chassis
+        binding、compute host 上有沒有 Neutron security group 以外的其他防火牆機制(ebtables/nftables)
+        ——這些都需要 hypervisor / OpenStack 管理層權限,這個共享雲(<code>openstack.cloudnative.tw</code>)
+        目前只有一般 project 身份,查不到。#47 的 <code>enable-remote-node-masquerade</code> 這個修法
+        解決的是「pod → apiserver 連不上」這個<strong>症狀</strong>,不是解決「pod-CIDR 來源的封包在
+        fabric 裡被吃掉」這個<strong>根因</strong>——如果之後這朵雲的維運方查出真正原因並修好底層
+        fabric,這個 <code>extraConfig</code> 設定理論上可以拿掉,讓 pod 對 apiserver 的連線恢復帶著
+        真實 pod IP(目前的代價是 apiserver 的 audit log / 連線來源全部只看到節點 IP,看不到是哪個 pod
+        發起的)。</p>
     </div>
 
     <h3>看得出來的模式</h3>
@@ -286,7 +340,7 @@
 
     <footer class="page-footer">
       <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
-      <span>最後更新:2026-07-30</span>
+      <span>最後更新:2026-08-12</span>
     </footer>
   </div>
 </div>

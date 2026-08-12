@@ -343,8 +343,31 @@
       各跑一次,不需要再手動記每個子 playbook 的順序:</p>
     <div class="term">
       <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">兩個聚合 playbook,一次跑完全部</span></div>
-      <pre><span class="prompt">$</span> <span class="cmd">scripts/ansible.sh ansible-playbook playbooks/bastion.yml</span>
-<span class="prompt">$</span> <span class="cmd">scripts/ansible.sh ansible-playbook playbooks/k8s.yml</span></pre>
+      <pre><span class="prompt">$</span> <span class="cmd">scripts/ansible.sh ansible-playbook playbooks/bastion.yml</span></pre>
+    </div>
+    <div class="callout callout-warn">
+      <p><strong>這時候先別急著跑下一步。</strong>
+        <code>bastion.yml</code> 跑完之後,GitLab 的 <code>doughops</code>
+        group 已經建立好了(<code>bastion/gitlab-cd-repo.yml</code> 建的)。
+        去 <code>https://gitlab.&lt;your-domain&gt;</code> 網頁 UI 登入 →
+        左側選 <code>doughops</code> group → <em>Settings → Access
+        Tokens</em> → Add new token:名稱例如
+        <code>argocd-gitops-reader</code>、Role 選 <em>Reporter</em>、
+        Scopes 只勾 <code>read_repository</code>、Expiration date 選介面
+        允許的最遠日期(GitLab 16.0 之後強制要選到期日,沒有「永久不過期」
+        這個選項)。複製產生的 token 值,填進本機
+        <code>ansible/inventory/group_vars/all/secrets.yml</code> 的
+        <code>argocd_gitlab_repo_token</code> 欄位,再往下跑
+        <code>k8s.yml</code>——<code>k8s/argocd.yml</code> 會讀這個值,幫
+        ArgoCD 註冊讀取這個 GitLab repo 的憑證(細節見
+        <a href="role-argocd.html">Role: argocd</a>)。這一步沒做也不會讓
+        <code>k8s.yml</code> 失敗,只是 ArgoCD 裡 <code>gitops-demo</code>
+        這個 Application 會顯示 repository 不可存取,之後補填、重跑
+        <code>k8s/argocd.yml</code> 就會恢復正常。</p>
+    </div>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">repo 根目錄</span></div>
+      <pre><span class="prompt">$</span> <span class="cmd">scripts/ansible.sh ansible-playbook playbooks/k8s.yml</span></pre>
     </div>
     <p><code>bastion.yml</code> 不要求叢集已經存在——裡面的
       <code>kubeconfig.yml</code> 那步會偵測到叢集還沒建立就安全跳過(不會

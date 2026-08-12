@@ -50,6 +50,7 @@
       <a class="nav-link" href="identity-federation-flow.html"><span class="icon">🧩</span> 身份聯邦登入流程</a>
       <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
       <a class="nav-link" href="role-gitlab.html"><span class="icon">🦊</span> Role: gitlab</a>
+      <a class="nav-link" href="role-argocd.html"><span class="icon">🐙</span> Role: argocd</a>
       <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
       <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
     </div>
@@ -345,6 +346,30 @@
           最新內容來跑),跟既有 GitHub Actions 的手動觸發 playbook 功能
           並存——原本想走 GitLab 內建的 Pull Mirroring,實測發現那個功能
           整個是 Premium 付費層、自架 CE 完全沒有,才改走這個設計。
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>Phase 8 · ArgoCD 串接自架 GitLab,證明 GitOps 不是只能接
+          公開 GitHub</strong>
+          Phase 7 裝好的 GitLab,加一個新 project(<code>doughops/
+          gitops-demo</code>,見 <a href="role-argocd.html">Role:
+          argocd</a>),讓既有的 ArgoCD(原本 <code>argocd_applications</code>
+          清單只有官方 <code>guestbook</code> 範例,GitHub 公開 repo)也能
+          從私有 GitLab repo pull manifests、自動 sync——證明的是 ArgoCD ↔
+          GitLab 這段認證/連線,範例 app 本身刻意保持最小(單一
+          Deployment + Service,不接 Istio 對外曝露)。認證憑證(GitLab
+          Group Access Token)刻意選手動建立,不是自動產生:
+          <code>secrets.yml</code> 是筆電上的檔案,單向 rsync 到
+          bastion,如果產生 token 的邏輯放在 bastion 上的 Ansible role
+          裡,寫回的只會是下次 rsync 就被覆蓋的暫存複本,筆電上真正的
+          <code>secrets.yml</code> 永遠拿不到這個值——這個限制留給下一次
+          真的需要自動化時再解。過程中順手抓到兩個真實 bug:GitLab 預設
+          只給新使用者 Developer 權限,<code>doughops</code> 底下直接建立
+          的新 project 沒辦法 push 進 protected 分支(改成 Owner);bastion
+          的 <code>keycloak-net</code> Docker network 撞上叢集自己的
+          Service ClusterIP CIDR,靠三點同步 <code>tcpdump</code> 才抓到
+          (見 <a href="troubleshooting.html">Bug 事後檢討</a> #45)。
         </div>
       </li>
     </ol>

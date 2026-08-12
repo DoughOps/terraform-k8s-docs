@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Role: argocd — k8s + BGP Lab 技術詳解</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <a class="sidebar-logo-link" href="index.html">
+      <h1>🛰️ k8s + BGP Lab</h1>
+      <span>OpenStack Lab · 技術詳解 v15</span>
+    </a>
+  </div>
+  <nav>
+    <div class="nav-group">
+      <div class="nav-group-label">總覽</div>
+      <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
+      <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
+      <a class="nav-link" href="user-guide.html"><span class="icon">🧑‍💻</span> 叢集使用手冊</a>
+      <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">網路架構</div>
+      <a class="nav-link" href="network-architecture.html"><span class="icon">🌐</span> 網路架構總覽</a>
+      <a class="nav-link" href="packet-flows.html"><span class="icon">🔀</span> 封包路徑實例</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">基礎設施</div>
+      <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
+      <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Ansible 自動化</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
+      <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
+      <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
+      <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
+      <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
+      <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
+      <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="role-vault.html"><span class="icon">🔒</span> Role: vault</a>
+      <a class="nav-link" href="role-keycloak-dex.html"><span class="icon">🪪</span> Role: keycloak / dex</a>
+      <a class="nav-link" href="identity-federation-flow.html"><span class="icon">🧩</span> 身份聯邦登入流程</a>
+      <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
+      <a class="nav-link" href="role-gitlab.html"><span class="icon">🦊</span> Role: gitlab</a>
+      <a class="nav-link active" href="role-argocd.html"><span class="icon">🐙</span> Role: argocd</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Cloudflare 手動設定</div>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">專案紀錄</div>
+      <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+    </div>
+  </nav>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" aria-label="Toggle menu">☰</button>
+      <span class="topbar-crumb">Lab Docs / <strong>Role: argocd</strong></span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">cloudnative.tw · AS 65000</span>
+      <button class="theme-toggle" id="themeToggle" aria-label="切換主題">
+        <span class="icon-moon">🌙</span><span class="icon-sun">☀️</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <h2><span class="eyebrow">Ansible 自動化</span>Role: argocd</h2>
+    <p class="lede"><code>roles/argocd</code> 用 helm 把 ArgoCD 裝進叢集
+      自己裡面(GitOps 持續部署),透過 <code>argocd_applications</code>
+      清單管理要同步哪些 Application——預設帶官方 <code>guestbook</code>
+      範例(GitHub 公開 repo),Phase 8 加了 <code>gitops-demo</code>
+      (<a href="role-gitlab.html">自架 GitLab</a> 的私有 repo),證明
+      ArgoCD 不是只能接公開的 GitHub。這頁涵蓋:為什麼裝在叢集自己裡面、
+      OIDC 怎麼直接對 Cloudflare Access 講、Application 清單怎麼讓部署
+      內容在叢集重建後自動復原,以及串接 GitLab 私有 repo 時,認證方式
+      為什麼刻意選手動建立而不是自動產生。</p>
+
+    <h3>概述:裝在自己要管理的叢集裡</h3>
+    <p>ArgoCD 天生就是設計成可以裝在它要管理的叢集裡——裝完會自動帶一個
+      內建的 <code>in-cluster</code> target(指向
+      <code>https://kubernetes.default.svc</code>,用 in-cluster
+      ServiceAccount 認證),不需要額外手動註冊 cluster,裝在哪個叢集
+      就直接能管哪個叢集。用 helm 裝,<code>fullnameOverride: argocd</code>
+      ——不用官方 chart 預設的 fullname helper(release name 含 chart
+      name 才會收斂成乾淨名稱,這裡 release name <code>argocd</code>
+      不包含 chart name <code>argo-cd</code>,兩者字面不一樣,不覆寫的話
+      Service/Deployment 名稱會變成醜的 <code>argocd-argo-cd-server</code>),
+      直接覆寫成大家熟悉、官方文件範例也是這樣稱呼的 <code>argocd-server</code>
+      這組名稱。</p>
+    <p><code>dex.enabled: false</code>——Dex 是 ArgoCD 內建、可選的 SSO
+      federation 元件,專門用來讓 ArgoCD 接不支援原生 OIDC 的來源
+      (LDAP、SAML……)。Cloudflare Access 本身已經是合格的 OIDC provider
+      (跟 Grafana/Vault 用的是同一種「Access for SaaS」機制),ArgoCD
+      自己的 auth/oidc 可以直接對它講 OIDC,不需要 Dex 這層轉譯——裝著
+      不用純粹多一個 pod、多一分攻擊面。注意這個「Dex」是 ArgoCD chart
+      內建、可選關掉的元件,跟這個 repo 另外裝的
+      <a href="role-keycloak-dex.html">叢集專屬 OIDC broker Dex</a>
+      是同名但完全不同的兩個東西,沒有關聯。</p>
+    <p><code>server.insecure: true</code>——argocd-server 只講 plain
+      HTTP,不是自己再包一層自簽憑證的 TLS。跟 Dashboard/Grafana 是同一個
+      模式:TLS 已經在 Istio Gateway 那一層用真憑證終止過一次(見
+      <a href="role-cert-manager.html">Role: cert_manager</a>),沒有必要
+      讓流量進到 argocd-server 又是一層自簽憑證。ArgoCD CLI/Web UI 用的
+      gRPC-Web 在這個模式下一樣正常運作,這是官方文件明講給「前面有
+      TLS-terminating ingress」的部署方式用的建議設定。</p>
+
+    <h3>OIDC:直接對 Cloudflare Access 講,權限一律 admin</h3>
+    <p>只在 <code>argocd_oidc_client_id</code>/<code>argocd_oidc_client_secret</code>
+      都填了值(不是預設的 <code>REPLACE_ME</code>)才疊加 OIDC 設定——
+      沒填就裝一個沒有 SSO 的 ArgoCD,登入方式退回自己的 admin/密碼。
+      <code>configs.cm.url</code>(<code>https://{{ argocd_hostname }}</code>)
+      是實測撞到才確認必要的欄位:ArgoCD 自己組 OIDC/Dex 的
+      <code>redirect_uri</code> 是拿這個值當底,不是從瀏覽器的 request
+      Host header 動態推——沒設這個值,登入時 Cloudflare 那邊會直接拒絕,
+      回「Invalid redirect URL」,因為 ArgoCD 送出去的
+      <code>redirect_uri</code> 跟 Cloudflare 那邊登記的
+      <code>https://argocd.dough-ops.com/auth/callback</code> 對不起來。</p>
+    <p>使用者明確要求:任何通過 Cloudflare Access(<code>doughops</code>
+      GitHub org 成員)登入的人直接有完整權限——不是 Dashboard/Grafana
+      那種「預設唯讀 + <code>oidc_admin_emails</code> 才有完整權限」的
+      分層模式,是跟 <a href="role-vault.html">Vault 的 oidc-admin
+      policy</a> 同一個決定。ArgoCD 這邊對應的設定是
+      <code>configs.rbac.policy.default: role:admin</code>(RBAC 的預設
+      fallback role,ArgoCD 內建角色,不用另外定義 <code>policy.csv</code>)。</p>
+
+    <h3><code>argocd_applications</code> 清單:讓部署內容在叢集重建後自動復原</h3>
+    <p>這份清單(<code>defaults/main.yml</code>)就是「ArgoCD 裡應該有
+      哪些 Application」的來源,不是單純的範例展示——ArgoCD 的
+      Application/AppProject 本質上是一般的 k8s CRD,存在 etcd 裡,這個
+      叢集除了 bastion 以外的節點都沒有掛任何持久化 volume,叢集重建
+      (<code>kubeadm-reset.yml</code> 或整個 <code>openstack/</code>
+      重新 apply)etcd 就是全新的,透過 ArgoCD 網頁 UI/CLI 手動建的東西
+      會全部消失。之後要新增一個 Application:在這份清單多加一項,重跑
+      <code>scripts/ansible.sh ansible-playbook playbooks/k8s/argocd.yml</code>
+      (或整個 <code>k8s.yml</code>)就會套用,不用去 ArgoCD UI 手動建。</p>
+    <p>只會「新增/更新」,使用者明確要求不要自動清掉「清單裡拿掉、但
+      叢集上還留著」的 Application——單向套用,想移除一個 Application
+      要自己手動 <code>kubectl delete</code>,不會因為改這份清單、重跑
+      playbook 就意外被清掉。目前兩項:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>name</th><th>repo_url</th><th>用途</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">guestbook</td><td class="mono">github.com/argoproj/argocd-example-apps</td><td>官方文件/教學長期在用的範例,證明裝好的 ArgoCD 真的能同步/部署東西——跟 <code>roles/demo_app</code> 證明 Istio ingress 路徑真的通是同一個用意</td></tr>
+          <tr><td class="mono">gitops-demo</td><td class="mono">gitlab.dough-ops.com/doughops/gitops-demo</td><td>Phase 8 新增,證明 ArgoCD 也能接自架 GitLab 的私有 repo,不是只能接公開 GitHub</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>套用 syncPolicy 全自動(<code>automated.prune/selfHeal: true</code>
+      + <code>syncOptions: [CreateNamespace=true]</code>)——套用
+      Application manifest 之後不需要在 ArgoCD UI 裡手動點 Sync,目標
+      namespace 也會自動建立,兩個範例共用同一份
+      <code>argocd-applications.yaml.j2</code> 模板產生。</p>
+
+    <h3>GitLab 整合:<code>gitops-demo</code> 這個 Application 怎麼認證</h3>
+    <p><code>gitops-demo</code> project 本身(建立 project + commit
+      <code>manifests/app.yaml</code>)由 <code>roles/gitlab_gitops_demo</code>
+      負責,排在 <a href="role-gitlab.html#cd-repo">CD Repo</a> 建立的
+      <code>doughops</code> group 之後跑——只查 group、不建 group,查不到
+      就整個 role fail(正常情況下不會發生,因為 <code>bastion.yml</code>
+      裡的 import 順序保證了先後)。project 建立、manifest 檔案的 upsert
+      邏輯,跟 <code>gitlab_cd_repo</code> 的 <code>.gitlab-ci.yml</code>
+      是完全一樣的手法(GET 查現在內容 → 404 就 POST 建立、200 且內容不
+      一樣就 PUT 更新)。這個 role 讓 GitLab 那邊「有東西可以被同步」,跟
+      <code>roles/argocd</code> 自己(讓 ArgoCD「能認證、能連進去」)是
+      分開的兩個 role。</p>
+    <p><code>roles/argocd</code> 這邊只多做一件事:註冊一個
+      <code>argocd.argoproj.io/secret-type: repo-creds</code> 類型的
+      Secret(<code>argocd-gitlab-repo-creds.yaml.j2</code>)——這個類型
+      用「URL prefix 比對」套用憑證,不是綁單一 repo,<code>url</code>
+      設成 <code>https://gitlab.dough-ops.com/doughops/</code>,涵蓋
+      <code>doughops</code> 底下所有 repo,之後要是再加別的 GitLab repo
+      給 ArgoCD 用,不用再建新 Secret。<code>username: oauth2</code>
+      (GitLab 官方文件建議:HTTPS git 操作搭配 Project/Group Access
+      Token 時,username 可以是任意非空字串,<code>oauth2</code> 是常見
+      慣例,跟這個 repo 已經用在 GitHub PAT 認證的
+      <code>oauth2:${GITHUB_CLONE_PAT}@github.com</code> 是同一個慣例),
+      <code>password</code> 直接引用 <code>argocd_gitlab_repo_token</code>
+      這個 <code>secrets.yml</code> 變數。跟這份 Secret 有關的 task 都帶
+      <code>no_log: true</code>,不進 ansible 執行紀錄。</p>
+
+    <div class="callout callout-warn">
+      <p><strong>認證方式的決策過程:為什麼是手動建立 token,不是
+      Ansible 自動產生。</strong>原本設計是 Ansible 自動呼叫 GitLab API
+      產生一組 Group Access Token(<code>gitlab_automation_pat</code> 是
+      <code>api</code> scope 的 root PAT,足夠呼叫
+      <code>POST /groups/:id/access_tokens</code>)。但這條路撞到一個
+      架構限制:<code>secrets.yml</code> 是使用者筆電上的檔案,透過
+      <code>scripts/ansible.sh</code> <strong>單向</strong> rsync 到
+      bastion——如果產生 token 的邏輯放在跑在 bastion 上的 Ansible role
+      裡,寫回的只會是 bastion 那份「下次 rsync 就被覆蓋」的暫存複本,
+      使用者筆電上真正的 <code>secrets.yml</code> 永遠拿不到這個值。要
+      解決要嘛(a)另外寫一支跑在筆電本機、直接打 GitLab API(這條路徑
+      本來就對 PAT 認證公開,見 <code>cloudflare/access.tf</code> 的
+      <code>gitlab_direct</code>)的 script,仿照
+      <code>scripts/sync-cloudflare-secrets.sh</code> 的模式;要嘛
+      (b)手動建。使用者明確選擇(b)——先用手動建立的方式,(a)那條路
+      留給之後真的需要自動化時再做。</p>
+    </div>
+    <div class="callout callout-warn">
+      <p><strong>GitLab 16.0 之後沒有「永久不過期」這個選項。</strong>
+      使用者原本要求 token 有效期限設定「永久」,查證後確認做不到:GitLab
+      從 16.0 版開始,Personal/Project/Group Access Token 一律強制要選
+      到期日,self-managed 也一樣,不是能關掉的實例設定。接受退而求其次:
+      手動建立時選 GitLab UI 允許的最遠日期。到期前需要手動去
+      <code>doughops</code> group 的 Settings → Access Tokens 重新產生、
+      更新 <code>secrets.yml</code>、重跑
+      <code>k8s/argocd.yml</code>。</p>
+    </div>
+    <p>手動建立的完整步驟(<code>doughops</code> group → Settings →
+      Access Tokens → 名稱 <code>argocd-gitops-reader</code>、Role
+      Reporter、Scopes 只勾 <code>read_repository</code>)見
+      <a href="getting-started.html">從零開始建置</a> Step 9。這份
+      Secret 沒建之前不會讓 <code>k8s/argocd.yml</code> fail——
+      <code>argocd_gitlab_repo_token_configured</code> 這個旗標檢查值
+      是不是還是 <code>REPLACE_ME</code>,沒填就整個跳過 Secret 相關
+      task,改印一則 <code>ansible.builtin.debug</code> 提醒;ArgoCD 裡
+      <code>gitops-demo</code> 這個 Application 會顯示 repository 不可
+      存取,之後補填、重跑同一支 playbook 就會恢復正常,不需要重新跑
+      整個 <code>k8s.yml</code>。</p>
+
+    <h3>初始 admin 密碼</h3>
+    <p>ArgoCD 自己(不是這個 helm chart)在第一次啟動時,幫 admin 使用者
+      產生一組隨機密碼、存進 <code>argocd-initial-admin-secret</code>
+      這個 Secret——這個名字是 argocd-server 自己寫死的,不受
+      <code>fullnameOverride</code> 影響。跟這個專案處理 Grafana admin
+      密碼是同一種謹慎程度:role 裡的對應 task 不印出實際內容、不寫進
+      ansible 執行紀錄。有設定 OIDC 的話,這組帳密不會自動失效,保留當
+      SSO 出問題時的備援登入路徑(跟 Grafana 的帳密登入是同一種考量)。</p>
+    <div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">查詢初始 admin 密碼</span></div>
+      <pre><span class="prompt">$</span> <span class="cmd">kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d</span></pre>
+    </div>
+
+    <h3>驗證方式</h3>
+    <ul>
+      <li>登入:<code>https://argocd.dough-ops.com/</code>(Cloudflare
+        Access 擋著,<code>doughops</code> org 成員才能連到登入頁);有
+        設定 OIDC 的話登入頁會多一個選項,選了免密碼直接進、直接是
+        admin 權限。</li>
+      <li><code>kubectl -n argocd get application</code> 兩個
+        Application 都 <code>Synced</code>/<code>Healthy</code>。</li>
+      <li><code>gitops-demo</code>:<code>kubectl -n gitops-demo get pod
+        -o wide</code> 確認 pod Running,<code>kubectl -n gitops-demo
+        port-forward svc/gitops-demo 8080:80</code> 之後
+        <code>curl localhost:8080</code> 應該看得到 pod/node 名稱,證明
+        流量真的到達、內容來自 GitLab 而不是 GitHub。</li>
+      <li>冪等性:重跑 <code>playbooks/k8s/argocd.yml</code>、
+        <code>playbooks/bastion/gitlab-gitops-demo.yml</code> 兩次,
+        <code>failed=0</code>,不會重複建立 Application/project。</li>
+    </ul>
+
+    <div class="page-nav">
+      <a class="prev" href="role-gitlab.html"><span class="dir">上一頁</span><span class="ttl">← Role: gitlab</span></a>
+      <a class="next" href="internal-tools.html"><span class="dir">下一頁</span><span class="ttl">內部工具(Dashboard/Hubble/監控) →</span></a>
+    </div>
+
+    <footer class="page-footer">
+      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
+      <span>最後更新:2026-08-12</span>
+    </footer>
+  </div>
+</div>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

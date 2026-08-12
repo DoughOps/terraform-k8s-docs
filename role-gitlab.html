@@ -50,6 +50,7 @@
       <a class="nav-link" href="identity-federation-flow.html"><span class="icon">🧩</span> 身份聯邦登入流程</a>
       <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
       <a class="nav-link active" href="role-gitlab.html"><span class="icon">🦊</span> Role: gitlab</a>
+      <a class="nav-link" href="role-argocd.html"><span class="icon">🐙</span> Role: argocd</a>
       <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
       <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
     </div>
@@ -305,15 +306,31 @@ letsencrypt['enable'] = false</span></pre>
       Premium 付費層,不是設定沒開對,是產品分層問題,這個方向直接
       放棄改走現在這個設計。</p>
     <p><strong>任何登入過這個 GitLab 的使用者,預設就有這個 group 的
-      Developer 權限</strong>(能實際觸發 pipeline,不是只能看)。GitLab
-      沒有「新帳號自動加入某個 group」的內建機制,這個 role 用跟
-      <code>oidc_admin_emails</code> allowlist 同一種 upsert 手法:每次
-      重跑都對一次 <code>GET /api/v4/users</code> 列出的全部使用者清單,
-      查+補齊 <code>doughops</code> group 的 membership(Developer,
-      只升不降,已經是 Maintainer/Owner 的帳號不會被降級)——新登入過
-      的帳號下次重跑這個 role 就會自動補進去,不用手動邀請。Project 跟
-      group 本身也都設成 <code>internal</code> 可見度,任何登入過的
-      使用者預設就看得到。</p>
+      Owner 權限</strong>。GitLab 沒有「新帳號自動加入某個 group」的
+      內建機制,這個 role 用跟 <code>oidc_admin_emails</code> allowlist
+      同一種 upsert 手法:每次重跑都對一次 <code>GET /api/v4/users</code>
+      列出的全部使用者清單,查+補齊 <code>doughops</code> group 的
+      membership(Owner,只升不降)——新登入過的帳號下次重跑這個 role
+      就會自動補進去,不用手動邀請。Project 跟 group 本身也都設成
+      <code>internal</code> 可見度,任何登入過的使用者預設就看得到。</p>
+
+    <div class="callout callout-warn">
+      <p><strong>Bug:預設只給 Developer,doughops 底下直接建立的新
+      project 沒辦法 push 進 protected 的 main 分支。</strong>原本這個
+      迴圈只把每個使用者(包含 <code>gitlab_automation_pat</code> 對應
+      的 <code>root</code> 帳號自己)升到 Developer(access_level 30)。
+      <code>doughops/k8s-central-cd</code> 沒撞到這個問題,是因為它原本
+      建在 <code>root</code> 個人 namespace(建立者自動是 Owner),事後
+      才搬家進 <code>doughops</code> group——搬家不會動到 project
+      membership,<code>root</code> 因此意外保留了 Owner。後來
+      <code>doughops/gitops-demo</code>(見
+      <a href="role-argocd.html">Role: argocd</a>)直接建在 group 底下,
+      第一次 commit 檔案進 protected 的 <code>main</code> 分支就被 GitLab
+      擋下(protected branch 預設要 Maintainer(40)以上才能推)——連
+      自動化帳號自己都被卡住。修法:把預設權限從 Developer 提升到
+      Owner(access_level 50),範圍只限定 <code>doughops</code> 這個
+      group,不影響其他 group 或 instance-wide 設定。</p>
+    </div>
 
     <div class="callout callout-danger">
       <p><strong>Bug:fine-grained GitHub PAT 的 Packages 權限不支援真的
@@ -360,6 +377,35 @@ letsencrypt['enable'] = false</span></pre>
       路徑跳脫的值,pipeline 在真的執行 <code>ansible-playbook</code>
       之前就明確失敗,不是靜默略過。</p>
 
+    <div class="callout callout-warn">
+      <p><strong>Bug:「Run pipeline」畫面完全看不到要填什麼。</strong>
+      <code>PLAYBOOK_PATH</code> 原本宣告在 <code>job.variables</code>
+      (job 層級),使用者實測按下「Run pipeline」時回報:畫面上沒有任何
+      預設欄位或說明。查證後發現 GitLab「Run pipeline」手動觸發畫面的
+      變數輸入框,只會預先列出宣告在<strong>頂層</strong>(pipeline
+      層級)<code>variables</code> 的變數,並且只有頂層才支援
+      <code>{description, value}</code> 這種擴充物件寫法、被畫面渲染成
+      說明文字——job 層級的變數完全不會出現在這個表單裡。修法:把
+      <code>PLAYBOOK_PATH</code> 搬到頂層 <code>variables</code>,加上
+      <code>description</code>;job 不用重複宣告,頂層變數本來就會自動
+      傳給底下每個 job。用一次真的觸發的測試 pipeline(暫時放寬
+      <code>workflow.rules</code> 接受 <code>api</code> 來源)驗證過改完
+      的語法正確、pipeline 照樣成功執行。</p>
+    </div>
+
+    <p>順便加上 <code>GIT_REF</code> 這個頂層變數(預設
+      <code>main</code>,同樣有 <code>description</code>),讓「Run
+      pipeline」除了指定要跑哪支 playbook 之外,也能指定要從 GitHub clone
+      <code>terraform-k8s</code> 的哪個分支/tag(<code>git clone
+      --branch "$GIT_REF" --single-branch</code>)——方便在合併回
+      <code>main</code> 之前,先用 CD repo 這條路徑測試某個 feature
+      branch 上的 playbook 改動。GitHub Actions 那邊
+      (<code>.github/workflows/run-playbook.yml</code>)不需要對應變數,
+      是因為 <code>workflow_dispatch</code> 手動觸發時 GitHub UI 本身就有
+      內建的分支選擇器,GitLab 沒有等價的內建機制。用一次真的觸發的測試
+      pipeline(<code>GIT_REF=main</code>、<code>PLAYBOOK_PATH=k8s/
+      smoke-test.yml</code>)驗證過 <code>status: success</code>。</p>
+
     <h3>驗證方式</h3>
     <ul>
       <li>登入流程:無痕視窗開 <code>gitlab.dough-ops.com</code>,應該
@@ -383,7 +429,7 @@ letsencrypt['enable'] = false</span></pre>
 
     <div class="page-nav">
       <a class="prev" href="role-github-runner.html"><span class="dir">上一頁</span><span class="ttl">← Role: github_runner</span></a>
-      <a class="next" href="internal-tools.html"><span class="dir">下一頁</span><span class="ttl">內部工具(Dashboard/Hubble/監控) →</span></a>
+      <a class="next" href="role-argocd.html"><span class="dir">下一頁</span><span class="ttl">Role: argocd →</span></a>
     </div>
 
     <footer class="page-footer">
