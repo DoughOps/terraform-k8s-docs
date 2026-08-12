@@ -406,6 +406,100 @@ letsencrypt['enable'] = false</span></pre>
       pipeline(<code>GIT_REF=main</code>、<code>PLAYBOOK_PATH=k8s/
       smoke-test.yml</code>)驗證過 <code>status: success</code>。</p>
 
+    <h3 id="execution">EXECUTION:不用填 playbook,直接砍 VM / 建 VM / 跑非破壞性檢查</h3>
+    <p>2026-08-13 加的第三個頂層變數,見
+      <code>docs/superpowers/specs/2026-08-13-gitlab-cd-execution-variable-design.md</code>。
+      這是原始需求(<code>doughops/k8s-central-cd</code> 要能直接
+      <code>destroy_vm</code>/<code>create_cluster</code>)的 Phase 2,建立在
+      <a href="changelog.html">Terraform state 搬進 S3 相容 backend</a>
+      (2026-08-12 條目)之上——沒有那次遷移,CI job 每次全新 clone、完全
+      碰不到 state,這個功能做不出來。</p>
+    <p><code>EXECUTION</code> 留空就是原本的 <code>PLAYBOOK_PATH</code> 流程,
+      不變。填以下三個值之一,<code>PLAYBOOK_PATH</code> 就不會被讀:</p>
+    <ul>
+      <li><strong><code>verify</code></strong>——非破壞性檢查:
+        <code>terraform plan</code>(不 apply)+
+        <code>k8s/smoke-test.yml</code>。可以隨時手動觸發,拿來確認
+        CI 這邊的 terraform/ansible 串接還正常、叢集本身有沒有 drift,不是
+        一次性用完就丟的東西。<code>terraform plan</code> 故意不加
+        <code>-detailed-exitcode</code>——<code>openstack/</code> 目前有一筆
+        已知、使用者選擇先不處理的 drift(<code>bastion</code>
+        <code>user_data</code> 雜湊不符,見 changelog 2026-08-12
+        條目),加了會讓這筆已知 drift 每次都讓 <code>verify</code> 變紅,
+        反而蓋掉真正意外的新 drift;維持預設行為只是把 diff 印進 job
+        log。</li>
+      <li><strong><code>destroy_vm</code></strong>——把除了 <code>tor</code>/
+        <code>bastion</code> 以外的所有 VM 全部砍掉。<code>-target</code>
+        清單不是寫死節點名稱,是執行當下用 <code>terraform show -json</code>
+        + <code>jq</code> 動態算(挑
+        <code>openstack_compute_instance_v2</code>/
+        <code>openstack_networking_port_v2</code>/有 boot volume 節點的
+        <code>boot_volumes</code>,排除 index 是 <code>tor</code>/
+        <code>bastion</code> 的、也排除 <code>data_volumes</code>——後者有
+        <code>lifecycle.prevent_destroy</code>,誤 target 到會讓整個
+        destroy 直接報錯中止,但排除掉比較乾淨),`terraform.tfvars`
+        加/刪節點不用同步改這支 pipeline。先印一次
+        <code>terraform plan -destroy</code> 供 job log 稽核,再
+        <code>terraform destroy -auto-approve</code>——CI 無人值守沒有互動式
+        <code>yes</code> 可按,對應的「確認」是使用者自己手動選
+        <code>EXECUTION</code>、按「Run pipeline」這個動作本身。</li>
+      <li><strong><code>create_cluster</code></strong>——把
+        <code>destroy_vm</code> 拿掉、但還在 <code>terraform.tfvars</code>
+        設定裡的節點用 <code>terraform apply</code> 建回來(<code>tor</code>/
+        <code>bastion</code> 不會被動到,從頭到尾都不在
+        <code>destroy_vm</code> 的 target 清單裡),重新產生一次
+        <code>inventory/hosts.ini</code>(<code>openstack/outputs.tf</code>
+        的 <code>vm_private_ips</code> 是從實際存在的 instance resource
+        讀出來的,重建後才會有新值),接著跑
+        <code>bastion.yml → k8s.yml</code>,跟 <code>make build</code> 同範圍
+        (brainstorming 階段已確認)。job 層級加了
+        <code>timeout: 3h</code>(GitLab CI 原生的 job 關鍵字)——這條路徑要
+        跑完整套帶起流程,GitLab 專案預設的 1 小時 job timeout 大機率不
+        夠。</li>
+    </ul>
+    <div class="callout callout-warn">
+      <p><strong>這兩個新分支需要的憑證跟 GitHub clone PAT 是不同性質的
+      東西。</strong><code>destroy_vm</code>/<code>create_cluster</code> 要在
+      CI job 裡直接對 <code>openstack/</code> 動 terraform,新增了兩組
+      CI/CD 變數:<code>OPENSTACK_CLOUDS_YAML</code>(<code>variable_type:
+      file</code>,GitLab 執行時把值寫進暫存檔案、環境變數的值是檔案路徑,
+      內容是使用者筆電那份 <code>openstack/clouds.yaml</code> 全文——
+      provider <code>"openstack"</code> 寫死 <code>cloud = "openstack"</code>
+      只認這個檔案,不認環境變數)、<code>AWS_ACCESS_KEY_ID</code>/
+      <code>AWS_SECRET_ACCESS_KEY</code>(跟 S3 state backend 同一組憑證)。
+      兩者都來自 <code>secrets.yml</code> 新欄位
+      (<code>terraform_ci_clouds_yaml</code>/
+      <code>terraform_state_aws_access_key_id</code>/
+      <code>terraform_state_aws_secret_access_key</code>)。<strong>代價</strong>:
+      這個 OpenStack tenant 只有單一 project、沒有子帳號/範圍縮小機制,
+      CD pipeline 因此有跟使用者筆電一樣完整的 compute/network/volume
+      權限,不是只能動這幾台 VM——經使用者明確確認接受這個取捨,不是遺漏。
+      <code>ansible/Dockerfile.ci</code> 同步加裝 <code>terraform</code>/
+      <code>jq</code>(這張 image 是 GitHub Actions
+      <code>run-playbook.yml</code> 也在用的那張,對那條路徑是無害的額外
+      工具)。</p>
+    </div>
+    <p><strong>驗證方式(使用者明確要求最終驗收只做 dry-run,不對活著的
+      lab 環境跑真的 destroy_vm/create_cluster):</strong>本機驗證產生的
+      <code>.gitlab-ci.yml</code> YAML 語法、內嵌 script 的
+      <code>bash -n</code>;GitLab CI Lint API(<code>POST
+      /api/v4/projects/:id/ci/lint</code>)回 <code>"valid": true</code>、
+      無 errors/warnings;套用到 bastion 後直接對 GitLab API 查證過 5 個
+      CI/CD 變數的型別/masked/protected 都正確、<code>.gitlab-ci.yml</code>
+      內容跟本機產生的版本逐字元相同;<code>-target</code> 清單邏輯對真實
+      remote state 唯讀測試過(只呼叫 <code>terraform show</code>,不呼叫
+      <code>plan -destroy</code>/<code>destroy</code>),抓到的是除了
+      <code>tor</code>/<code>bastion</code> 以外的全部 8 個節點、24 筆資源
+      (<code>ap-</code> 現在有 3 台,不是 <code>CLAUDE.md</code> 拓樸表格
+      寫的 2 台——這裡的 <code>-target</code> 邏輯是動態算的,不受影響)。
+      唯一沒做的是真的觸發一次 <code>EXECUTION=verify</code>
+      pipeline——這一步照原本 <code>PLAYBOOK_PATH</code> 驗證時用過的手法
+      (暫時放寬 <code>workflow.rules</code> 接受 <code>api</code> 來源、
+      API 觸發、測完改回來),但被 Claude Code 的權限分類器擋下(即使使用者
+      當場口頭同意也一樣,分類器不接受對話內授權),留給使用者自己在
+      GitLab UI 手動「Run pipeline」、<code>EXECUTION=verify</code>
+      完成最後一步端對端驗證。</p>
+
     <h3>驗證方式</h3>
     <ul>
       <li>登入流程:無痕視窗開 <code>gitlab.dough-ops.com</code>,應該
@@ -434,7 +528,7 @@ letsencrypt['enable'] = false</span></pre>
 
     <footer class="page-footer">
       <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
-      <span>最後更新:2026-08-11</span>
+      <span>最後更新:2026-08-13</span>
     </footer>
   </div>
 </div>

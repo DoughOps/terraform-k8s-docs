@@ -1099,6 +1099,42 @@
       </ul>
     </div>
 
+    <div class="cl-entry">
+      <div class="cl-date">2026-08-13 · CD Repo 加 EXECUTION 變數(destroy_vm/create_cluster/verify)</div>
+      <h3><span class="cl-tag cl-feat">feat</span> <a href="role-gitlab.html#cd-repo"><code>doughops/k8s-central-cd</code></a> 手動觸發就能整套砍 VM / 重建 VM / 跑非破壞性檢查,不用再逐一指定 playbook</h3>
+      <ul>
+        <li><strong>這是原始需求的 Phase 2</strong>,建立在前一天(2026-08-12)的 S3 state backend 遷移之上——沒有那次遷移,
+          CI job 每次全新 clone、完全碰不到 state,這個功能做不出來。見
+          <code>docs/superpowers/specs/2026-08-13-gitlab-cd-execution-variable-design.md</code>。</li>
+        <li><span class="cl-tag cl-feat">feat</span> <code>.gitlab-ci.yml</code> 頂層新增 <code>EXECUTION</code> 變數:
+          留空維持原本 <code>PLAYBOOK_PATH</code> 流程;<code>verify</code> 是非破壞性檢查
+          (<code>terraform plan</code> + <code>k8s/smoke-test.yml</code>,不 apply/destroy,平常也能拿來當
+          drift check);<code>destroy_vm</code> 用 <code>terraform destroy -target=...</code> 砍掉除了
+          <code>tor</code>/<code>bastion</code> 以外的所有 VM;<code>create_cluster</code> 用
+          <code>terraform apply</code> 建回來、重新產生 inventory、跑完整
+          <code>bastion.yml → k8s.yml</code>(跟 <code>make build</code> 同範圍)。</li>
+        <li><span class="cl-tag cl-feat">feat</span> <code>destroy_vm</code> 的 <code>-target</code> 清單不是寫死節點名稱,
+          是每次執行當下用 <code>terraform show -json</code> + <code>jq</code> 動態算(排除 index 是
+          <code>tor</code>/<code>bastion</code> 的資源)——對真實 remote state 唯讀測試過,目前抓到 8 個非
+          tor/bastion 節點、24 筆資源,topology 之後加減節點都不用同步改這支 pipeline。</li>
+        <li><span class="cl-tag cl-feat">feat</span> CI job 現在要對 <code>openstack/</code> 動 terraform,新增兩個
+          CI/CD 變數:<code>OPENSTACK_CLOUDS_YAML</code>(<code>variable_type: file</code>,內容是筆電那份
+          <code>openstack/clouds.yaml</code>)、<code>AWS_ACCESS_KEY_ID</code>/<code>AWS_SECRET_ACCESS_KEY</code>
+          (跟 S3 state backend 同一組憑證)——都來自 <code>secrets.yml</code> 新欄位,CI 因此有跟使用者本機
+          一樣完整的 OpenStack project 權限(這個 tenant 沒有範圍縮小機制,經使用者確認接受這個取捨)。
+          <code>ansible/Dockerfile.ci</code> 同步加裝 <code>terraform</code>/<code>jq</code>。</li>
+        <li><strong>驗證方式(使用者明確要求最終驗收只做 dry-run,不對活著的 lab 環境跑真的
+          destroy_vm/create_cluster):</strong>本機驗證產生的 <code>.gitlab-ci.yml</code> YAML 語法、內嵌
+          script 的 <code>bash -n</code>;GitLab CI Lint API 回
+          <code>"valid": true</code>;5 個 CI/CD 變數的型別/masked/protected 直接對 API 查證過;
+          <code>-target</code> 清單邏輯對真實 state 唯讀測試過。<strong>唯一沒做的是真的觸發一次
+          <code>EXECUTION=verify</code> pipeline</strong>——工具層的權限分類器擋下了「暫時放寬
+          <code>workflow.rules</code> 接受 <code>api</code> 來源」這個動作(即使使用者當場口頭同意也一樣被擋,
+          分類器不接受對話內授權,需要在 Claude Code 設定裡另外加規則),因此留給使用者自己在 GitLab UI 手動點
+          「Run pipeline」、<code>EXECUTION=verify</code> 完成最後一步端對端驗證。</li>
+      </ul>
+    </div>
+
     <div class="page-nav">
       <a class="prev" href="troubleshooting.html"><span class="dir">上一頁</span><span class="ttl">← Bug 事後檢討</span></a>
       <a class="next" href="index.html"><span class="dir">回到</span><span class="ttl">總覽 →</span></a>
@@ -1106,7 +1142,7 @@
 
     <footer class="page-footer">
       <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
-      <span>最後更新:2026-08-12</span>
+      <span>最後更新:2026-08-13</span>
     </footer>
   </div>
 </div>
