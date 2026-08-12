@@ -585,42 +585,73 @@ configs:
     </div>
 
     <div class="callout callout-danger">
-      <p><strong>Bug:登入不到半小時就被登出,只有 ArgoCD 會這樣</strong>——
-      使用者回報後直接查 <code>cloudflare/terraform.tfstate</code> 裡
+      <p><strong>Bug:登入不到半小時就被登出,只有 ArgoCD 會這樣——第一次
+      的修法完全無效,直接看 argocd-server log 的 id_token 才抓到真正
+      根因</strong>——使用者回報後直接查
+      <code>cloudflare/terraform.tfstate</code> 裡
       <code>cloudflare_zero_trust_access_application</code> 的實際欄位值,
       發現 <code>argocd-sso</code>(還有 <code>grafana-sso</code>/
       <code>vault-sso</code>/<code>keycloak-sso</code>)的
       <code>saas_app.access_token_lifetime</code> 全部沒設,吃到
-      Cloudflare 的預設值:<strong>5 分鐘</strong>。這個欄位管的是
-      Cloudflare 實際核發給下游 relying party 的 <code>id_token</code>
-      效期,跟同一個資源上的 <code>session_duration</code>(管「多久要
-      重新對 GitHub org 做一次完整身分認證」)是完全不同的兩件事,兩者
-      都存在時很容易只設對後者、漏掉前者。</p>
-      <p>其他三個 app 也是同一組 5 分鐘 <code>id_token</code>,卻沒人
-      回報這個問題——因為它們各自維護跟上游 token 效期脫鉤、長得多的
-      本地 session。ArgoCD 不是:這是它自己的已知行為
-      (<a href="https://github.com/argoproj/argo-cd/discussions/10125" target="_blank">argoproj/argo-cd
-      discussions#10125</a>、<a href="https://github.com/argoproj/argo-cd/issues/10126" target="_blank">issue
-      #10126</a>、<a href="https://github.com/argoproj/argo-cd/issues/27041" target="_blank">issue
-      #27041</a>)——ArgoCD 自己核發的 session 效期直接跟著上游
-      <code>id_token</code> 的 <code>exp</code> claim走,Web UI 又不會用
-      refresh token 去 silently 換發續期,<code>id_token</code> 一到期
-      session 就直接失效,逼使用者整個 OAuth 流程重來一遍。5 分鐘的預設值
-      正好對上使用者形容的「不到半小時」。</p>
-      <p>修法在 <code>cloudflare/access.tf</code> 的 <code>argocd_sso</code>
-      這個資源,不動其他三個(目前沒人回報有問題,不用連坐處理)兩處:
-      <code>saas_app.access_token_lifetime</code> 拉到 <code>"24h"</code>
-      ——Cloudflare 這個欄位本身合法範圍就是 1m~24h,這已經是上限,沒辦法
-      再拉更長;<code>session_duration</code> 拉到 <code>"730h"</code>
-      (約 1 個月,跟 vault-sso/keycloak-sso 用同一個值)。原因是即使
-      <code>access_token_lifetime</code> 已經拉滿,ArgoCD 這裡的 session
-      每 24h 還是一定會因為上游 <code>id_token</code> 到期而失效一次、
-      逼 ArgoCD 重新走一次 OIDC flow——但只要 Cloudflare Access 自己的
-      <code>session_duration</code> 還沒過期,瀏覽器會自動帶著還有效的
-      <code>CF_Authorization</code> cookie 跳一次 Cloudflare、立刻拿到
-      新的 authorization code 跳回 ArgoCD,使用者不會被要求重新對
-      GitHub org 認證——真正決定「使用者感受上多久要重新登入一次」的是
-      <code>session_duration</code>,不是 <code>access_token_lifetime</code>。</p>
+      Cloudflare 文件記載的預設值:5 分鐘。第一版修法把這個欄位拉到允許
+      的上限 <code>"24h"</code>、<code>session_duration</code> 拉到
+      <code>"730h"</code>,套用後使用者仍然回報同樣症狀。</p>
+      <p><strong>沒有再猜第二次</strong>——用瀏覽器登入一次,直接看
+      argocd-server 當下的 log,claim 裡 <code>exp - iat</code> 精確算出來
+      還是剛好 300 秒,證明 <code>access_token_lifetime</code> 這個欄位
+      對「Access for SaaS」這個 OIDC bridge 根本沒有生效,不是套用延遲。
+      進一步想接上 ArgoCD 官方支援的靜默續期
+      (<code>oidc.config</code> 的 <code>refreshTokenThreshold</code>,
+      需要 <code>offline_access</code> scope 拿 refresh_token)——結果
+      <code>terraform validate</code> 直接報 <code>saas_app.scopes</code>
+      只能是 <code>openid</code>/<code>groups</code>/<code>email</code>/
+      <code>profile</code> 四選,<code>offline_access</code> 連送都送
+      不出去。也就是說 Cloudflare 這個整合模式從協定層面就不會發
+      refresh_token,5 分鐘 id_token + 無法續期是<strong>平台限制,不是
+      設定沒調對</strong>。ArgoCD 自己的 Web UI 又不會在 id_token 到期時
+      自動重新導向(已知行為,見
+      <a href="https://github.com/argoproj/argo-cd/issues/10126" target="_blank">argoproj/argo-cd
+      issue #10126</a>、<a href="https://github.com/argoproj/argo-cd/issues/24807" target="_blank">#24807</a>、
+      <a href="https://github.com/argoproj/argo-cd/issues/27041" target="_blank">#27041</a>),使用者每 5
+      分鐘就要手動點一次登入——這就是「不到半小時就被登出」的真正根因。</p>
+      <p><strong>真正的修法:改用 ArgoCD 內建 Dex 當中介層</strong>
+      (<code>roles/argocd</code> 的 <code>dex.enabled: true</code> +
+      <code>configs.cm.["dex.config"]</code>,取代原本直連的
+      <code>oidc.config</code>)。ArgoCD 看到的 id_token 改成 Dex 自己
+      簽發的,效期由 <code>argocd_dex_id_token_expiry</code> 這個 role
+      變數自己控制(使用者要求「完全不要跳轉」,設成 <code>8760h</code>,
+      1 年)——Dex 對 Cloudflare 的連線只在使用者互動登入的那一刻用一次
+      驗證身份,不需要事後背景 refresh,Cloudflare 不發 refresh_token
+      這件事對這個新路徑完全沒有影響。<code>cloudflare/access.tf</code>
+      的 <code>argocd_sso</code> 這個 Access Application 不用重建,只是
+      <code>redirect_uris</code> 多加一條 Dex 的固定回呼路徑
+      <code>/api/dex/callback</code>(原本的 <code>/auth/callback</code>
+      留著當緊急回退錨點)。</p>
+      <p>接上 Dex 之後又連續撞到兩個 Cloudflare 這邊 id_token 內容跟 Dex
+      預期不一致的 bug,都是實際登入一次、看 argocd-dex-server log 才
+      抓到:(1) Dex 的 oidc connector 預設一定要有 <code>name</code>
+      claim 才能建立身份,Cloudflare 這個帳號的 <code>name</code> 剛好是
+      <code>null</code>(GitHub 帳號沒設公開顯示名稱),log 印
+      <code>missing "name" claim</code>——改用
+      <code>userNameKey: email</code> 讓 Dex 拿 email 當使用者名稱解決。
+      (2) 修完上面那個再登入一次,換踩到 Dex 還要求
+      <code>email_verified</code> 這個 claim 存在且為 true,但 Cloudflare
+      的 id_token 根本沒有這個 claim——log 印
+      <code>missing "email_verified" claim</code>,加
+      <code>insecureSkipEmailVerified: true</code> 跳過這項檢查解決
+      (跟 <code>roles/dex_test_app</code> 的 oauth2-proxy 那邊同一種
+      「上游沒有 email_verified」情境,見前面 Dex↔Keycloak 那節)。</p>
+      <p>最終驗證:重新登入後直接看 argocd-server log 裡 Dex 簽發的
+      claims,<code>exp - iat</code> 精確等於 31536000 秒(365 天,跟
+      <code>argocd_dex_id_token_expiry: "8760h"</code> 完全對上);
+      <code>iss</code> 變成 <code>https://argocd.dough-ops.com/api/dex</code>,
+      不再是 Cloudflare 自己;RBAC(<code>Settings → Accounts</code>
+      等管理頁面能進去)沒受影響,登入身份的 <code>policy.default:
+      role:admin</code> fallback 邏輯跟連線的是 Cloudflare 還是 Dex 無關。
+      這個 bug 的教訓,呼應上面兩個:「Terraform 欄位語意看起來合理」不能
+      取代「直接讀官方 provider schema 的合法值列表 + 真的登入一次、看
+      當下實際核發的 token 內容」——<code>access_token_lifetime</code>
+      這個欄位光看名字完全像是對的解法,實測卻整個無效。</p>
     </div>
 
     <h3>驗證方式:內部用真憑證驗證,外部確認被 Access 擋住</h3>

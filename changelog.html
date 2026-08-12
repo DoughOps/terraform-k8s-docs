@@ -944,39 +944,58 @@
 
     <div class="cl-entry">
       <div class="cl-date">2026-08-12 · ArgoCD 登入後不到半小時就被登出</div>
-      <h3><span class="cl-tag cl-fix">fix</span> Cloudflare Access 的 SaaS/OIDC <code>access_token_lifetime</code> 預設 5 分鐘,ArgoCD 的 session 又直接跟著上游 <code>id_token</code> 到期</h3>
+      <h3><span class="cl-tag cl-fix">fix</span> Cloudflare「Access for SaaS」OIDC bridge 的 5 分鐘 id_token 是平台硬限制,改接 ArgoCD 內建 Dex 才真正解決</h3>
       <ul>
         <li><strong>起因:</strong>使用者回報 ArgoCD 登入後不到半小時就被
           強制登出,同一套 Cloudflare Access SSO 機制底下的 Grafana/
-          Vault 都沒這個問題。查 <code>cloudflare/terraform.tfstate</code>
-          裡的實際欄位值確認:<code>argocd-sso</code>(還有
-          <code>grafana-sso</code>/<code>vault-sso</code>/
-          <code>keycloak-sso</code>)的
-          <code>saas_app.access_token_lifetime</code> 全部沒設,吃到
-          Cloudflare 的預設值 5 分鐘——這個欄位是實際核發給下游 app 的
-          <code>id_token</code> 效期,跟同一個資源上另一個欄位
-          <code>session_duration</code>(管多久要重新對 IdP 完整認證)
-          是兩件不同的事。其他三個 app 沒事,是因為各自維護跟上游 token
-          效期脫鉤的本地 session;ArgoCD 是已知的例外
-          (<a href="https://github.com/argoproj/argo-cd/issues/27041" target="_blank">argoproj/argo-cd
-          issue #27041</a> 等)——它自己核發的 session 效期直接跟著
-          <code>id_token</code> 的 <code>exp</code> claim走,Web UI 又不會
-          用 refresh token 續期。</li>
-        <li><span class="cl-tag cl-fix">fix</span> <code>cloudflare/access.tf</code> 的
-          <code>argocd_sso</code>(只改這個,其他三個目前沒人回報有問題):
-          <code>saas_app.access_token_lifetime</code> 拉到 Cloudflare
-          允許的上限 <code>"24h"</code>;<code>session_duration</code>
-          拉到 <code>"730h"</code>(約 1 個月,跟 vault-sso/keycloak-sso
-          同值)——即使前者已經拉滿,ArgoCD 這裡的 session 每 24h 還是會
-          因為上游 <code>id_token</code> 到期重走一次 OIDC flow,但只要
-          後者(<code>session_duration</code>)還沒過期,這次重走對使用者
-          是無感的,不會被要求重新對 GitHub org 認證。真正決定「使用者
-          感受上多久要重新登入一次」的是 <code>session_duration</code>,
-          不是 <code>access_token_lifetime</code>。已用
-          <code>terraform apply -target</code> 套用到正式環境,
-          <code>terraform plan</code> 確認無其他 drift。</li>
+          Vault 都沒這個問題。</li>
+        <li><span class="cl-tag cl-fail">嘗試失敗</span> 查
+          <code>cloudflare/terraform.tfstate</code> 確認
+          <code>argocd-sso</code> 的 <code>saas_app.access_token_lifetime</code>
+          沒設、吃到 Cloudflare 預設值 5 分鐘,第一版把它拉到允許上限
+          <code>"24h"</code>、<code>session_duration</code> 拉到
+          <code>"730h"</code>,套用後使用者仍回報同樣症狀。用瀏覽器
+          登入一次直接看 argocd-server log,claim 的
+          <code>exp - iat</code> 精確還是 300 秒——證明
+          <code>access_token_lifetime</code> 這個欄位對「Access for
+          SaaS」這個整合模式根本沒有生效。想接上 ArgoCD 官方的
+          <code>refreshTokenThreshold</code> 靜默續期,結果
+          <code>terraform validate</code> 直接報 <code>saas_app.scopes</code>
+          只能是 openid/groups/email/profile 四選,<code>offline_access</code>
+          連送都送不出去——Cloudflare 這個整合模式從協定層面就不會發
+          refresh_token,5 分鐘固定上限是平台限制,不是設定沒調對。</li>
+        <li><span class="cl-tag cl-fix">fix</span> 改用 ArgoCD 內建 Dex
+          當中介層(<code>roles/argocd</code> 的 <code>dex.enabled: true</code>
+          + <code>configs.cm.["dex.config"]</code>,取代直連的
+          <code>oidc.config</code>)。ArgoCD 看到的 id_token 改成 Dex
+          自己簽發,效期由新的 <code>argocd_dex_id_token_expiry</code>
+          role 變數控制(使用者要求「完全不要跳轉」,設
+          <code>8760h</code>/1 年)——Dex 對 Cloudflare 的連線只在使用者
+          互動登入那一刻用一次驗證身份,不需要背景 refresh,Cloudflare
+          不發 refresh_token 對這條新路徑完全沒影響。
+          <code>cloudflare/access.tf</code> 的 <code>argocd_sso</code>
+          只是 <code>redirect_uris</code> 多加一條 Dex 固定回呼路徑
+          <code>/api/dex/callback</code>(舊的 <code>/auth/callback</code>
+          留著當回退錨點,不用重建整個 Application)。</li>
+        <li><span class="cl-tag cl-fix">fix</span> 接上 Dex 後連續撞到兩個
+          「Cloudflare id_token 內容跟 Dex 預期不一致」的 bug,都是真的
+          登入一次、看 argocd-dex-server log 才抓到:Dex 的 oidc
+          connector 預設要求 <code>name</code> claim,Cloudflare 這個
+          帳號的 <code>name</code> 是 <code>null</code>(GitHub 沒設公開
+          顯示名稱),改用 <code>userNameKey: email</code> 解決;修完後
+          換踩到 Dex 還要求 <code>email_verified</code> claim 存在,
+          Cloudflare 的 id_token 根本沒有這個 claim,加
+          <code>insecureSkipEmailVerified: true</code> 跳過解決(跟
+          <code>roles/dex_test_app</code> 的 oauth2-proxy 同一種情境)。</li>
+        <li><strong>最終驗證:</strong>重新登入後直接看 argocd-server log
+          裡 Dex 簽發的 claims,<code>exp - iat</code> 精確等於
+          31536000 秒(365 天,跟設定值完全對上),<code>iss</code> 變成
+          <code>https://argocd.dough-ops.com/api/dex</code>;
+          <code>Settings → Accounts</code> 等管理頁面能正常進入,
+          <code>policy.default: role:admin</code> RBAC 不受影響。</li>
         <li><strong>文件同步更新:</strong><a href="internal-tools.html">內部工具</a>
-          的 ArgoCD OIDC 段落新增這個 bug 的說明。</li>
+          的 ArgoCD OIDC 段落改寫整段 bug 說明,含第一次失敗的修法跟
+          最終根因。</li>
       </ul>
     </div>
 
