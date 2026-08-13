@@ -1135,6 +1135,30 @@
       </ul>
     </div>
 
+    <div class="cl-entry">
+      <div class="cl-date">2026-08-13 · EXECUTION 再加 decommission,改成下拉選單</div>
+      <h3><span class="cl-tag cl-feat">feat</span> 不砍 VM 也能把叢集狀態清乾淨;<code>EXECUTION</code> 從自由輸入的文字框改成下拉選單</h3>
+      <ul>
+        <li><span class="cl-tag cl-feat">feat</span> 新增 <code>playbooks/decommission.yml</code>:對所有
+          <code>k8s_nodes</code>(masters/lbs/workers,不含 <code>tor</code>/<code>bastion</code>)跑
+          <code>kubeadm reset</code>、清 CNI/cilium 網卡殘留、清這個節點在 FRR 裡宣告的 PodCIDR——完全重用既有的
+          <code>playbooks/kubeadm-reset.yml</code>(<code>import_playbook</code>,不重複維護一份邏輯),額外清掉
+          bastion 上殘留、指向現在已經失效的叢集的 kubeconfig(<code>/root/.kube/config</code> 跟
+          <code>/home/ubuntu/.kube/config</code>),最後把這些節點全部重開機。跟 <code>kubeadm-reset.yml</code>
+          的差異是那個是「準備重新 <code>kubeadm init</code>」的過渡步驟,這個是終態——機器留著、乾乾淨淨地停在
+          那裡,之後想裝回來重跑 <code>playbooks/k8s.yml</code> 就好。</li>
+        <li><span class="cl-tag cl-feat">feat</span> <code>roles/gitlab_cd_repo</code> 加
+          <code>EXECUTION=decommission</code> 這個第四個分支——純 ansible,不碰 terraform/OpenStack 憑證。</li>
+        <li><span class="cl-tag cl-feat">feat</span> <code>EXECUTION</code> 這個頂層 <code>variables</code> 加上
+          GitLab CI 原生支援的 <code>options</code> 陣列(預先列出合法值),「Run pipeline」畫面因此把它畫成
+          下拉選單,不是自由輸入的文字框——選錯字這種失誤直接在 UI 層被擋掉,不用等 job script 裡的
+          <code>case ... *)</code> 分支才報錯。</li>
+        <li><strong>驗證狀態:</strong>跟前一個條目(同一天稍早)一樣的本機驗證(YAML 語法、內嵌 script
+          <code>bash -n</code>、<code>ansible-playbook --syntax-check</code>),但<strong>這兩項改動還沒套用到
+          bastion</strong>,也還沒真的觸發過——使用者要求先更新文件、commit,套用/觸發留待之後。</li>
+      </ul>
+    </div>
+
     <div class="page-nav">
       <a class="prev" href="troubleshooting.html"><span class="dir">上一頁</span><span class="ttl">← Bug 事後檢討</span></a>
       <a class="next" href="index.html"><span class="dir">回到</span><span class="ttl">總覽 →</span></a>
