@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Terraform / OpenStack — k8s + BGP Lab 技術詳解</title>
+<title>Terraform / OpenStack — k8s + BGP Lab 技術文件</title>
 <link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
@@ -12,16 +12,17 @@
   <div class="sidebar-logo">
     <a class="sidebar-logo-link" href="index.html">
       <h1>🛰️ k8s + BGP Lab</h1>
-      <span>OpenStack Lab · 技術詳解 v15</span>
+      <span>OpenStack Lab 技術文件</span>
     </a>
   </div>
   <nav>
     <div class="nav-group">
-      <div class="nav-group-label">總覽</div>
+      <div class="nav-group-label">開始</div>
       <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
       <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
       <a class="nav-link" href="user-guide.html"><span class="icon">🧑‍💻</span> 叢集使用手冊</a>
       <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+      <a class="nav-link" href="glossary.html"><span class="icon">📖</span> 術語表</a>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">網路架構</div>
@@ -32,36 +33,39 @@
       <div class="nav-group-label">基礎設施</div>
       <a class="nav-link active" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
       <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
-      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
     </div>
     <div class="nav-group">
-      <div class="nav-group-label">Ansible 自動化</div>
-      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <div class="nav-group-label">叢集元件</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> Ansible 框架設計</a>
       <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
       <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
       <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
       <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
       <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
       <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試與 smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">對外入口與身份驗證</div>
       <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
       <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">📋</span> Cloudflare 設定清單</a>
       <a class="nav-link" href="role-vault.html"><span class="icon">🔒</span> Role: vault</a>
       <a class="nav-link" href="role-keycloak-dex.html"><span class="icon">🪪</span> Role: keycloak / dex</a>
       <a class="nav-link" href="identity-federation-flow.html"><span class="icon">🧩</span> 身份聯邦登入流程</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">平台服務</div>
       <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
       <a class="nav-link" href="role-gitlab.html"><span class="icon">🦊</span> Role: gitlab</a>
       <a class="nav-link" href="role-argocd.html"><span class="icon">🐙</span> Role: argocd</a>
-      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
-      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
-    </div>
-    <div class="nav-group">
-      <div class="nav-group-label">Cloudflare 手動設定</div>
-      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具</a>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">專案紀錄</div>
       <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
-      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">🗒️</span> Changelog</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB 歷史</a>
     </div>
   </nav>
 </aside>
@@ -69,8 +73,9 @@
 <div class="main">
   <header class="topbar">
     <div class="topbar-left">
-      <button class="menu-btn" aria-label="Toggle menu">☰</button>
-      <span class="topbar-crumb">Lab Docs / <strong>Terraform / OpenStack</strong></span>
+      <button class="menu-btn" aria-label="切換選單">☰</button>
+      <span class="topbar-crumb">基礎設施 /
+        <strong>Terraform / OpenStack</strong></span>
     </div>
     <div class="topbar-right">
       <span class="topbar-badge">cloudnative.tw · AS 65000</span>
@@ -82,182 +87,280 @@
 
   <div class="content">
 
-    <h2><span class="eyebrow">基礎設施</span>Terraform / OpenStack 層</h2>
-    <p class="lede">這一層負責的是「IaaS」——虛擬機器、網路、路由器、security group、
-      floating IP。這一層完全不知道 Kubernetes 存在;它的責任只是把 9 台 VM 跟
-      它們之間的網路可達性準備好,交給 <a href="ansible-framework.html">Ansible
-      層</a>去把 CRI-O/kubeadm/Cilium 裝上去。</p>
+    <h2><span class="eyebrow">基礎設施</span>
+    Terraform / OpenStack</h2>
 
-    <h3>VM 資源清單</h3>
-    <p>全部定義在 <code>terraform.tfvars</code> 的 <code>vms</code> map 裡,
-      每個角色的 flavor 大小是刻意選的——master/lb 用小 flavor 是因為它們
-      本身不太吃資源(etcd/apiserver/scheduler/kube-proxy/cilium-agent 都不重),
-      worker 用大一點的 flavor 是因為之後真正的工作負載會排程到那裡。</p>
+<p class="lede">這一層是 IaaS：虛擬機器、網路、路由器、security group、Floating IP 與 Cinder 資料碟，全部由 <code>openstack/</code> 目錄的 Terraform 管理。它完全不知道 Kubernetes 存在，只負責把 10 台 VM 和它們之間的網路準備好，交給 <a href="ansible-framework.html">Ansible 層</a>安裝 CRI-O、kubeadm 與 Cilium。</p>
 
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>名稱</th><th>k8s-net IP</th><th class="mono">flavor</th><th>bgp_role</th><th>角色</th></tr>
-        </thead>
-        <tbody>
-          <tr><td class="mono">tor</td><td class="mono">10.10.0.10</td><td class="mono">d1.medium</td><td class="mono">tor</td><td>Route reflector + apiserver haproxy</td></tr>
-          <tr><td class="mono">bastion</td><td class="mono">10.10.0.11</td><td class="mono">d1.medium</td><td class="mono">bastion</td><td>唯一操作入口,唯一有 floating ip,不裝 FRR</td></tr>
-          <tr><td class="mono">ms-0001~3</td><td class="mono">10.10.0.20~22</td><td class="mono">d1.medium</td><td class="mono">peer</td><td>Control-plane(etcd + apiserver + scheduler + controller-manager)</td></tr>
-          <tr><td class="mono">l4-0001~2</td><td class="mono">10.10.0.30~31</td><td class="mono">d1.medium</td><td class="mono">peer</td><td>原規劃當 L4LB,現在也是一般 worker</td></tr>
-          <tr><td class="mono">ap-0001~2</td><td class="mono">10.10.0.40~41</td><td class="mono">d2.large</td><td class="mono">peer</td><td>純 worker,flavor 較大準備跑實際工作負載</td></tr>
-        </tbody>
-      </table>
-    </div>
+<h3 id="vms">VM 資源清單</h3>
+<p>所有 VM 定義在 <code>terraform.tfvars</code> 的 <code>vms</code> map。新增或移除節點只要改這個 map，再執行 <code>terraform apply</code>，Ansible 的 inventory 會從 <code>terraform output</code> 自動重新產生。</p>
 
-    <div class="callout callout-info">
-      <p><strong><code>bgp_role</code> 目前只有三種有效值在用</strong>:
-      <code>tor</code>、<code>bastion</code>、<code>peer</code>。<code>peer</code>
-      是一個刻意通用的角色——它只建立跟 tor 的 iBGP session、不宣告任何 prefix
-      (<code>announce_prefix = ""</code>)。變數定義裡還留著
-      <code>node</code>/<code>l4lb</code> 兩個舊角色(見
-      <code>variables.tf</code>),那是 <a href="l4lb-history.html">Phase 1
-      DSR 驗證</a>用的角色,目前的 <code>terraform.tfvars</code> 沒有任何一台
-      機器用它們,但程式邏輯還留著沒刪——之後如果要重現/延伸 DSR demo,
-      不用重寫這段 template 邏輯。</p>
-    </div>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>名稱</th><th>k8s-net IP</th><th class="mono">flavor</th><th>bgp_role</th><th>角色</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="mono">tor</td><td class="mono">10.10.0.10</td><td class="mono">d2.small</td><td class="mono">tor</td><td>route reflector、apiserver haproxy</td></tr>
+      <tr><td class="mono">bastion</td><td class="mono">10.10.0.11</td><td class="mono">d2.xlarge</td><td class="mono">bastion</td><td>唯一的操作入口與 Floating IP；跑 Ansible 容器、Vault、Keycloak、GitLab 等；掛 2 顆資料碟</td></tr>
+      <tr><td class="mono">ms-0001</td><td class="mono">10.10.0.20</td><td class="mono">d1.medium</td><td class="mono">peer</td><td>control plane（etcd、apiserver、scheduler、controller-manager）</td></tr>
+      <tr><td class="mono">ms-0002 ~ 0003</td><td class="mono">10.10.0.21 ~ 22</td><td class="mono">d2.medium</td><td class="mono">peer</td><td>同上</td></tr>
+      <tr><td class="mono">l4-0001</td><td class="mono">10.10.0.30</td><td class="mono">d1.medium</td><td class="mono">peer</td><td>一般 worker，帶 <code>l4lb</code> 標籤</td></tr>
+      <tr><td class="mono">l4-0002</td><td class="mono">10.10.0.31</td><td class="mono">d2.medium</td><td class="mono">peer</td><td>同上</td></tr>
+      <tr><td class="mono">ap-0001</td><td class="mono">10.10.0.40</td><td class="mono">d1.large</td><td class="mono">peer</td><td>worker，實際工作負載排程的地方</td></tr>
+      <tr><td class="mono">ap-0002 ~ 0003</td><td class="mono">10.10.0.41 ~ 42</td><td class="mono">d2.large</td><td class="mono">peer</td><td>同上</td></tr>
+    </tbody>
+  </table>
+</div>
 
-    <p>所有機器統一 <code>boot_mode = "image"</code>(直接從 <code>Ubuntu-24.04</code>
-      image 開機,不額外掛 boot volume)、統一 <code>keypair_name = "k8s"</code>。
-      image 名稱大小寫是刻意對齊 Glance 裡實際的名稱(<code>Ubuntu-24.04</code>,
-      首字大寫)——這個專案早期踩過一次大小寫不符直接讓 <code>terraform apply</code>
-      失敗的坑。</p>
+<p><code>bgp_role</code> 只有三種值在使用：<code>tor</code>、<code>bastion</code>、<code>peer</code>。<code>peer</code> 是刻意通用的角色，只與 tor 建立 iBGP session，不宣告任何 prefix（<code>announce_prefix = ""</code>）。master、lb、worker 的差異只存在於 Ansible 層，inventory 依主機名稱前綴（<code>ms-</code>、<code>l4-</code>、<code>ap-</code>）分組，不看 <code>bgp_role</code>。</p>
 
-    <h3>兩個網路,兩份不同的 cloud-init</h3>
-    <p>每台 VM 的 <code>user_data</code> 由 Terraform 的 <code>templatefile()</code>
-      在 <code>main.tf</code>(<code>locals.user_data</code>)組出來,依
-      <code>bgp_role</code> 分成兩條路:</p>
+<h4 id="boot">開機方式與共用設定</h4>
+<ul>
+  <li>所有 VM 的 <code>boot_mode</code> 都是 <code>boot_mode = "image"</code>，映像是 <code>Ubuntu-24.04</code>。Glance 裡的名稱首字大寫，大小寫不符會讓 <code>terraform apply</code> 失敗。<code>keypair_name = "k8s"</code> 也一律相同。</li>
+  <li>多數 VM 直接從 image 開機。有資料碟的 VM（目前只有 bastion）改成用明確的 <code>block_device</code> 宣告開機碟，從 image 建一顆 100 GB 的 Cinder volume 開機，<code>image_name</code> 留空。這個雲的 Nova 不接受 <code>image_name</code> 屬性與額外 block device 混用，會回 400，見 <a href="troubleshooting.html#bug-31">Bug #31</a>、<a href="troubleshooting.html#bug-32">#32</a>。</li>
+  <li>開機碟是 Cinder volume 後，guest 的磁碟走 SCSI bus，裝置名稱是 <code>/dev/sdb</code>、<code>/dev/sdc</code>，不是 <code>vdb</code>、<code>vdc</code>，見 <a href="troubleshooting.html#bug-33">Bug #33</a>。</li>
+  <li>keypair 資源 <code>openstack_compute_keypair_v2.k8s</code> 只註冊公鑰，來源是 <code>ansible/files/ssh/id_ed25519.pub</code>。私鑰完全不經過 Terraform，也不會出現在 state 裡，管理方式見 <a href="ansible-framework.html#secrets">Ansible 框架設計</a>。</li>
+</ul>
 
-    <div class="nic-grid">
-      <div class="nic-card">
-        <h5>templates/frr-init.sh.tftpl <span class="flag">tor / peer</span></h5>
-        <dl>
-          <dt>安裝</dt><dd>FRR</dd>
-          <dt>設定</dt><dd>ip_forward、per-interface rp_filter/redirects、FRR 設定檔(見 <a href="bgp-fabric.html">FRR / iBGP Fabric</a>)</dd>
-          <dt>用在</dt><dd>tor、bastion 以外所有節點(現在全部是 <code>peer</code>)</dd>
-        </dl>
-      </div>
-      <div class="nic-card">
-        <h5>templates/bastion-init.sh.tftpl <span class="flag">bastion</span></h5>
-        <dl>
-          <dt>安裝</dt><dd>Docker(官方 apt repo)、把 <code>ubuntu</code> 加進 docker group</dd>
-          <dt>設定</dt><dd>完全不碰 FRR/BGP 相關設定,也不裝 FRR</dd>
-          <dt>用在</dt><dd>只有 bastion</dd>
-        </dl>
-      </div>
-    </div>
+<h3 id="cloud-init">兩份 cloud-init</h3>
+<p>每台 VM 的 <code>user_data</code> 由 <code>main.tf</code> 的 <code>locals.user_data</code> 用 <code>templatefile()</code> 組出來。bastion 同時套用兩份模板，其餘節點只套用 FRR 那份。</p>
 
-    <p>這個分流本身就是「bastion 不是資料平面成員」這個設計決定在 Terraform
-      層的體現——bastion 有 k8s-net 的 IP(<code>10.10.0.11</code>),但完全
-      不參與 iBGP,所以它連得到其他節點的<strong>節點位址</strong>(flat
-      subnet 直連),但連不到任何 <strong>Pod IP</strong>(需要 BGP 學到的路由,
-      bastion 沒有),詳見 <a href="network-architecture.html">網路架構總覽</a>。</p>
+<div class="nic-grid">
+  <div class="nic-card">
+    <h5>templates/frr-init.sh.tftpl <span class="flag">所有 VM</span></h5>
+    <dl>
+      <dt>安裝</dt>
+      <dd>FRR（<code>frr</code>、<code>frr-pythontools</code>）</dd>
+      <dt>設定</dt>
+      <dd>root 的 SSH 公鑰、sysctl（forwarding、rp_filter、redirects、ARP）、<code>/etc/frr/frr.conf</code>，細節見 <a href="bgp-fabric.html">FRR / iBGP Fabric</a></dd>
+      <dt>角色</dt>
+      <dd>tor 用 <code>tor</code>；其餘節點與 bastion 都用 <code>peer</code></dd>
+    </dl>
+  </div>
+  <div class="nic-card">
+    <h5>templates/bastion-init.sh.tftpl <span class="flag">只有 bastion</span></h5>
+    <dl>
+      <dt>安裝</dt>
+      <dd>Docker（官方 apt repo）；<code>ubuntu</code> 加入 docker group</dd>
+      <dt>設定</dt>
+      <dd>格式化並掛載兩顆資料碟、<code>/etc/docker/daemon.json</code></dd>
+      <dt>順序</dt>
+      <dd>先跑這份，再跑 frr-init；兩份用 <code>join</code> 接成同一份 user_data</dd>
+    </dl>
+  </div>
+</div>
 
-    <h3>網路資源:為什麼要拆成兩張網路</h3>
-    <p>這是整個基礎設施最核心的一個決定,完整的網路架構角度分析在
-      <a href="network-architecture.html">網路架構總覽</a>,這裡列 Terraform
-      實際怎麼設定:</p>
+<p>bastion 因此也跑 FRR，並以 <code>peer</code> 角色加入 iBGP：它學得到所有 PodCIDR，但不宣告任何 prefix。bastion 到 Pod IP 的路徑與其他節點相同，經由 tor。</p>
 
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>資源</th><th>設定</th><th>為什麼</th></tr></thead>
-        <tbody>
-          <tr>
-            <td class="mono">k8s_subnet_v4</td>
-            <td class="mono">10.10.0.0/24<br><code>no_gateway = true</code></td>
-            <td>不掛任何 Neutron Router,連 DHCP 都不會發預設路由——逼所有
-              k8s-net 內部的可達性都要靠 iBGP 學到的具體路由,不能有任何一張
-              介面「剛好贏得」default route 的僥倖情況</td>
-          </tr>
-          <tr>
-            <td class="mono">mgmt_subnet</td>
-            <td class="mono">192.168.200.0/24<br>掛 <code>mgmt_router</code></td>
-            <td><code>mgmt_router</code> 接 <code>external_network</code>,
-              是整個架構<strong>唯一</strong>的 SNAT 出口——ansible 對外
-              (apt/helm/image pull)、DNS(<code>8.8.8.8</code>/<code>8.8.4.4</code>)
-              全部走這裡</td>
-          </tr>
-          <tr>
-            <td class="mono">fabric port(每台 VM 一個)</td>
-            <td class="mono">port_security_enabled = false</td>
-            <td>Neutron OVS 的 conntrack-based 防火牆跟 BGP 動態學到的路由、
-              (歷史上)DSR 非對稱路由天生衝突,見下方完整說明</td>
-          </tr>
-          <tr>
-            <td class="mono">mgmt port(每台 VM 一個)</td>
-            <td class="mono">維持 Neutron 預設 security</td>
-            <td>一般端點,不轉發任何流量,沒有理由關掉基本防護</td>
-          </tr>
-          <tr>
-            <td class="mono">bastion_fip</td>
-            <td class="mono">只掛在 bastion 的 mgmt port</td>
-            <td>全架構唯一的 floating ip,壓縮對外攻擊面到只有一台機器</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+<p>root 登入需要額外處理。Ubuntu cloud image 預設 <code>disable_root=true</code>，cloud-init 會把同一把公鑰寫進 <code>/root/.ssh/authorized_keys</code>，但前面加了一個 forced command，一登入就印出提示並斷線。sshd 取第一個命中的那行，所以只在後面追加乾淨的一行沒有用。frr-init 先把含有這把公鑰的既有行全部刪掉，再追加乾淨版本。</p>
 
-    <h3>為什麼 fabric port 的 <code>port_security_enabled</code> 是 <code>false</code>,是最終結論不是 TODO</h3>
-    <p>這個決定在專案裡被重新驗證過一次(mgmt-net 分離之後,一度嘗試改回
-      <code>port_security_enabled = true</code> + <code>allowed_address_pairs</code>,
-      結果失敗,又改回 <code>false</code>)——值得在這裡把完整推論寫清楚,
-      因為表面上看「關掉安全機制」總是可疑的,需要證明不是偷懶。</p>
+<h4 id="docker-daemon">bastion 的 Docker 設定</h4>
+<p><code>/etc/docker/daemon.json</code> 必須在安裝 <code>docker-ce</code> 之前寫好，因為 <code>docker0</code> 在套件安裝完成、dockerd 第一次啟動時就建立，之後補寫的 MTU 設定不會重建它。內容有三項：</p>
+<ul>
+  <li><code>"mtu": 1442</code>：只影響 default bridge。網路的實體 MTU 是 1442，Docker 預設的 1500 會讓大封包被靜默丟棄，見 <a href="troubleshooting.html#bug-10">Bug #10</a>。</li>
+  <li><code>"default-network-opts"</code>（Docker 23.0 以上）：讓之後每個新建的 network 也套用 MTU 1442，包含 GitHub Actions runner 為每個 job 建立的 <code>github_network_*</code>，見 <a href="troubleshooting.html#bug-38">Bug #38</a>。</li>
+  <li><code>"default-address-pools"</code>：新建 network 從 <code>10.99.0.0/16</code> 切 /24。Docker 預設會依序配發 172.17、172.18⋯⋯，其中 172.18.0.0/16 與 service-cidr 重疊，見 <a href="troubleshooting.html#bug-45">Bug #45</a>。</li>
+</ul>
 
-    <ol class="steps">
-      <li><div><strong>Neutron 的 security group 是 conntrack-based 的狀態防火牆</strong>
-        ——它不只檢查單一封包是否符合規則,還會追蹤整條 TCP 連線的狀態
-        (NEW → ESTABLISHED),只有已經被標記成 ESTABLISHED 的連線,後續封包
-        才會被放行。</div></li>
-      <li><div><strong>DSR(Direct Server Return,見 <a href="l4lb-history.html">L4LB
-        歷史頁面</a>)的設計本質就是非對稱路由</strong>——去程流量經過負載平衡器,
-        回程流量從 realserver 直接送回 client,完全不經過負載平衡器。</div></li>
-      <li><div><strong>兩者放在一起:負載平衡器的 Neutron port 只會看到「去程」
-        (SYN)</strong>,它的 conntrack 狀態機永遠等不到回程的 SYN-ACK,
-        連線永遠卡在 NEW,標記不了 ESTABLISHED。</div></li>
-      <li><div><strong>client 後續送出的 ACK / 實際資料封包,因為對應的連線
-        狀態不是 ESTABLISHED,被 conntrack 當成「不合法的狀態轉換」直接丟棄</strong>
-        ——這是 DSR/非對稱路由架構跟任何 conntrack-based 防火牆的結構性衝突,
-        不是規則寫錯,加再多 <code>allowed_address_pairs</code>(只解決
-        anti-spoofing/來源位址檢查,完全不碰 conntrack 狀態機)都解決不了。</div></li>
-    </ol>
-    <p>用三點同時 tcpdump(tor / l4lb / realserver)實測驗證過這個結論:
-      l4lb 的 port 上只看得到 SYN,永遠看不到 SYN-ACK。這也解釋了為什麼
-      即使 <a href="l4lb-history.html">DSR 階段已經是歷史</a>,這個
-      <code>port_security_enabled = false</code> 的決定仍然保留到現在——
-      整個 k8s-net 網段的性質(需要承載動態、非對稱、由軟體層決定的路由)
-      沒有變,即使目前的工作負載(kubeadm/Cilium)本身不再直接依賴 DSR。</p>
+<h3 id="networks">網路資源</h3>
+<p>為什麼要拆成兩張網路，見<a href="network-architecture.html#two-networks">網路架構總覽</a>。下表是 Terraform 實際的設定：</p>
 
-    <h3>Security Group 規則:寫了但目前不生效的部分</h3>
-    <p><code>k8s-ibgp-lab-sg</code>(刻意取獨立名稱,避開這個 OpenStack
-      專案裡一個已存在、非 Terraform 管理的同名殘留 security group 造成
-      API 名稱解析歧義)裡有 4 條規則:SSH(22)、ICMP、iBGP(179)、
-      Service port。因為 fabric port 已經整段關掉 port security,
-      後兩條(179、service port)目前<strong>不會被實際套用</strong>
-      ——留著純粹是文件用途,記錄「如果哪天恢復 port security,這是
-      當時預期需要開的 port」。</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>資源</th><th>設定</th><th>為什麼</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="mono">k8s_subnet_v4</td>
+        <td class="mono">10.10.0.0/24<br><code>no_gateway = true</code></td>
+        <td>不掛 Neutron Router，連 DHCP 都不發預設路由。所有 k8s-net 內的可達性都靠 iBGP 學到的具體路由，不會有哪張網卡剛好贏得 default route</td>
+      </tr>
+      <tr>
+        <td class="mono">mgmt_subnet</td>
+        <td class="mono">192.168.200.0/24<br>掛 <code>mgmt_router</code></td>
+        <td><code>mgmt_router</code> 接外部網路（變數 <code>external_network_name</code>，預設 <code>public</code>），是唯一的 SNAT 出口。DNS 指向 <code>8.8.8.8</code>、<code>8.8.4.4</code></td>
+      </tr>
+      <tr>
+        <td class="mono">fabric port（每台 VM 一個）</td>
+        <td class="mono">port_security_enabled = false<br>固定 IP</td>
+        <td>見下一節</td>
+      </tr>
+      <tr>
+        <td class="mono">mgmt port（每台 VM 一個）</td>
+        <td class="mono">維持預設 port security<br>掛 <code>k8s-ibgp-lab-sg</code></td>
+        <td>一般端點，不轉發流量，沒有理由關掉基本防護</td>
+      </tr>
+      <tr>
+        <td class="mono">bastion_fip</td>
+        <td class="mono">只關聯 bastion 的 mgmt port</td>
+        <td>全架構唯一的 Floating IP，只供 SSH 與維運，對外攻擊面縮到一台機器</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
-    <h3>BGP ASN 從哪裡設定</h3>
-    <p><code>variables.tf</code> 的 <code>var.bgp_asn</code>(預設
-      <code>65000</code>)會透過 <code>templatefile()</code> 傳進
-      cloud-init,渲染進每台機器的 FRR 設定。這個值<strong>只存在 Terraform
-      這一層</strong>——Ansible 端沒辦法直接讀 Terraform 變數,只能在
-      <code>ansible/inventory/group_vars/all/main.yml</code> 手動維護一份一樣的
-      <code>bgp_asn: 65000</code>,兩邊改的時候要記得一起改,細節見
-      <a href="role-cilium.html">Role: cilium</a>(<code>bgp_announce</code>
-      需要這個值來組 vtysh 指令)。</p>
+<h4 id="security-group">Security Group</h4>
+<p><code>k8s-ibgp-lab-sg</code> 掛在每台 VM 的 mgmt port 上，實際生效的規則是 SSH（22/tcp，來源 <code>0.0.0.0/0</code>）和 ICMP。名稱刻意與專案裡一個非 Terraform 管理的殘留 <code>k8s-sg</code> 區隔，同名會讓 Nova 在建立 VM 時解析 security group 名稱產生歧義。</p>
+
+<h3 id="port-security">fabric port 關閉 port security</h3>
+<p>k8s-net 上每台 VM 的 fabric port 都設 <code>port_security_enabled = false</code>。這個決定被重新驗證過一次：mgmt-net 分離之後，曾改回 <code>true</code> 搭配 <code>allowed_address_pairs</code>，結果失敗，又改回 <code>false</code>。</p>
+
+<div class="adr">
+  <p><strong>決策</strong>：所有 fabric port 完全關閉 port security，mgmt port 保留。</p>
+  <p><strong>理由</strong>：Neutron 的 OVS security group 是 conntrack-based 的狀態防火牆，與 BGP 動態路由和非對稱路由天生衝突（推論見下方）。tor 與每個節點都要轉發「不是自己」的來源與目的位址，Neutron 預設的 anti-spoofing 也會擋掉這類流量，這是 <a href="troubleshooting.html#bug-3">Bug #3</a>。</p>
+  <p><strong>考慮過的替代方案</strong>：<code>port_security_enabled = true</code> 加 <code>allowed_address_pairs</code> — 只放寬來源位址檢查，不影響 conntrack 狀態機，實測仍然失敗（<a href="troubleshooting.html#bug-6">Bug #6</a>）。</p>
+  <p><strong>代價</strong>：fabric port 上沒有 Neutron 層的任何過濾，k8s-net 的存取控制完全落在節點自己的設定。這個網段只承載 Kubernetes 資料平面，不對外，風險限縮在 mgmt-net 與 Floating IP 之外。</p>
+</div>
+
+<h4 id="port-security-proof">推論與實測</h4>
+<ol class="steps">
+  <li><div><strong>Neutron 的 security group 是 conntrack-based 的狀態防火牆</strong>：它追蹤整條 TCP 連線的狀態，從 NEW 到 ESTABLISHED。只有已標記為 ESTABLISHED 的連線，後續封包才會放行。</div></li>
+  <li><div><strong>DSR 的本質是非對稱路由</strong>：去程經過負載平衡器，回程由 realserver 直接送回 client，完全不經過負載平衡器（背景見 <a href="l4lb-history.html">DSR／L4LB 歷史</a>）。</div></li>
+  <li><div><strong>兩者合在一起</strong>：負載平衡器的 Neutron port 只看得到去程的 SYN，conntrack 永遠等不到回程的 SYN-ACK，連線卡在 NEW，無法標記為 ESTABLISHED。</div></li>
+  <li><div><strong>後續封包被丟棄</strong>：client 之後送出的 ACK 與資料封包，因為連線狀態不是 ESTABLISHED，被 conntrack 當成不合法的狀態轉換丟掉。<code>allowed_address_pairs</code> 只處理來源位址檢查，碰不到 conntrack 狀態機，加再多都沒用。</div></li>
+</ol>
+<p>用三個點同時 tcpdump（tor、l4lb、realserver）驗證過：l4lb 的 port 上只看得到 SYN，看不到 SYN-ACK。DSR 階段雖然已是歷史，k8s-net 仍需要承載由軟體層動態決定、可能非對稱的路由，所以這個決定沿用至今。</p>
+
+<h3 id="data-volumes">資料碟與 prevent_destroy</h3>
+<p>bastion 額外掛 2 顆 100 GB 的 NVMe Cinder volume，獨立於 instance 的生命週期，用來存放不能隨 VM 消失的資料：</p>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>volume</th><th>裝置</th><th>掛載點</th><th>用途</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">bastion-nfs-data</td><td class="mono">/dev/sdb</td><td class="mono">/srv/nfs/k8s</td><td>NFS 匯出目錄，給叢集內的 csi-driver-nfs 與監控資料使用</td></tr>
+      <tr><td class="mono">bastion-user-data</td><td class="mono">/dev/sdc</td><td class="mono">/data/userdata</td><td>一般使用者資料；其中 <code>userap</code> 子目錄以 bind mount 蓋回 <code>/userap</code>（Vault、Keycloak 等的資料都在此）</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<ul>
+  <li><strong>用 cloud-init 格式化與掛載</strong>：資料碟必須在 instance 建立當下就 attach，做法是 <code>main.tf</code> 的 <code>block_device</code> 加 <code>boot_index = -1</code>，因為 user_data 只在第一次開機執行一次。事後才 attach 的 <code>openstack_compute_volume_attach_v2</code> 會與 cloud-init 競爭，磁碟可能還沒出現腳本就跑完了。</li>
+  <li><strong>只在沒有檔案系統時才 <code>mkfs.ext4</code></strong>：同一顆 volume 重新接到重建後的 bastion 時，不會洗掉舊資料。<code>/userap</code> 也只在 volume 內還沒有對應子目錄時才搬移一次。</li>
+  <li><strong>不處理 <code>/home</code> 與 <code>/root</code></strong>：那兩個是 cloud-init 寫入 SSH <code>authorized_keys</code> 的路徑。bastion 重建又換了 keypair 時，bind mount 舊資料上去會把自己鎖在外面，風險大於好處。</li>
+  <li><strong>裝置順序</strong>：<code>data_volumes</code> list 的順序就是 attach 順序，<code>bastion-init.sh.tftpl</code> 寫死 sdb 為 NFS、sdc 為使用者資料，調整順序要同步改該檔案。</li>
+</ul>
+
+<div class="adr">
+  <p><strong>決策</strong>：兩顆資料碟同時設定 <code>delete_on_termination = false</code> 與 <code>lifecycle.prevent_destroy = true</code>。</p>
+  <p><strong>理由</strong>：前者只擋住「instance 被刪除或替換」；<code>terraform destroy</code> 或從 tfvars 移除 <code>data_volumes</code> 條目，仍會直接刪除 volume 資源。後者補上這一層。</p>
+  <p><strong>考慮過的替代方案</strong>：只用 <code>delete_on_termination = false</code> — 擋不住 volume 資源本身被 destroy。把資料放在 Terraform 之外手動管理 — 失去 volume 與 instance 綁定的宣告式描述。</p>
+  <p><strong>代價</strong>：只要 plan 含有刪除這兩個資源，整個 plan／apply／destroy 都會直接報錯中止，這是 Terraform 的既定行為，不只擋這一個資源。要拆掉其他資源又保留 volume，必須先把它們從 state 移除。</p>
+</div>
+
+<p><code>make teardown</code> 與 <code>make build</code> 已把下面的流程自動化，ID 暫存在 <code>openstack/.data-volume-ids.json</code>。手動版本如下，完整情境見<a href="teardown.html">全部拆除</a>：</p>
+
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title"><code>openstack/</code> 目錄 · 拆除前</span></div>
+  <pre><span class="prompt">$</span> <span class="cmd">terraform output data_volume_ids</span>
+<span class="prompt">$</span> <span class="cmd">terraform state rm \
+    'openstack_blockstorage_volume_v3.data_volumes["bastion__nfs-data"]' \
+    'openstack_blockstorage_volume_v3.data_volumes["bastion__user-data"]'</span>
+<span class="prompt">$</span> <span class="cmd">terraform destroy</span></pre>
+</div>
+<p><strong>預期結果</strong>：<code>state rm</code> 只改 state，不呼叫 OpenStack API，volume 不受影響；<code>destroy</code> 不再被 <code>prevent_destroy</code> 擋下。</p>
+
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title"><code>openstack/</code> 目錄 · 重建時接回同一顆 volume</span></div>
+  <pre><span class="prompt">$</span> <span class="cmd">terraform import 'openstack_blockstorage_volume_v3.data_volumes["bastion__nfs-data"]' &lt;記下的 id&gt;</span>
+<span class="prompt">$</span> <span class="cmd">terraform import 'openstack_blockstorage_volume_v3.data_volumes["bastion__user-data"]' &lt;記下的 id&gt;</span>
+<span class="prompt">$</span> <span class="cmd">terraform apply</span></pre>
+</div>
+<p><strong>預期結果</strong>：新的 bastion 掛上舊 volume，既有檔案系統與資料原封不動。只是 instance 被替換、整個 module 沒被 destroy 時，不需要 import。</p>
+
+<h3 id="state-backend">Terraform state backend</h3>
+<p><code>openstack/</code> 與 <code>cloudflare/</code> 兩份 Terraform state 都存在同一個 S3 相容 bucket，不在本機。</p>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>項目</th><th>值</th></tr></thead>
+    <tbody>
+      <tr><td>bucket</td><td class="mono">terraform-state-k8s</td></tr>
+      <tr><td>endpoint</td><td class="mono">https://s3.cloudnative.tw:6780（Ceph RGW，同時支援 Swift 與 S3 協定）</td></tr>
+      <tr><td>state key</td><td class="mono">openstack/terraform.tfstate、cloudflare/terraform.tfstate</td></tr>
+      <tr><td>region</td><td class="mono">RegionOne（虛設值，搭配 <code>skip_region_validation</code>）</td></tr>
+      <tr><td>憑證</td><td><code>.env</code> 內的 <code>AWS_ACCESS_KEY_ID</code>、<code>AWS_SECRET_ACCESS_KEY</code>，由 Keystone 的 OS-EC2 API 簽發</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="adr">
+  <p><strong>決策</strong>：使用 Terraform 的 <code>s3</code> backend，指向 Ceph RGW 的 S3 endpoint。</p>
+  <p><strong>理由</strong>：GitLab CD pipeline 的 job container 每次都從全新 clone 開始，碰不到本機才有的 state，無法安全執行 <code>terraform destroy／apply</code>。state 放在共用 bucket，本機與 CI 才會看到同一份資源清單。</p>
+  <p><strong>考慮過的替代方案</strong>：<code>swift</code> backend — 已被 Terraform 標記 deprecated，目前版本已移除。本機 state 檔 — 與 CI 不共用。</p>
+  <p><strong>代價</strong>：每次 <code>terraform init／plan／apply／destroy／output／state</code> 都必須先有那組 EC2 風格憑證；endpoint 不可用時所有 Terraform 操作都會停擺。backend 區塊沒有設定 state locking，同時對同一份 state 操作要自行避免。</p>
+</div>
+
+<p><code>make ssh</code>、<code>scripts/ansible.sh</code>、<code>scripts/build.sh</code>、<code>scripts/teardown.sh</code>、<code>scripts/sync-cloudflare-secrets.sh</code> 與重新產生 <code>hosts.ini</code> 的 pre-commit hook，都會自動從 <code>.env</code> 讀取並匯出這兩個值。只有在這些封裝之外直接執行 <code>terraform</code> 時，才需要手動 export。憑證的簽發步驟屬於一次性前置，見<a href="getting-started.html#prerequisites">從零開始建置</a>。</p>
+
+<h3 id="bgp-asn">BGP ASN 的設定位置</h3>
+<p><code>var.bgp_asn</code>（預設 <code>65000</code>）透過 <code>templatefile()</code> 傳進 cloud-init，渲染進每台機器的 FRR 設定。Ansible 讀不到 Terraform 變數，所以 <code>ansible/inventory/group_vars/all/main.yml</code> 另有一份手動維護的 <code>bgp_asn: 65000</code>，給 <code>bgp_announce</code> 組 vtysh 指令用，見 <a href="role-cilium.html">Role: cilium</a>。兩邊必須一起改。</p>
+
+<h3 id="outputs">輸出與輸入變數</h3>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>名稱</th><th>內容</th><th>誰使用</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">vm_mgmt_ips</td><td>每台 VM 的 mgmt-net 位址</td><td><code>ansible/inventory/generate_inventory.py</code>，成為 <code>ansible_host</code></td></tr>
+      <tr><td class="mono">vm_private_ips</td><td>每台 VM 的 k8s-net 位址</td><td>同上，成為 <code>fabric_ip</code></td></tr>
+      <tr><td class="mono">bastion_floating_ip</td><td>bastion 的 Floating IP</td><td>SSH 入口（<code>make ssh</code>）</td></tr>
+      <tr><td class="mono">data_volume_ids</td><td>兩顆資料碟的 Cinder volume ID</td><td>拆除與重建流程</td></tr>
+    </tbody>
+  </table>
+</div>
+<p>輸入變數有 <code>vms</code>（VM 定義）、<code>external_network_name</code>（預設 <code>public</code>）、<code>bgp_asn</code>。另有 <code>service_vip</code> 與 <code>service_port</code> 兩個變數，只服務休眠的 L4LB 程式碼，見下節。</p>
+
+<h3 id="limits">已知限制</h3>
+<h4 id="dormant-code">休眠的 Terraform 邏輯</h4>
+<p>下列程式碼目前不會被執行或不產生效果，保留的原因是 DSR 驗證環境之後可能重現，見 <a href="l4lb-history.html">DSR／L4LB 歷史</a>。</p>
+<ul>
+  <li><code>variables.tf</code> 的 <code>bgp_role</code> 型別註解仍列出 <code>node</code> 與 <code>l4lb</code>。沒有任何 VM 使用這兩個角色，<code>frr-init.sh.tftpl</code> 對應的分支（假 Pod、<code>ipvsadm</code>）不會執行，見 <a href="bgp-fabric.html#dormant-template">FRR / iBGP Fabric</a>。</li>
+  <li><code>announce_prefix</code>、<code>service_vip</code>（<code>172.31.255.1</code>）、<code>service_port</code>（<code>8080</code>）與 <code>local.backend_ips</code> 只服務上述分支。</li>
+  <li>Security group 的 179/tcp 與 service port 兩條規則掛在 mgmt port 上。BGP 與 service 流量走 fabric port，所以這兩條規則不會命中任何流量。fabric port 沒有 security group。</li>
+  <li><code>boot_mode = "volume"</code> 的分支沒有 VM 使用，涉及 <code>vms_with_volume</code> 與 <code>boot_volumes</code>。</li>
+  <li><code>data.openstack_images_image_v2.vm_image</code> 把映像名稱寫死為 <code>Ubuntu-24.04</code>，只用於有資料碟的 VM，其他 VM 才讀各自的 <code>vm_image_name</code>。</li>
+</ul>
+
+<h4 id="other-limits">其他限制</h4>
+<ul>
+  <li>資料碟的 <code>prevent_destroy</code> 讓 <code>terraform destroy</code> 不能直接使用，必須經過 <code>make teardown</code> 或上面的手動流程。</li>
+  <li>bgp_asn 在 Terraform 與 Ansible 各維護一份，沒有機制檢查兩邊一致。</li>
+</ul>
+
+<h3 id="history">演進歷史</h3>
+<ul class="cl-list">
+  <li><span class="d">2026-07-26</span>
+    <span class="k">feat</span>
+    <span>資料平面與管理平面分離：新增 mgmt-net，k8s-net 設 <code>no_gateway = true</code>（<a href="changelog.html">Changelog</a>）</span></li>
+  <li><span class="d">2026-07-26</span>
+    <span class="k">feat</span>
+    <span>測試用 fabric 換成 bastion、3 master、2 lb、2 worker</span></li>
+  <li><span class="d">2026-07-27</span>
+    <span class="k">feat</span>
+    <span>bastion 加兩顆 Cinder 資料碟</span></li>
+  <li><span class="d">2026-07-31</span>
+    <span class="k">feat</span>
+    <span>調整 flavor、擴充 bastion 資料碟，新增 <code>ap-0003</code></span></li>
+  <li><span class="d">2026-08-12</span>
+    <span class="k">feat</span>
+    <span>Terraform state 搬進 S3 相容 backend</span></li>
+</ul>
+
+<h4 id="history-state-migration">state 遷移的驗證</h4>
+<p><code>openstack/</code> 與 <code>cloudflare/</code> 各自用 <code>backend "s3" {}</code> 指向同一個 bucket，以 key 前綴區分兩份 state。遷移前後逐一比對 state 內容，兩邊都是 byte-for-byte 相同，確認搬遷過程沒有資料遺失。</p>
+<p>搬完之後，<code>make ssh</code>、<code>scripts/ansible.sh</code>、<code>scripts/build.sh</code>、<code>scripts/teardown.sh</code>、<code>scripts/sync-cloudflare-secrets.sh</code> 與重新產生 inventory 的 pre-commit hook 都會呼叫 terraform，一開始都沒有匯出 S3 憑證。後來逐一補上，沿用 <code>OS_PASSWORD</code>、<code>CLOUDFLARE_API_TOKEN</code> 同一套「從 <code>.env</code> 讀值再 export」的做法。</p>
+<p>遷移後 <code>terraform plan</code> 顯示 bastion 要整台重建。直接比對遷移前後的 state，證實這與遷移無關：<code>openstack/templates/bastion-init.sh.tftpl</code> 在 bastion 上次 apply 之後，被後續的 Cilium 與 Docker 修復 commit 改過，之後沒有再 apply。這個差異目前沒有處理，見<a href="#limits">已知限制</a>。</p>
 
     <div class="page-nav">
-      <a class="prev" href="packet-flows.html"><span class="dir">上一頁</span><span class="ttl">← 封包路徑實例</span></a>
-      <a class="next" href="bgp-fabric.html"><span class="dir">下一頁</span><span class="ttl">FRR / iBGP Fabric →</span></a>
+      <a class="prev" href="packet-flows.html"><span class="dir">上一頁</span>
+        <span class="ttl">← 封包路徑實例</span></a>
+      <a class="next" href="bgp-fabric.html"><span class="dir">下一頁</span>
+        <span class="ttl">FRR / iBGP Fabric →</span></a>
     </div>
 
     <footer class="page-footer">
-      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
-      <span>最後更新:2026-07-27</span>
+      <span>文件站原始碼：<a href="https://github.com/DoughOps/terraform-k8s-docs" target="_blank" rel="noopener">DoughOps/terraform-k8s-docs</a></span>
+      <span>最後更新：2026-11-01（對應 commit e91424f）</span>
     </footer>
   </div>
 </div>

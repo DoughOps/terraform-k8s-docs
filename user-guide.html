@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>叢集使用手冊 — k8s + BGP Lab 技術詳解</title>
+<title>叢集使用手冊 — k8s + BGP Lab 技術文件</title>
 <link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
@@ -12,16 +12,17 @@
   <div class="sidebar-logo">
     <a class="sidebar-logo-link" href="index.html">
       <h1>🛰️ k8s + BGP Lab</h1>
-      <span>OpenStack Lab · 技術詳解 v15</span>
+      <span>OpenStack Lab 技術文件</span>
     </a>
   </div>
   <nav>
     <div class="nav-group">
-      <div class="nav-group-label">總覽</div>
+      <div class="nav-group-label">開始</div>
       <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
       <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
       <a class="nav-link active" href="user-guide.html"><span class="icon">🧑‍💻</span> 叢集使用手冊</a>
       <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+      <a class="nav-link" href="glossary.html"><span class="icon">📖</span> 術語表</a>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">網路架構</div>
@@ -32,36 +33,39 @@
       <div class="nav-group-label">基礎設施</div>
       <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
       <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
-      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
     </div>
     <div class="nav-group">
-      <div class="nav-group-label">Ansible 自動化</div>
-      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <div class="nav-group-label">叢集元件</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> Ansible 框架設計</a>
       <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
       <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
       <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
       <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
       <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
       <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試與 smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">對外入口與身份驗證</div>
       <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
       <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">📋</span> Cloudflare 設定清單</a>
       <a class="nav-link" href="role-vault.html"><span class="icon">🔒</span> Role: vault</a>
       <a class="nav-link" href="role-keycloak-dex.html"><span class="icon">🪪</span> Role: keycloak / dex</a>
       <a class="nav-link" href="identity-federation-flow.html"><span class="icon">🧩</span> 身份聯邦登入流程</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">平台服務</div>
       <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
       <a class="nav-link" href="role-gitlab.html"><span class="icon">🦊</span> Role: gitlab</a>
       <a class="nav-link" href="role-argocd.html"><span class="icon">🐙</span> Role: argocd</a>
-      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
-      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
-    </div>
-    <div class="nav-group">
-      <div class="nav-group-label">Cloudflare 手動設定</div>
-      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具</a>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">專案紀錄</div>
       <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
-      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">🗒️</span> Changelog</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB 歷史</a>
     </div>
   </nav>
 </aside>
@@ -69,8 +73,9 @@
 <div class="main">
   <header class="topbar">
     <div class="topbar-left">
-      <button class="menu-btn" aria-label="Toggle menu">☰</button>
-      <span class="topbar-crumb">Lab Docs / <strong>叢集使用手冊</strong></span>
+      <button class="menu-btn" aria-label="切換選單">☰</button>
+      <span class="topbar-crumb">開始 /
+        <strong>叢集使用手冊</strong></span>
     </div>
     <div class="topbar-right">
       <span class="topbar-badge">cloudnative.tw · AS 65000</span>
@@ -82,70 +87,49 @@
 
   <div class="content">
 
-    <h2><span class="eyebrow">叢集使用手冊</span>我只是想用這個叢集,不是想重建它</h2>
-    <p class="lede">這頁跟其他頁不一樣——其他頁在講「這個系統為什麼長這樣、怎麼從零建出來」,這頁只講
-      <strong>叢集已經活著的情況下,一個使用者實際會做的三件事</strong>:連進去、部署一個網頁、
-      知道現在有哪些東西可以用。想理解底層原理,每一節都有連到對應深入頁面的連結。</p>
+    <h2><span class="eyebrow">開始</span>
+    叢集使用手冊</h2>
 
-    <h3>1. 連線到 Cluster</h3>
-    <p><strong>bastion 是唯一的入口</strong>——其他所有節點(tor、master、worker、L4LB)都在
-      沒有對外路由的 <code>k8s-net</code> 上,沒有辦法從外部直接連。想操作叢集,一律先連上
-      bastion。</p>
+<p class="lede">這頁給叢集已經在運作的使用者：怎麼連進去、怎麼部署一個網頁、有哪些服務可用，以及每個服務登入後你有什麼權限。想了解底層原理，每一節都連到對應的深入頁。</p>
 
-    <h4>方法一:<code>make ssh</code>(需要 repo + vault 密碼)</h4>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">在你自己的機器上(repo 根目錄)</span></div>
-      <pre><span class="prompt">$</span> <span class="cmd">make ssh</span>
-<span class="dim"># 解密共用私鑰 → 讀 terraform output 拿 bastion 的 floating IP → ssh 進去
-# 直接落地是 ubuntu 這個使用者,不是 root</span></pre>
-    </div>
-    <p>前提是你已經 clone 這個 repo,而且拿到 <code>.env</code> 裡的
-      <code>ANSIBLE_VAULT_PASSWORD</code>(跟你的專案管理者要,這個檔案本身不進版控)。
-      私鑰本身不是明碼檔案,是 <code>ansible/inventory/group_vars/all/vault.yml</code> 裡
-      vault 加密過的內容,<code>make ssh</code> 會自動處理解密,你不需要手動做任何事。
-      進去之後就是一個正常的 shell,細節見
-      <a href="ansible-framework.html">Ansible 框架設計</a>的「私鑰處理」一節。</p>
+<h3 id="connect">連線到叢集</h3>
+<p>bastion 是唯一的操作入口。tor、master、worker 都在沒有對外路由的 <code>k8s-net</code> 上，無法從外部直接連。要操作叢集，先連上 bastion。</p>
 
-    <h4>方法二:瀏覽器內建終端機(<code>ssh.dough-ops.com</code>)</h4>
-    <p>如果你是 <code>doughops</code> GitHub org 成員、但沒有 repo/vault 存取權,可以改用
-      這條路:瀏覽器直接開 <a href="https://ssh.dough-ops.com/" target="_blank">https://ssh.dough-ops.com/</a>,
-      Cloudflare Access 驗證你的 GitHub 身份後,直接在瀏覽器裡渲染出一個終端機。</p>
-    <div class="callout callout-warn">
-      <p><strong>注意:這條路只是換一個網路入口,不是另外一套身份系統</strong>——Cloudflare
-        Access 在這裡只負責「要不要讓你的連線抵達 bastion 的 22 port、要不要在瀏覽器裡渲染
-        終端機介面」,實際的 SSH 認證(哪把 key 才能登入)完全沒有改變,還是同一把
-        <code>ansible/files/ssh/id_ed25519</code> 共用私鑰。換句話說:光是「doughops org
-        成員」這個身份,還不足以讓你透過這條路真的登入 bastion——你的 SSH client 仍然需要
-        持有那把私鑰(或已經被信任的其他 key)。目前這個叢集<strong>沒有</strong>「每個人各自
-        一把 key」的機制,見 <a href="cloudflare-manual-setup.html">Cloudflare 手動設定清單</a>
-        了解這條 tunnel 的完整設定。</p>
-    </div>
+<h4 id="connect-make-ssh">方法一：make ssh</h4>
+<p>這個方法需要 clone 這個 repo，並取得 <code>.env</code>。<code>.env</code> 內要有 <code>ANSIBLE_VAULT_PASSWORD</code>，以及讀 Terraform state 用的 <code>AWS_ACCESS_KEY_ID</code> 和 <code>AWS_SECRET_ACCESS_KEY</code>。<code>.env</code> 不進版控，向專案管理者索取。</p>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">repo 根目錄</span></div>
+  <pre><span class="prompt">$</span> <span class="cmd">make ssh</span>
+<span class="dim"># 解密共用私鑰，讀 terraform output 取得 bastion 的 floating IP，再 ssh 進去
+# 登入身份是 ubuntu，不是 root</span></pre>
+</div>
+<p><strong>預期結果</strong>：你直接落在 bastion 的 shell。私鑰的存放與解密方式見 <a href="ansible-framework.html#secrets">Ansible 框架設計 § 密鑰管理</a>，其他 Makefile 指令見 <a href="ansible-framework.html#makefile">§ Makefile</a>。</p>
 
-    <h4>連進去之後</h4>
-    <p>bastion 上已經幫你裝好、設定好這些東西(見
-      <a href="role-kubeadm.html">Role: kubeadm</a>/<a href="ansible-framework.html">框架設計</a>),
-      不需要再自己裝:</p>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>工具</th><th>說明</th></tr></thead>
-        <tbody>
-          <tr><td class="mono">kubectl</td><td>kubeconfig 已經放在 <code>~/.kube/config</code>,直接用,不用另外 <code>export KUBECONFIG</code></td></tr>
-          <tr><td class="mono">k</td><td><code>kubectl</code> 的 alias,加上 tab 自動補全,少打幾個字</td></tr>
-          <tr><td class="mono">k9s</td><td>互動式的 terminal UI,瀏覽 pod/log/exec 比純 <code>kubectl get</code> 直覺</td></tr>
-          <tr><td class="mono">helm</td><td>裝在 <code>/usr/local/bin</code>,叢集內每個 helm-based 元件都是用它裝的,版本跟叢集元件對齊</td></tr>
-        </tbody>
-      </table>
-    </div>
+<h4 id="connect-browser">方法二：瀏覽器終端機</h4>
+<p>你是 <code>doughops</code> GitHub org 成員但沒有 repo 存取權時，可以開 <code>https://ssh.dough-ops.com/</code>。Cloudflare Access 驗證 GitHub 身份後，會在瀏覽器裡渲染一個終端機。</p>
+<div class="callout callout-warn">
+  <p>這條路只是換一個網路入口，沒有另一套身份系統。Cloudflare Access 只決定你的連線能不能抵達 bastion 的 22 port，SSH 認證仍然使用同一把共用私鑰。所以光是 org 成員身份無法登入 bastion，你的 SSH client 仍需持有私鑰。叢集沒有「每人一把 key」的機制，這是已知限制，見本頁<a href="#known-limits">已知限制</a>。Access 規則見 <a href="cloudflare-manual-setup.html#access-rules">Cloudflare 設定清單</a>。</p>
+</div>
 
-    <h3>2. 部署一個網頁</h3>
-    <p>最小可行的流程:寫一個 manifest(Namespace + Deployment + Service +
-      VirtualService)、<code>kubectl apply</code>、等 rollout 完成、開瀏覽器看結果。下面這份
-      直接照抄 <a href="role-istio.html">roles/demo_app</a> 的模式,不用自己準備 container
-      image(用 ConfigMap 掛一個 nginx 靜態頁面進去),換掉 <code>&lt;your-name&gt;</code>
-      就能跑。</p>
+<h4 id="connect-tools">連進去之後</h4>
+<p>bastion 已經裝好這些工具，細節見 <a href="role-kubeadm.html">Role: kubeadm</a>：</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>工具</th><th>說明</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">kubectl</td><td>kubeconfig 放在 <code>~/.kube/config</code>，直接使用，不用 <code>export KUBECONFIG</code></td></tr>
+      <tr><td class="mono">k</td><td><code>kubectl</code> 的 alias，附 tab 自動補全</td></tr>
+      <tr><td class="mono">k9s</td><td>互動式 terminal UI，瀏覽 pod、看 log、exec 比 <code>kubectl get</code> 直覺</td></tr>
+      <tr><td class="mono">helm</td><td>裝在 <code>/usr/local/bin</code>，叢集內每個 helm-based 元件都是用它安裝，版本與叢集元件對齊</td></tr>
+    </tbody>
+  </table>
+</div>
 
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">~/my-app.yaml(在 bastion 上)</span></div>
+<h3 id="deploy">部署一個網頁</h3>
+<p>最小流程分四步：寫一份 manifest，包含 Namespace、Deployment、Service 和 VirtualService，執行 <code>kubectl apply</code>，等 rollout 完成，再開瀏覽器。下面這份沿用 <a href="role-istio.html#demo-app">Role: istio 的 demo app</a> 的模式，不需要自己準備 container image：用 ConfigMap 把靜態頁掛進 nginx。把 <code>&lt;your-name&gt;</code> 換成你的名稱就能跑。</p>
+
+<div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">~/my-app.yaml（在 bastion 上）</span></div>
       <pre><span class="out">apiVersion: v1
 kind: Namespace
 metadata:
@@ -201,7 +185,7 @@ metadata:
   namespace: &lt;your-name&gt;
 spec:
   hosts: ["&lt;your-name&gt;.dough-ops.com"]
-  gateways: ["istio/k8s-gateway"]   </span><span class="dim"># 整個叢集共用的 Gateway,跨 namespace 引用</span><span class="out">
+  gateways: ["istio/k8s-gateway"]   </span><span class="dim"># 整個叢集共用的 Gateway，跨 namespace 引用</span><span class="out">
   http:
     - route:
         - destination:
@@ -209,62 +193,52 @@ spec:
             port: { number: 80 }</span></pre>
     </div>
 
-    <div class="term">
+<div class="term">
       <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">部署</span></div>
       <pre><span class="prompt">$</span> <span class="cmd">kubectl apply -f ~/my-app.yaml</span>
 <span class="prompt">$</span> <span class="cmd">kubectl -n &lt;your-name&gt; rollout status deployment/web --timeout=120s</span>
-<span class="dim"># 成功之後開瀏覽器:https://&lt;your-name&gt;.dough-ops.com/</span></pre>
+<span class="dim"># 成功之後開瀏覽器：https://&lt;your-name&gt;.dough-ops.com/</span></pre>
     </div>
 
-    <h4>幾件會影響你的事,先知道比較不會卡關</h4>
-    <div class="card-grid">
-      <div class="card">
-        <div class="card-icon">🔑</div>
-        <h4>網址自動被 Cloudflare Access 擋住</h4>
-        <p><code>*.dough-ops.com</code> 掛在同一個萬用字元 Access Application 下面——你的新
-          網址<strong>不需要額外設定</strong>就會自動套用同一個規則:只有登入
-          doughops GitHub org 的人看得到(showcase 頁面目前也是刻意維持這個預設,沒有另外
-          放行)。想開放給所有人看,需要另外在 Cloudflare 手動建一個
-          <code>decision: bypass</code> 的精確匹配規則,不是 ansible 管的範圍,見
-          <a href="cloudflare-manual-setup.html">Cloudflare 手動設定清單</a>。</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">🌐</div>
-        <h4>hostname 一定要在 *.dough-ops.com 底下</h4>
-        <p>共用 Gateway(<code>istio/k8s-gateway</code>)只監聽這個萬用字元——用其他網域完全
-          連不進來,見 <a href="role-istio.html">Role: istio</a>。</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">📦</div>
-        <h4>image pull 不用另外設定</h4>
-        <p>節點走 <code>mgmt-net</code> 有 SNAT 出口,一般公開 image(Docker Hub、GHCR……)
-          直接拉得到。私有 registry 就照 Kubernetes 標準做法帶
-          <code>imagePullSecrets</code>,這個叢集沒有額外限制。</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">💾</div>
-        <h4>需要持久化儲存就掛 PVC</h4>
-        <p>兩個 StorageClass 可以直接用,都是 ReadWriteMany、同一個 NFS 後端:
-          <code>nfs-csi</code>(PVC 刪掉資料跟著刪)跟 <code>nfs-csi-retain</code>
-          (PVC 刪掉資料保留)。挑哪個看你要不要「誤刪 PVC 也不會真的丟資料」這層保險。</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">🔑</div>
-        <h4>需要密鑰就用 Vault,不要寫死進 manifest</h4>
-        <p>叢集裝了 <a href="role-vault.html">vault-secrets-operator</a>,任何
-          namespace 建一個 <code>VaultStaticSecret</code>(見下方範例),就會
-          自動同步出一個一般的 k8s <code>Secret</code>,跟平常
-          <code>envFrom</code>/<code>volumeMounts</code> 掛法完全一樣。不需要
-          額外指定 <code>vaultConnectionRef</code>/<code>vaultAuthRef</code>
-          ——已經幫全部 namespace 接好共用的預設值。</p>
-      </div>
-    </div>
+<p><strong>預期結果</strong>：rollout 顯示 <code>successfully rolled out</code>，瀏覽器能開啟網址並看到 Hello 頁面。第一次開網址會先經過 Cloudflare Access 登入。</p>
 
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">先在 Vault 裡放一筆(從 bastion,或用 vault.dough-ops.com 的 UI)</span></div>
+<h4 id="deploy-notes">部署前先知道的事</h4>
+<div class="card-grid">
+  <div class="card">
+    <div class="card-icon">🔑</div>
+    <h4>網址自動被 Cloudflare Access 擋住</h4>
+    <p><code>*.dough-ops.com</code> 掛在同一個萬用字元 Access Application 下。你的新網址不需要額外設定，就套用同一條規則：只有 <code>doughops</code> GitHub org 的成員看得到。要開放給所有人，需在 Cloudflare 另建 bypass 規則，這不屬於 ansible 管理的範圍，原則見 <a href="cloudflare-manual-setup.html#access-rules">Cloudflare 設定清單</a>。</p>
+  </div>
+  <div class="card">
+    <div class="card-icon">🌐</div>
+    <h4>hostname 要在 *.dough-ops.com 底下</h4>
+    <p>共用 Gateway <code>istio/k8s-gateway</code> 只監聽這個萬用字元，用其他網域連不進來，見 <a href="role-istio.html">Role: istio</a>。</p>
+  </div>
+  <div class="card">
+    <div class="card-icon">📦</div>
+    <h4>image pull 不用另外設定</h4>
+    <p>節點走 <code>mgmt-net</code> 的 SNAT 出口，公開 image（Docker Hub、GHCR 等）直接拉得到。私有 registry 照 Kubernetes 標準做法帶 <code>imagePullSecrets</code>，叢集沒有額外限制。</p>
+  </div>
+  <div class="card">
+    <div class="card-icon">💾</div>
+    <h4>需要持久化儲存就掛 PVC</h4>
+    <p>兩個 StorageClass 都是 ReadWriteMany，後端同一個 NFS：<code>nfs-csi</code> 在 PVC 刪除時一併刪資料，<code>nfs-csi-retain</code> 則保留資料。想要「誤刪 PVC 也不丟資料」的保險就選後者。</p>
+  </div>
+  <div class="card">
+    <div class="card-icon">🔑</div>
+    <h4>密鑰放 Vault，不寫進 manifest</h4>
+    <p>叢集裝了 <a href="role-vault.html">vault-secrets-operator</a>。任何 namespace 建一個 <code>VaultStaticSecret</code>，就會同步出一般的 k8s <code>Secret</code>，掛載方式與平常的 <code>envFrom</code>、<code>volumeMounts</code> 相同。全部 namespace 已接好共用的預設 <code>vaultConnectionRef</code> 與 <code>vaultAuthRef</code>，你不用另外指定。</p>
+  </div>
+</div>
+
+
+<p>下面是 Vault 的範例。先放一筆資料，再建 <code>VaultStaticSecret</code>。</p>
+<div class="term">
+      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">先在 Vault 裡放一筆（從 bastion，或用 vault.dough-ops.com 的 UI）</span></div>
       <pre><span class="prompt">$</span> <span class="cmd">vault kv put secret/&lt;your-name&gt;/db-password value=hunter2</span></pre>
     </div>
-    <div class="term">
+
+<div class="term">
       <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">在你的 namespace 裡建 VaultStaticSecret</span></div>
       <pre><span class="out">apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultStaticSecret
@@ -278,52 +252,101 @@ spec:
   destination:
     name: db-password-secret   </span><span class="dim"># 同步出來的 k8s Secret 名稱</span><span class="out">
     create: true
-  refreshAfter: 1h              </span><span class="dim"># Vault 裡改了值,最晚等這麼久會自動重新同步</span></pre>
+  refreshAfter: 1h              </span><span class="dim"># Vault 裡改了值，最晚等這麼久會自動重新同步</span></pre>
     </div>
 
-    <h3>3. 目前有哪些服務可以用</h3>
-    <p>全部走同一條路徑:<code>*.dough-ops.com</code> → Cloudflare Tunnel → Istio ingress
-      gateway → 各自的 VirtualService。<strong>除了下表特別標「公開」的兩個,其餘全部只有
-      doughops GitHub org 成員登入後看得到</strong>——這是整個叢集的預設行為,不是每個服務各自
-      決定的。</p>
+<p><strong>預期結果</strong>：幾秒後 <code>kubectl -n &lt;your-name&gt; get secret db-password-secret</code> 看得到同步出來的 Secret。</p>
 
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>服務</th><th>網址</th><th>用途</th><th>存取</th></tr></thead>
-        <tbody>
-          <tr><td>Kubernetes Dashboard</td><td class="mono">dashboard.dough-ops.com</td><td>圖形化瀏覽/操作叢集資源</td><td>Cloudflare Access,登入後依 <a href="internal-tools.html">RBAC</a> 決定讀寫權限</td></tr>
-          <tr><td>Grafana</td><td class="mono">grafana.dough-ops.com</td><td>監控儀表板</td><td>Cloudflare Access(原生 SSO)</td></tr>
-          <tr><td>Prometheus</td><td class="mono">prometheus.dough-ops.com</td><td>metrics 查詢/PromQL</td><td>Cloudflare Access</td></tr>
-          <tr><td>Alertmanager</td><td class="mono">alertmanager.dough-ops.com</td><td>告警規則/靜音管理</td><td>Cloudflare Access</td></tr>
-          <tr><td>Hubble UI</td><td class="mono">hubble.dough-ops.com</td><td>Cilium eBPF 資料平面的即時流量觀測</td><td>Cloudflare Access</td></tr>
-          <tr><td>HashiCorp Vault</td><td class="mono">vault.dough-ops.com</td><td>秘密管理——網頁 UI/API,跑在 bastion 上,不是叢集內服務,見 <a href="role-vault.html">Role: vault</a></td><td>Cloudflare Access,登入後直接 OIDC 免密碼進 Vault(任何 doughops org 成員都是完整權限,見該頁說明)</td></tr>
-          <tr><td>ArgoCD</td><td class="mono">argocd.dough-ops.com</td><td>GitOps 持續部署,內建 <code>in-cluster</code> target,裝完就能管理這個叢集自己</td><td>Cloudflare Access,登入頁有 OIDC 選項(免密碼、直接 admin)+ 備援用的 ArgoCD 自己 admin 帳密(見 <a href="internal-tools.html">內部工具</a>怎麼查初始密碼)</td></tr>
-          <tr><td>GitLab</td><td class="mono">gitlab.dough-ops.com</td><td>自架 GitLab CE,ArgoCD GitOps 的 repo 來源、CI/CD pipeline,見 <a href="role-gitlab.html">Role: gitlab</a></td><td>網頁介面走 Cloudflare Access(OIDC 選項或 GitLab 自己帳密皆可);<code>git clone/push</code>(<code>*.git/*</code>)跟 <code>/api/v4/*</code> 刻意 bypass Access,只靠 GitLab 自己的 PAT/HTTP Basic 認證——給 CI/CD 這類非互動式存取用</td></tr>
-          <tr><td>Keycloak</td><td class="mono">keycloak.dough-ops.com</td><td>獨立於叢集之外的公司級 SSO 來源(PoC),Dex 背後接的身份來源,也有自己的 admin console,跑在 bastion 上,不是叢集內服務,見 <a href="role-keycloak-dex.html">Role: keycloak / dex</a></td><td>一般路徑(含 <code>/admin/master/console/</code>)走 Cloudflare Access,進去後還要再輸入 Keycloak 自己的 admin 帳密;只有 <code>/realms/doughops/*</code>(Dex 機器對機器呼叫用)刻意 bypass Cloudflare Access,見該頁 Bug #3</td></tr>
-          <tr><td>Dex</td><td class="mono">dex.dough-ops.com</td><td>叢集內的 OIDC broker,應用程式接 Dex、Dex 背後轉給 Keycloak,見 <a href="role-keycloak-dex.html">Role: keycloak / dex</a></td><td>Cloudflare Access,實際登入畫面會再轉去 Keycloak(第二次以後同一瀏覽器應該是靜默登入,不會再跳畫面)</td></tr>
-          <tr><td>whoami(身份聯邦測試 app)</td><td class="mono">whoami.dough-ops.com</td><td>驗證「Dex → Keycloak → Cloudflare Access」整條身份聯邦鏈用的最小測試 app(oauth2-proxy + 靜態頁),不是給一般使用者用的服務</td><td>Cloudflare Access → Dex → Keycloak → Cloudflare Access,整條鏈都過一次</td></tr>
-          <tr><td>oauth2-keycloak-demo(身份聯邦測試 app)</td><td class="mono">oauth2-keycloak-demo.dough-ops.com</td><td>驗證「app 直接接 Keycloak、不經過 Dex」這條路的測試 app(oauth2-proxy + 靜態頁),見 <a href="identity-federation-flow.html">身份聯邦登入流程</a></td><td>Cloudflare Access → Keycloak → Cloudflare Access,不繞過 Dex 那一站</td></tr>
-          <tr><td>keycloak-demo(身份聯邦測試 app)</td><td class="mono">keycloak-demo.dough-ops.com</td><td>驗證「app 自己講 OIDC、不透過任何 proxy」這條路的測試 app,純 Python 標準函式庫手寫,跑在官方 <code>python:3.13-slim</code> 上,見 <a href="identity-federation-flow.html">身份聯邦登入流程</a></td><td>Cloudflare Access → Keycloak → Cloudflare Access,不經過 Dex 也不經過 oauth2-proxy</td></tr>
-          <tr><td>技術文件站(這個網站)</td><td class="mono">docs.dough-ops.com</td><td>跟你現在看的內容一樣,部署在叢集內的版本</td><td>Cloudflare Access</td></tr>
-          <tr><td>展示頁 demo</td><td class="mono">test.dough-ops.com</td><td>驗證 ingress 路徑用的最小 nginx 範例(見上面「部署一個網頁」抄的就是它)</td><td>Cloudflare Access</td></tr>
-          <tr><td>對外成果展示頁</td><td class="mono">showcase.dough-ops.com</td><td>成果展示頁</td><td>Cloudflare Access</td></tr>
-          <tr><td>公開文件站鏡像</td><td class="mono"><a href="https://doughops.github.io/terraform-k8s-docs/" target="_blank">doughops.github.io/terraform-k8s-docs</a></td><td>docs/ 的公開鏡像,GitHub Actions 自動同步(見 <a href="ansible-framework.html">框架設計</a>)</td><td><strong>公開,不需要登入</strong></td></tr>
-          <tr><td>公開展示頁鏡像</td><td class="mono"><a href="https://doughops.github.io/terraform-k8s-docs/showcase/" target="_blank">doughops.github.io/terraform-k8s-docs/showcase</a></td><td>showcase 頁面的公開副本,跟叢集內版本並存</td><td><strong>公開,不需要登入</strong></td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p>想知道每個工具實際怎麼裝、SSO 怎麼接的完整故事,看
-      <a href="internal-tools.html">內部工具(Dashboard/Hubble/監控)</a>那頁——這頁只講
-      「有什麼、在哪裡、要不要登入」。</p>
+<h3 id="services">有哪些服務可以用</h3>
+<p>所有服務走同一條路徑：<code>*.dough-ops.com</code> → Cloudflare Tunnel → Istio ingress gateway → 各自的 VirtualService。預設只有 <code>doughops</code> GitHub org 成員通過 Cloudflare Access 後才連得到，只有標「公開」的兩項例外。每個服務登入後的權限見<a href="#permissions">權限矩陣</a>。hostname 以 <code>ansible/inventory/group_vars/all/main.yml</code> 為準。</p>
+
+<h4 id="services-daily">日常服務</h4>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>服務</th><th>網址</th><th>用途</th><th>登入方式</th></tr></thead>
+    <tbody>
+      <tr><td>Kubernetes Dashboard</td><td class="mono">dashboard.dough-ops.com</td><td>圖形化瀏覽與操作叢集資源</td><td>Cloudflare Access，身份直接帶進 apiserver</td></tr>
+      <tr><td>Grafana</td><td class="mono">grafana.dough-ops.com</td><td>監控儀表板</td><td>Cloudflare Access，Grafana 原生 OIDC 登入</td></tr>
+      <tr><td>Prometheus</td><td class="mono">prometheus.dough-ops.com</td><td>metrics 查詢與 PromQL</td><td>只有 Cloudflare Access</td></tr>
+      <tr><td>Alertmanager</td><td class="mono">alertmanager.dough-ops.com</td><td>告警規則與靜音管理</td><td>只有 Cloudflare Access</td></tr>
+      <tr><td>Hubble UI</td><td class="mono">hubble.dough-ops.com</td><td>Cilium eBPF 資料平面的即時流量觀測</td><td>只有 Cloudflare Access</td></tr>
+      <tr><td>HashiCorp Vault</td><td class="mono">vault.dough-ops.com</td><td>秘密管理，網頁 UI 與 API，跑在 bastion 上，見 <a href="role-vault.html">Role: vault</a></td><td>Cloudflare Access，再以 OIDC 免密碼登入 Vault</td></tr>
+      <tr><td>ArgoCD</td><td class="mono">argocd.dough-ops.com</td><td>GitOps 持續部署，內建 <code>in-cluster</code> target 可管理這個叢集，見 <a href="role-argocd.html#login">Role: argocd § 登入</a></td><td>Cloudflare Access，登入頁有 OIDC 選項，另有 ArgoCD 自己的 admin 帳密</td></tr>
+      <tr><td>GitLab</td><td class="mono">gitlab.dough-ops.com</td><td>自架 GitLab CE，ArgoCD 的 repo 來源與 CI/CD，跑在 bastion 上，見 <a href="role-gitlab.html">Role: gitlab</a></td><td>網頁介面走 Cloudflare Access 加 OIDC 自動登入。<code>git</code> 與 API 的非互動存取只靠 GitLab 自己的 token</td></tr>
+      <tr><td>技術文件站</td><td class="mono">docs.dough-ops.com</td><td>你正在看的內容，叢集內版本</td><td>Cloudflare Access</td></tr>
+      <tr><td>ingress 展示頁</td><td class="mono">test.dough-ops.com</td><td>驗證 ingress 路徑的最小 nginx 範例，上面「部署一個網頁」抄的就是它</td><td>Cloudflare Access</td></tr>
+      <tr><td>成果展示頁</td><td class="mono">showcase.dough-ops.com</td><td>專案成果展示</td><td>Cloudflare Access</td></tr>
+      <tr><td>公開文件站鏡像</td><td class="mono"><a href="https://doughops.github.io/terraform-k8s-docs/" target="_blank">doughops.github.io/terraform-k8s-docs</a></td><td>文件站的公開鏡像，由 GitHub Actions 同步</td><td><strong>公開</strong>，不需要登入</td></tr>
+      <tr><td>公開展示頁鏡像</td><td class="mono"><a href="https://doughops.github.io/terraform-k8s-docs/showcase/" target="_blank">doughops.github.io/terraform-k8s-docs/showcase</a></td><td>展示頁的公開副本</td><td><strong>公開</strong>，不需要登入</td></tr>
+    </tbody>
+  </table>
+</div>
+<p>各工具怎麼安裝、SSO 怎麼接，見<a href="internal-tools.html">內部工具</a>。</p>
+
+<h4 id="services-poc">身份聯邦 PoC</h4>
+<p>這幾個服務用來驗證 Dex、Keycloak 與 Cloudflare Access 串起來的登入鏈，不是給一般使用者日常使用的。鏈路說明見<a href="identity-federation-flow.html">身份聯邦登入流程</a>。</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>服務</th><th>網址</th><th>用途</th><th>登入方式</th></tr></thead>
+    <tbody>
+      <tr><td>Keycloak</td><td class="mono">keycloak.dough-ops.com</td><td>獨立於叢集的 SSO 來源，Dex 背後接的身份來源，跑在 bastion 上，見 <a href="role-keycloak-dex.html">Role: keycloak / dex</a></td><td>管理介面走 Cloudflare Access，再輸入 Keycloak 自己的 admin 帳密。Dex 呼叫的 realm 端點因機器對機器存取而 bypass Access</td></tr>
+      <tr><td>Dex</td><td class="mono">dex.dough-ops.com</td><td>叢集內的 OIDC broker，應用程式接 Dex，Dex 轉給 Keycloak</td><td>Cloudflare Access，實際登入畫面轉去 Keycloak</td></tr>
+      <tr><td>whoami</td><td class="mono">whoami.dough-ops.com</td><td>驗證 Access → oauth2-proxy → Dex → Keycloak → Access 整條鏈的最小測試 app</td><td>走完整條鏈</td></tr>
+      <tr><td>oauth2-keycloak-demo</td><td class="mono">oauth2-keycloak-demo.dough-ops.com</td><td>oauth2-proxy 直接接 Keycloak，不經過 Dex</td><td>Access → Keycloak → Access</td></tr>
+      <tr><td>keycloak-demo</td><td class="mono">keycloak-demo.dough-ops.com</td><td>app 自己講 OIDC，不經過 Dex 也不經過 oauth2-proxy</td><td>Access → Keycloak → Access</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3 id="permissions">權限矩陣</h3>
+<p>登入之後你能做什麼，由服務決定，共有兩種模型。<strong>預設唯讀</strong>：通過 Cloudflare Access 的 org 成員只有唯讀或少量寫入權限，<code>oidc_admin_emails</code> 名單內的人才有完整寫入。<strong>登入即 admin</strong>：通過 Cloudflare Access 的 org 成員一律是 admin，沒有分層。下表只寫角色層級，不列個別帳號。</p>
+<p><code>oidc_admin_emails</code> 是 <code>secrets.yml</code> 內的 email 清單，預設為空。清單為空時沒有人拿到寫入權限。清單由 <code>oidc_rbac</code>、<code>kube_prometheus_stack</code>、<code>gitlab_server</code> 三個 role 共用，檔案管理見 <a href="ansible-framework.html#secrets">Ansible 框架設計 § 密鑰管理</a>。</p>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>服務</th><th>模型</th><th>通過 Access 的 org 成員</th><th>名單內（<code>oidc_admin_emails</code>）</th><th>備援登入</th></tr></thead>
+    <tbody>
+      <tr><td>Kubernetes Dashboard</td><td>預設唯讀</td><td>內建 <code>view</code>（namespace 內資源，不含 secrets、roles、rolebindings）。cluster 範圍唯讀 nodes、namespaces、PV、StorageClass。額外三個寫入：刪 pod、改 configmap、scale deployment</td><td><code>cluster-admin</code></td><td>無</td></tr>
+      <tr><td>Grafana</td><td>預設唯讀</td><td><code>Viewer</code>，第一次登入自動建帳號</td><td><code>Admin</code></td><td>Grafana 自己的 admin 帳密，見 <a href="internal-tools.html#grafana">內部工具 § Grafana</a></td></tr>
+      <tr><td>GitLab</td><td>預設一般使用者</td><td>OIDC 自動建立帳號，註冊表單已關閉。專案與群組內的權限由 GitLab 成員設定決定</td><td>GitLab Admin，下次跑 <code>gitlab_server</code> 時套用，且帳號必須已登入過一次</td><td>GitLab 自己的帳密登入</td></tr>
+      <tr><td>Vault</td><td>登入即 admin</td><td>OIDC 登入後綁 <code>oidc-admin</code> policy：所有路徑，含 <code>sudo</code></td><td>與其他成員相同</td><td>Vault token 登入</td></tr>
+      <tr><td>ArgoCD</td><td>登入即 admin</td><td>OIDC 登入後 <code>policy.default: role:admin</code></td><td>與其他成員相同</td><td>ArgoCD 自己的 admin 帳密，見 <a href="internal-tools.html">內部工具</a></td></tr>
+      <tr><td>Keycloak</td><td>獨立帳號</td><td>過了 Access 之後，還要 Keycloak 自己的 admin 帳密才能進管理介面</td><td>不適用</td><td>不適用</td></tr>
+      <tr><td>Hubble UI、Prometheus、Alertmanager</td><td>無內建登入</td><td>通過 Access 即可使用全部功能，含 Alertmanager 建立靜音</td><td>不適用</td><td>不適用</td></tr>
+      <tr><td>Dex</td><td>無使用者介面</td><td>只負責轉接身份，登入畫面在 Keycloak</td><td>不適用</td><td>不適用</td></tr>
+      <tr><td>文件站、展示頁、PoC 測試 app</td><td>無權限概念</td><td>靜態內容或只顯示你的身份 claims</td><td>不適用</td><td>不適用</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h4 id="permissions-k8s">Kubernetes 權限怎麼來</h4>
+<p>Dashboard 前面的 Istio EnvoyFilter 把 Cloudflare Access 簽發的 JWT 複製到 <code>Authorization</code> header。kube-apiserver 信任同一個 JWT 當 OIDC 身份（<code>oidc_auth</code> role），身份是 email。<code>oidc_rbac</code> role 再依身份綁定 RBAC：</p>
+<ul>
+  <li><code>cloudflare-access-oidc-view</code>：把內建 <code>view</code> 綁給 <code>system:authenticated</code>。</li>
+  <li><code>cloudflare-access-oidc-default</code>：疊加 <code>cloudflare-access-default</code> ClusterRole，補 cluster 範圍的唯讀和三個寫入操作。</li>
+  <li><code>cloudflare-access-oidc-admin</code>：把 <code>cluster-admin</code> 綁給 <code>oidc_admin_emails</code> 內的人。名單為空時不建立這個綁定。</li>
+</ul>
+<p>預設權限刻意不含 secrets。RBAC 沒有排除語法，若用 <code>resources: ["*"]</code> 做唯讀，會連 secrets 都讀得到，所以改用內建 <code>view</code> 加明確列舉。</p>
+
+<h3 id="known-limits">已知限制</h3>
+<ul>
+  <li><strong>ArgoCD 的長效 token 與 admin</strong>：ArgoCD 走內建 Dex，簽發給 ArgoCD 的 id_token 效期是 <code>8760h</code>（1 年），好處是不會每 5 分鐘被登出。代價是 token 外流後一年內有效，而且權限是 admin。ArgoCD 的 in-cluster target 用 ServiceAccount 管理叢集，admin 能建立 Application 部署資源，影響範圍接近整個叢集。調低 <code>argocd_dex_id_token_expiry</code> 可以縮短暴露期，代價是更常重新登入。設計理由見 <a href="role-argocd.html#login">Role: argocd § 登入</a>。</li>
+  <li><strong>Vault 與 ArgoCD 的全員 admin</strong>：org 成員等同這兩個服務的管理者，沒有最小權限分層。影響範圍是 Vault 內所有 secrets 和 ArgoCD 管理的所有工作負載。信任邊界就是 GitHub org 的成員資格。</li>
+  <li><strong>共用 SSH 私鑰</strong>：全部節點使用同一把 SSH key，沒有每人一把的機制。私鑰外流時影響所有節點。細節見 <a href="ansible-framework.html#secrets">Ansible 框架設計 § 密鑰管理</a>。</li>
+  <li><strong>只靠 Access 的服務</strong>：Hubble、Prometheus、Alertmanager 沒有內建登入，Cloudflare Access 是唯一的一道門。Access 設定錯誤或被繞過時，這些服務完全沒有第二層防護。</li>
+  <li><strong>機器對機器的 bypass</strong>：Keycloak 的 realm 端點與 GitLab 的 <code>git</code>、API 路徑，因為非互動存取需要而繞過 Cloudflare Access，改由服務自己的認證把關。原則與縮小範圍的方式見 <a href="cloudflare-manual-setup.html#access-rules">Cloudflare 設定清單</a>。</li>
+</ul>
 
     <div class="page-nav">
-      <a class="prev" href="getting-started.html"><span class="dir">上一頁</span><span class="ttl">← 從零開始建置</span></a>
-      <a class="next" href="teardown.html"><span class="dir">下一頁</span><span class="ttl">全部拆除 →</span></a>
+      <a class="prev" href="getting-started.html"><span class="dir">上一頁</span>
+        <span class="ttl">← 從零開始建置</span></a>
+      <a class="next" href="teardown.html"><span class="dir">下一頁</span>
+        <span class="ttl">全部拆除 →</span></a>
     </div>
 
     <footer class="page-footer">
-      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
-      <span>最後更新:2026-08-07</span>
+      <span>文件站原始碼：<a href="https://github.com/DoughOps/terraform-k8s-docs" target="_blank" rel="noopener">DoughOps/terraform-k8s-docs</a></span>
+      <span>最後更新：2026-11-01（對應 commit e91424f）</span>
     </footer>
   </div>
 </div>

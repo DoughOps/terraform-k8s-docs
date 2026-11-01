@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>術語表 — k8s + BGP Lab 技術文件</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <a class="sidebar-logo-link" href="index.html">
+      <h1>🛰️ k8s + BGP Lab</h1>
+      <span>OpenStack Lab 技術文件</span>
+    </a>
+  </div>
+  <nav>
+    <div class="nav-group">
+      <div class="nav-group-label">開始</div>
+      <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
+      <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
+      <a class="nav-link" href="user-guide.html"><span class="icon">🧑‍💻</span> 叢集使用手冊</a>
+      <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+      <a class="nav-link active" href="glossary.html"><span class="icon">📖</span> 術語表</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">網路架構</div>
+      <a class="nav-link" href="network-architecture.html"><span class="icon">🌐</span> 網路架構總覽</a>
+      <a class="nav-link" href="packet-flows.html"><span class="icon">🔀</span> 封包路徑實例</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">基礎設施</div>
+      <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
+      <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">叢集元件</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> Ansible 框架設計</a>
+      <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
+      <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
+      <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
+      <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
+      <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
+      <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試與 smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">對外入口與身份驗證</div>
+      <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
+      <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">📋</span> Cloudflare 設定清單</a>
+      <a class="nav-link" href="role-vault.html"><span class="icon">🔒</span> Role: vault</a>
+      <a class="nav-link" href="role-keycloak-dex.html"><span class="icon">🪪</span> Role: keycloak / dex</a>
+      <a class="nav-link" href="identity-federation-flow.html"><span class="icon">🧩</span> 身份聯邦登入流程</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">平台服務</div>
+      <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
+      <a class="nav-link" href="role-gitlab.html"><span class="icon">🦊</span> Role: gitlab</a>
+      <a class="nav-link" href="role-argocd.html"><span class="icon">🐙</span> Role: argocd</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">專案紀錄</div>
+      <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">🗒️</span> Changelog</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB 歷史</a>
+    </div>
+  </nav>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" aria-label="切換選單">☰</button>
+      <span class="topbar-crumb">開始 /
+        <strong>術語表</strong></span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">cloudnative.tw · AS 65000</span>
+      <button class="theme-toggle" id="themeToggle" aria-label="切換主題">
+        <span class="icon-moon">🌙</span><span class="icon-sun">☀️</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <h2><span class="eyebrow">開始</span>
+    術語表</h2>
+
+<p class="lede">這頁收錄文件站會用到的術語，每個術語兩三句話解釋，並連到詳細說明的頁面。第一次讀到不熟的名詞時，來這裡找錨點。其他頁連到本頁時，網址是 <code>glossary.html#術語id</code>，例如 <code>glossary.html#route-reflector</code>。</p>
+
+<h3 id="network">網路與路由</h3>
+<p>這些術語構成 Lab 的資料平面。先讀 <a href="network-architecture.html">網路架構總覽</a>，再回來查細節。</p>
+<h4 id="bgp">BGP</h4>
+<p>Border Gateway Protocol，路由器之間交換「某個網段怎麼到達」的協定。Lab 用它讓節點彼此知道對方的 Pod CIDR。實作是 FRR，見 <a href="bgp-fabric.html">FRR / iBGP Fabric</a>。</p>
+<h4 id="ibgp">iBGP</h4>
+<p>同一個 ASN 內部的 BGP 連線。Lab 的所有節點都屬於 ASN 65000，彼此以 iBGP 交換路由。iBGP 預設不會把學到的路由再轉給其他 iBGP 鄰居，所以需要 route reflector。</p>
+<h4 id="asn">ASN</h4>
+<p>Autonomous System Number，BGP 用來識別一個管理單位的編號。Lab 全部節點共用私有 ASN 65000。此值在 Terraform 與 Ansible 兩邊各設一次，需手動保持一致。</p>
+<h4 id="route-reflector">route reflector</h4>
+<p>路由反射器，讓 iBGP 節點不必兩兩建立連線。Lab 的 tor 是唯一的 route reflector，所有節點只與它建立連線，它再把路由反射給其他節點。見 <a href="bgp-fabric.html">FRR / iBGP Fabric</a>。</p>
+<h4 id="next-hop-self">next-hop-self</h4>
+<p>讓 route reflector 在反射路由時，把下一跳改成自己。<code>k8s-net</code> 是一個扁平 L2 網段，沒有這個設定，節點會學到指向彼此真實 IP 的路由並直接 ARP，tor 就不再是唯一的 L3 跳點。設計見 <a href="bgp-fabric.html#next-hop-self">FRR / iBGP Fabric</a>。</p>
+<h4 id="ecmp">ECMP</h4>
+<p>Equal-Cost Multi-Path，同一個目的地有多條成本相同的路徑時，流量分散到全部路徑。Lab 用 <code>maximum-paths ibgp</code> 開啟。它是 DSR L4LB 設計的基礎，見 <a href="l4lb-history.html">DSR / L4LB 歷史</a>。</p>
+<h4 id="dsr">DSR</h4>
+<p>Direct Server Return，負載平衡器只處理進來的封包，回程封包由後端直接送回客戶端，不經過負載平衡器。Lab 驗證過這個設計，現在處於休眠狀態，見 <a href="l4lb-history.html">DSR / L4LB 歷史</a>。</p>
+<h4 id="l4lb">L4LB</h4>
+<p>第 4 層（TCP／UDP）負載平衡器。Lab 原本用 <code>l4-</code> 節點跑 IPVS DR，並透過 BGP 宣告 Service VIP。現在 <code>l4-</code> 節點當一般 worker 使用，外部流量改走 Cloudflare Tunnel。</p>
+<h4 id="frr">FRR</h4>
+<p>Free Range Routing，Linux 上的開源路由軟體套件，Lab 用它在每個節點跑 BGP。見 <a href="bgp-fabric.html">FRR / iBGP Fabric</a>。</p>
+<h4 id="zebra">zebra</h4>
+<p>FRR 的核心 daemon，負責把 BGP 等協定學到的路由寫進 Linux 核心的路由表。BGP daemon 本身不直接改核心路由，要經過 zebra。</p>
+<h4 id="tor">TOR</h4>
+<p>Top-of-Rack，原指機櫃頂端的交換器。Lab 用一台 VM 扮演它：它是 <code>k8s-net</code> 的 L3 fabric router 與唯一 route reflector，也跑 apiserver 的 haproxy。見 <a href="network-architecture.html">網路架構總覽</a>。</p>
+<h4 id="bastion">bastion</h4>
+<p>Lab 唯一的 SSH 與維運入口，Floating IP 綁在它身上。Ansible 的 Docker container 也跑在 bastion 上，並透過 <code>mgmt-net</code> 直連所有節點。Vault、Keycloak、GitLab 也跑在這台。</p>
+<h4 id="neutron">Neutron</h4>
+<p>OpenStack 的網路服務，管理網路、子網、Router、安全群組與 port。Lab 的 <code>k8s-net</code> 與 <code>mgmt-net</code> 都是 Neutron 建立的。見 <a href="infrastructure.html">Terraform / OpenStack</a>。</p>
+<h4 id="port-security">port security</h4>
+<p>Neutron 對每個 port 做的防偽造檢查，包含來源 IP／MAC 檢查和以 conntrack 為基礎的安全群組。Lab 的 fabric port 全部關閉它，因為 DSR 的回程封包不經過原本的 port，conntrack 會把它當成無效狀態丟掉。見 <a href="infrastructure.html#port-security">Terraform / OpenStack § port security</a>。</p>
+<h4 id="floating-ip">Floating IP</h4>
+<p>OpenStack 上可以綁定到 VM 的對外 IP。Lab 的 Floating IP 綁在 bastion，只供 SSH 與維運。對外網頁流量不經過它。</p>
+<h4 id="snat">SNAT</h4>
+<p>Source NAT，把封包的來源位址改成 Router 的位址。<code>mgmt-net</code> 的 Neutron Router 做 SNAT，讓節點能連到外網拉 image 與套件。</p>
+<h4 id="native-routing">native routing</h4>
+<p>Pod 的 IP 直接在底層網路上被路由，不封裝。Lab 用 Cilium native routing，由 FRR 把各節點的 Pod CIDR 宣告進 fabric。見 <a href="role-cilium.html">Role: cilium</a>。</p>
+<h4 id="overlay">VXLAN／Geneve overlay</h4>
+<p>把 Pod 封包封裝進 UDP 隧道再送到對方節點的做法，底層網路不需要認識 Pod IP。代價是額外的封裝開銷和較難觀察的路徑。Lab 刻意不用它。</p>
+<h4 id="ebpf">eBPF</h4>
+<p>Linux 核心內可安全執行小程式的機制。Cilium 用它實作封包轉發、Service 負載平衡和網路觀測。</p>
+<h4 id="podcidr">PodCIDR</h4>
+<p>分配給 Pod 的 IP 範圍。Lab 的整體範圍是 <code>172.16.0.0/16</code>，每個節點分到一個 <code>/24</code>，由 Cilium 分配、FRR 宣告。</p>
+<h4 id="service-cidr">Service CIDR</h4>
+<p>分配給 Kubernetes Service（ClusterIP）的虛擬 IP 範圍，Lab 是 <code>172.18.0.0/16</code>。這些位址不屬於任何網卡，由 Cilium 在節點上轉成後端 Pod。靜態路由概念見 <a href="network-architecture.html#service-cidr">網路架構總覽 § service-cidr</a>。</p>
+<h3 id="kubernetes">Kubernetes 元件</h3>
+<h4 id="kubeadm">kubeadm</h4>
+<p>Kubernetes 官方的叢集引導工具。Lab 用它初始化第一台 master，再 join 其他控制平面與 worker。見 <a href="role-kubeadm.html">Role: kubeadm</a>。</p>
+<h4 id="etcd">etcd</h4>
+<p>Kubernetes 儲存所有叢集狀態的分散式鍵值資料庫。3 台 master 各跑一個 etcd 成員。叢集重建後 etcd 是全新的，所以需要保留的資料另存於 bastion 的持久碟。</p>
+<h4 id="crio">CRI-O</h4>
+<p>專為 Kubernetes 設計的 container runtime，實作 CRI 介面。見 <a href="role-crio.html">Role: crio</a>。</p>
+<h4 id="haproxy">haproxy</h4>
+<p>TCP／HTTP 負載平衡器。Lab 在 tor 上用它把 apiserver 的固定進入點 <code>k8s-api.internal</code> 分散到 3 台 master。見 <a href="role-apiserver-lb.html">Role: apiserver-lb</a>。</p>
+<h4 id="kube-proxy">kube-proxy</h4>
+<p>Kubernetes 預設用來實作 Service 轉發的元件，用 iptables 或 IPVS 規則。Lab 把它完全拿掉，由 Cilium eBPF 取代。見 <a href="role-cilium.html#kube-proxy-replacement">Role: cilium § kube-proxy 取代</a>。</p>
+<h4 id="cni">CNI</h4>
+<p>Container Network Interface，Kubernetes 的網路外掛標準，負責給 Pod 配 IP 與設定網路。Lab 的 CNI 是 Cilium。</p>
+<h4 id="cilium">Cilium</h4>
+<p>以 eBPF 為基礎的 CNI。Lab 用它的 native routing 模式、取代 kube-proxy，但不使用它自己的 BGP Control Plane，因為 BGP 已由 FRR 負責。見 <a href="role-cilium.html">Role: cilium</a>。</p>
+<h4 id="hubble">Hubble</h4>
+<p>Cilium 內建的網路觀測元件，能看到 Pod 之間的即時流量。Hubble UI 的網址見 <a href="user-guide.html#services">叢集使用手冊 § 服務</a>。</p>
+<h4 id="istio">Istio</h4>
+<p>Service mesh 與 ingress 層。Lab 只用它的 ingress gateway 做叢集內的 L7 路由，安裝在 <code>istio</code> namespace。見 <a href="role-istio.html">Role: istio</a>。</p>
+<h4 id="gateway-virtualservice">Gateway／VirtualService</h4>
+<p>Istio 的兩個資源。Gateway 定義入口監聽哪些 hostname 與連接埠，VirtualService 定義某個 hostname 的請求要送到哪個 Service。Lab 所有服務共用 <code>istio/k8s-gateway</code>，各自建立自己的 VirtualService。範例見 <a href="user-guide.html#deploy">叢集使用手冊 § 部署</a>。</p>
+<h3 id="ingress">對外入口與身份驗證</h3>
+<h4 id="cloudflare-tunnel">Cloudflare Tunnel</h4>
+<p>由叢集內的 <code>cloudflared</code> 主動連出到 Cloudflare 邊緣，建立 outbound-only 的隧道。外部請求沿隧道進來，叢集不需要開任何 inbound port。見 <a href="role-cloudflare-tunnel.html">Role: cloudflare_tunnel</a>。</p>
+<h4 id="cloudflare-access">Cloudflare Access</h4>
+<p>Cloudflare 在邊緣提供的身份驗證閘門。Lab 的 <code>*.dough-ops.com</code> 全部掛在它後面，只放行指定 GitHub org 的成員。規則見 <a href="cloudflare-manual-setup.html#access-rules">Cloudflare 設定清單</a>。</p>
+<h4 id="access-for-saas">Access for SaaS</h4>
+<p>Cloudflare Access 讓自己扮演標準 OIDC provider 的模式，應用程式可以把它當 IdP 使用。它簽發的 id_token 效期固定 5 分鐘，且不發 refresh_token，這是 ArgoCD 需要內建 Dex 的原因，見 <a href="role-argocd.html#login">Role: argocd § 登入</a>。</p>
+<h4 id="origin-ca">Origin CA</h4>
+<p>Cloudflare 簽發的源站憑證，只被 Cloudflare 邊緣信任，瀏覽器不信任。Lab 用它在 Istio Gateway 提供 HTTPS，見 <a href="role-cert-manager.html">Role: cert_manager</a>。</p>
+<h4 id="full-strict">Full (strict)</h4>
+<p>Cloudflare 的 SSL／TLS 模式：邊緣到源站也用 HTTPS，並驗證源站憑證的有效性。Lab 搭配 Origin CA 達到端對端加密。</p>
+<h4 id="oidc">OIDC</h4>
+<p>OpenID Connect，建立在 OAuth 2.0 上的身份驗證協定。應用程式把登入導向 IdP，拿回帶有使用者身份的 id_token。Lab 的各服務登入幾乎都用它，流程見 <a href="identity-federation-flow.html">身份聯邦登入流程</a>。</p>
+<h4 id="id-token">id_token</h4>
+<p>OIDC 登入成功後簽發的 JWT，內含使用者的身份 claims，如 <code>email</code> 與簽發者 <code>iss</code>。接收端靠簽章與效期驗證它。</p>
+<h4 id="idp">IdP</h4>
+<p>Identity Provider，負責驗證使用者並簽發身份憑證的系統。Lab 裡 Cloudflare Access、Keycloak、Dex 都扮演過 IdP 的角色。</p>
+<h4 id="sso">SSO</h4>
+<p>Single Sign-On，登入一次就能使用多個服務。Lab 讓通過 Cloudflare Access 的人，在 Grafana、Vault、ArgoCD、GitLab 等服務上免密碼登入。</p>
+<h4 id="dex">Dex</h4>
+<p>開源的 OIDC broker，對應用程式提供標準 OIDC 介面，後面轉接到不同的 connector。Lab 有兩個用途：叢集的 Dex 轉接 Keycloak，ArgoCD 內建的 Dex 轉接 Cloudflare Access。見 <a href="role-keycloak-dex.html">Role: keycloak / dex</a>。</p>
+<h4 id="keycloak">Keycloak</h4>
+<p>開源的身份與存取管理系統，Lab 用它模擬獨立於叢集的公司 SSO，跑在 bastion 的 Docker 上。見 <a href="role-keycloak-dex.html">Role: keycloak / dex</a>。</p>
+<h4 id="oauth2-proxy">oauth2-proxy</h4>
+<p>擋在應用程式前面的認證反向代理。它自己不管理使用者，只認一個上游 OIDC provider，驗證通過後把身份轉成 HTTP header 交給後端。見 <a href="identity-federation-flow.html">身份聯邦登入流程</a>。</p>
+<h3 id="platform">儲存與平台服務</h3>
+<h4 id="pvc-pv">PVC／PV</h4>
+<p>PersistentVolume（PV）是叢集裡的一塊儲存，PersistentVolumeClaim（PVC）是 Pod 對儲存的申請。Lab 的監控資料用固定名稱的靜態 PV，才能在整個環境重建後重新綁回舊資料，見 <a href="internal-tools.html#monitoring-storage">內部工具 § 監控資料的儲存</a>。</p>
+<h4 id="csi">CSI</h4>
+<p>Container Storage Interface，Kubernetes 接儲存後端的標準介面。Lab 用 <code>nfs.csi.k8s.io</code> 驅動，提供 <code>nfs-csi</code> 與 <code>nfs-csi-retain</code> 兩個 StorageClass。</p>
+<h4 id="nfs">NFS</h4>
+<p>網路檔案系統。bastion 把持久碟匯出成 NFS，供叢集內的 PV 使用。資料碟在 <code>terraform destroy</code> 後保留，見 <a href="infrastructure.html#data-volumes">Terraform / OpenStack § 資料碟</a>。</p>
+<h4 id="vault">Vault</h4>
+<p>HashiCorp 的秘密管理系統。Lab 跑在 bastion 上，資料放在持久碟，重建後只需要自動 unseal。見 <a href="role-vault.html">Role: vault</a>。</p>
+<h4 id="vso">VSO</h4>
+<p>Vault Secrets Operator，在叢集內把 Vault 的資料同步成一般的 k8s Secret。用法見 <a href="user-guide.html#deploy">叢集使用手冊 § 部署</a>。</p>
+<h4 id="gitops">GitOps</h4>
+<p>把期望的叢集狀態存在 Git 裡，由工具持續比對並套用的做法。Lab 用 ArgoCD 實現，repo 來源包含自架 GitLab。</p>
+<h4 id="argocd">ArgoCD</h4>
+<p>GitOps 持續部署工具，監看 Git repo 並把 manifests 同步到叢集。Lab 的 ArgoCD 裝在它所管理的叢集內，見 <a href="role-argocd.html">Role: argocd</a>。</p>
+<h4 id="ansible-vault">ansible-vault</h4>
+<p>Ansible 內建的檔案加密工具。Lab 的 SSH 私鑰與 <code>secrets.yml</code> 都以它整檔加密後進版控，密碼放在不進版控的 <code>.env</code>。見 <a href="ansible-framework.html#secrets">Ansible 框架設計 § 密鑰管理</a>。</p>
+
+    <div class="page-nav">
+      <a class="prev" href="teardown.html"><span class="dir">上一頁</span>
+        <span class="ttl">← 全部拆除</span></a>
+      <a class="next" href="network-architecture.html"><span class="dir">下一頁</span>
+        <span class="ttl">網路架構總覽 →</span></a>
+    </div>
+
+    <footer class="page-footer">
+      <span>文件站原始碼：<a href="https://github.com/DoughOps/terraform-k8s-docs" target="_blank" rel="noopener">DoughOps/terraform-k8s-docs</a></span>
+      <span>最後更新：2026-11-01（對應 commit e91424f）</span>
+    </footer>
+  </div>
+</div>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

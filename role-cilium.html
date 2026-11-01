@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Role: cilium — k8s + BGP Lab 技術詳解</title>
+<title>Role: cilium — k8s + BGP Lab 技術文件</title>
 <link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
@@ -12,16 +12,17 @@
   <div class="sidebar-logo">
     <a class="sidebar-logo-link" href="index.html">
       <h1>🛰️ k8s + BGP Lab</h1>
-      <span>OpenStack Lab · 技術詳解 v15</span>
+      <span>OpenStack Lab 技術文件</span>
     </a>
   </div>
   <nav>
     <div class="nav-group">
-      <div class="nav-group-label">總覽</div>
+      <div class="nav-group-label">開始</div>
       <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
       <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
       <a class="nav-link" href="user-guide.html"><span class="icon">🧑‍💻</span> 叢集使用手冊</a>
       <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+      <a class="nav-link" href="glossary.html"><span class="icon">📖</span> 術語表</a>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">網路架構</div>
@@ -32,36 +33,39 @@
       <div class="nav-group-label">基礎設施</div>
       <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
       <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
-      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
     </div>
     <div class="nav-group">
-      <div class="nav-group-label">Ansible 自動化</div>
-      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <div class="nav-group-label">叢集元件</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> Ansible 框架設計</a>
       <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
       <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
       <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
       <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
       <a class="nav-link active" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
       <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試與 smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">對外入口與身份驗證</div>
       <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
       <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">📋</span> Cloudflare 設定清單</a>
       <a class="nav-link" href="role-vault.html"><span class="icon">🔒</span> Role: vault</a>
       <a class="nav-link" href="role-keycloak-dex.html"><span class="icon">🪪</span> Role: keycloak / dex</a>
       <a class="nav-link" href="identity-federation-flow.html"><span class="icon">🧩</span> 身份聯邦登入流程</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">平台服務</div>
       <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
       <a class="nav-link" href="role-gitlab.html"><span class="icon">🦊</span> Role: gitlab</a>
       <a class="nav-link" href="role-argocd.html"><span class="icon">🐙</span> Role: argocd</a>
-      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
-      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
-    </div>
-    <div class="nav-group">
-      <div class="nav-group-label">Cloudflare 手動設定</div>
-      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具</a>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">專案紀錄</div>
       <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
-      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">🗒️</span> Changelog</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB 歷史</a>
     </div>
   </nav>
 </aside>
@@ -69,8 +73,9 @@
 <div class="main">
   <header class="topbar">
     <div class="topbar-left">
-      <button class="menu-btn" aria-label="Toggle menu">☰</button>
-      <span class="topbar-crumb">Lab Docs / <strong>Role: cilium</strong></span>
+      <button class="menu-btn" aria-label="切換選單">☰</button>
+      <span class="topbar-crumb">叢集元件 /
+        <strong>Role: cilium</strong></span>
     </div>
     <div class="topbar-right">
       <span class="topbar-badge">cloudnative.tw · AS 65000</span>
@@ -82,241 +87,116 @@
 
   <div class="content">
 
-    <h2><span class="eyebrow">Ansible 自動化</span>Role: cilium</h2>
-    <p class="lede">整個專案最複雜、也最多實測 bug 的一個 role。目標:部署
-      Cilium 當 CNI,native routing 模式,<strong>完全依賴既有的 FRR iBGP
-      fabric</strong> 做跨節點的 pod 路由,不使用 Cilium 自己的 BGP
-      Control Plane。這是使用者的明確要求——原文是「不要使用cilium的
-      bgp, 使用我們已經建好的bgp」。整體設計邏輯見
-      <a href="network-architecture.html">網路架構總覽</a>,這頁專注在
-      這個 role<strong>怎麼做到</strong>,以及過程中撞到的幾個 bug。裝在
-      <code>cilium</code> namespace(不是官方預設的 <code>kube-system</code>),
-      而且<strong>已經取代 kube-proxy</strong>(eBPF kube-proxy
-      replacement),兩者都是後來加上去的架構決定,見下方。</p>
+    <h2><span class="eyebrow">叢集元件</span>
+    Role: cilium</h2>
 
-    <div class="callout callout-warn">
-      <p><strong>2026-08-06 更新:IPAM 模式從 <code>kubernetes</code> 改成
-      <code>cluster-pool</code></strong>——使用者明確要求。每個節點的
-      PodCIDR 現在由 <strong>cilium-operator 自己配發</strong>,記錄在
-      <code>CiliumNode</code> 這個 CRD 的 <code>.spec.ipam.podCIDRs</code>,
-      不再依賴 kube-controller-manager 的
-      <code>--allocate-node-cidrs</code>/<code>--cluster-cidr</code>、也
-      不再有 <code>Node.spec.podCIDR</code> 這個欄位。原本「第一段:讓
-      kube-controller-manager 配發 PodCIDR」那整段(含下面的 Bug #1)
-      已經<strong>整段刪除</strong>(<code>enable_pod_cidr_allocation.yml</code>
-      這個檔案不存在了)——保留在這頁最下面的
-      <a href="#history-node-ipam">歷史紀錄</a>,原因是這是一段真實撞過、
-      而且教訓仍然通用的 bug(YAML block 純量的縮排陷阱),不是這個 repo
-      的行事風格會直接刪掉不留痕跡的那種內容。</p>
-    </div>
+<p class="lede">這個 role 把 Cilium 部署成 CNI，使用 native routing，跨節點的 pod 路由完全交給既有的 FRR iBGP fabric。它也取代 kube-proxy，並開啟 Hubble 觀測。在建置順序中，它排在 <code>kubeadm</code> 之後、<code>smoke-test</code> 之前，依賴已經存在的 apiserver 和 tor 上的 haproxy（見 <a href="role-apiserver-lb.html">Role: apiserver-lb</a>）。整體網路設計見<a href="network-architecture.html">網路架構總覽</a>，這頁專注在這個 role 怎麼設定，以及實測踩到的問題。</p>
 
-    <h3>兩段式編排,靠 ansible 的 linear strategy 保證順序</h3>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/cilium/tasks/main.yml</span></div>
-      <pre><span class="out">1. bastion:   用 helm 裝 Cilium(ipam.mode=cluster-pool)
-2. k8s_nodes: 把每個節點實際拿到的 CIDR(CiliumNode)用 vtysh 加進本地 FRR</span></pre>
-    </div>
-    <p>呼叫這個 role 的 playbook,<code>hosts</code> 要同時涵蓋
-      <code>bastion</code>、<code>k8s_nodes</code> 兩種身份(實際寫法是
-      <code>hosts: k8s_nodes:bastion</code>),兩段用 <code>when</code>
-      各自守衛。這樣寫可以依賴 ansible 預設的 linear strategy
-      ——每個 task 都要等<strong>所有</strong> host 做完/skip,才會進下
-      一個 task——保證「裝 Cilium」一定會在「vtysh 加 CIDR」之前完成,
-      不需要額外的 <code>wait_for</code> 或鎖機制。</p>
+<h3 id="flow">兩段式編排</h3>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/cilium/tasks/main.yml</span></div>
+  <pre><span class="out">1. bastion:   用 helm 裝 Cilium（ipam.mode=cluster-pool）
+2. k8s_nodes: 把每個節點實際拿到的 CIDR（CiliumNode）用 vtysh 加進本地 FRR</span></pre>
+</div>
+<p>呼叫這個 role 的 playbook，<code>hosts</code> 要同時涵蓋 <code>bastion</code> 和 <code>k8s_nodes</code>。實際寫法是 <code>hosts: k8s_nodes:bastion</code>。兩段用 <code>when</code> 各自守衛。</p>
+<p>Ansible 預設的 linear strategy 會讓每個 task 等所有 host 做完或 skip，才進下一個 task。所以「裝 Cilium」一定在「vtysh 加 CIDR」之前完成，不需要額外的 <code>wait_for</code> 或鎖。</p>
 
-    <h3>用 helm 裝 Cilium</h3>
-    <p>全部用 <code>become: false</code>(<code>ubuntu</code> 使用者身份跑,
-      不是 root)——kubeconfig 在 <code>/home/ubuntu/.kube/config</code>,
-      helm 自己的 repo cache/state 也放在 ubuntu 的家目錄,用 root
-      跑會變成另一份不同的 state,之後手動用 ubuntu 身份下 helm
-      指令會對不起來。helm 二進位本身用 <code>get.helm.sh</code>
-      的 tarball 直接下載解壓縮(不是走 apt repo),只有「把二進位放進
-      <code>/usr/local/bin</code>」這一步才需要 <code>become: true</code>。</p>
+<h3 id="install">用 helm 安裝</h3>
+<p>安裝 task 全部用 <code>become: false</code>，以 <code>ubuntu</code> 身份執行。kubeconfig 在 <code>/home/ubuntu/.kube/config</code>，helm 的 repo cache 和 state 也在 ubuntu 的家目錄。用 root 跑會產生另一份 state，之後手動以 ubuntu 身份下 helm 指令就對不起來。</p>
+<p>helm 二進位直接從 <code>get.helm.sh</code> 下載 tarball 解壓縮，版本由 <code>group_vars/all/main.yml</code> 的 <code>helm_version</code> 控制（<code>roles/istio</code> 共用同一個值）。只有「把二進位放進 <code>/usr/local/bin</code>」這一步需要 <code>become: true</code>。</p>
 
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/cilium/tasks/install.yml(節錄)</span></div>
-      <pre><span class="out">kubernetes.core.helm:
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/cilium/tasks/install.yml（節錄）</span></div>
+  <pre><span class="out">kubernetes.core.helm:
   name: cilium
   chart_ref: cilium/cilium
   chart_version: "{{ cilium_chart_version }}"   </span><span class="dim"># 1.19.6</span><span class="out">
-  release_namespace: "{{ cilium_namespace }}"   </span><span class="dim"># cilium,不是 kube-system</span><span class="out">
-  create_namespace: true</span></pre>
-    </div>
-    <p><code>release_namespace</code> 明確設成 <code>cilium</code>
-      (使用者明確要求,不是官方預設把 CNI 裝在 <code>kube-system</code>)
-      ——這一步比 <a href="role-istio.html">Role: istio</a> 的
-      <code>global.istioNamespace</code> 情況單純,Cilium 的 chart 本身
-      沒有寫死任何 namespace 假設,只設 <code>release_namespace</code>
-      就夠了,不需要另外多帶一個變數對齊。</p>
+  release_namespace: "{{ cilium_namespace }}"   </span><span class="dim"># cilium</span><span class="out">
+  create_namespace: true
+  wait: true
+  wait_timeout: 5m0s</span></pre>
+</div>
+<p>Cilium 裝在專屬的 <code>cilium</code> namespace，不使用官方預設的 <code>kube-system</code>，讓 CNI 的資源和其他系統元件分開管理，也和 <code>istio</code>、<code>cloudflare</code> 等其他元件的做法一致。</p>
+<p>Cilium 的 chart 沒有寫死 namespace，只要設定 <code>release_namespace</code> 就夠了。這點和 Istio 不同，Istio 還需要另外設定 <code>global.istioNamespace</code>（見 <a href="role-istio.html#namespace">Role: istio</a>）。</p>
+<p>helm 的 <code>wait: true</code> 讓 ansible 等到 release 就緒，之後再用 <code>kubectl rollout status daemonset/cilium --timeout=300s</code> 二次確認。</p>
 
-    <h4>values.yaml 每一個設定為什麼要這樣寫</h4>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/cilium/templates/cilium-values.yaml.j2</span></div>
-      <pre><span class="out">routingMode: native
-ipv4NativeRoutingCIDR: "172.16.0.0/16"
-autoDirectNodeRoutes: false
-ipam:
-  mode: cluster-pool
-  operator:
-    clusterPoolIPv4PodCIDRList:
-      - "172.16.0.0/16"
-    clusterPoolIPv4MaskSize: 24
-bgpControlPlane:
-  enabled: false
-kubeProxyReplacement: true
-k8sServiceHost: "k8s-api.internal"
-k8sServicePort: 6443</span></pre>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>設定</th><th>為什麼</th></tr></thead>
-        <tbody>
-          <tr>
-            <td class="mono">routingMode: native</td>
-            <td>不用 VXLAN/Geneve overlay——完整理由(已經有一個能用的
-              BGP fabric、k8s-net 本身已經是 OpenStack 的 overlay 不想
-              疊兩層)見 <a href="network-architecture.html">網路架構總覽</a>。</td>
-          </tr>
-          <tr>
-            <td class="mono">ipv4NativeRoutingCIDR</td>
-            <td>告訴 Cilium「這個範圍的目的地,交給底層網路(FRR)處理,
-              不要自己插手/masquerade」——設成整個叢集的 pod-cidr。</td>
-          </tr>
-          <tr>
-            <td class="mono">autoDirectNodeRoutes: false</td>
-            <td>關掉 Cilium 自己「猜」節點是不是同一個 L2 網段、自動加
-              直連路由的功能——k8s-net 雖然是同一個 flat subnet,但
-              「這個節點的 PodCIDR 該怎麼路由過去」這件事,刻意選擇交給
-              FRR/BGP 處理,不要 Cilium 自己插一手,兩邊互相打架。</td>
-          </tr>
-          <tr>
-            <td class="mono">ipam.mode: cluster-pool</td>
-            <td>使用者明確要求用 Cilium 自己的 cluster-pool
-              IPAM——cilium-operator 自己配發每個節點的 CIDR,記錄在
-              <code>CiliumNode</code> 的 <code>.spec.ipam.podCIDRs</code>,
-              完全不依賴 kube-controller-manager。<code>bgp_announce</code>
-              (下一段)直接讀這個欄位。<code>clusterPoolIPv4PodCIDRList</code>
-              的既有元素、<code>clusterPoolIPv4MaskSize</code> 都是套用後
-              就不能再改的參數(Cilium 官方文件明講),跟原本
-              <code>Node.spec.podCIDR</code> 的「叢集初始化時就固定死」
-              限制是同一類。</td>
-          </tr>
-          <tr>
-            <td class="mono">bgpControlPlane.enabled: false</td>
-            <td><strong>明確關掉 Cilium 自己的 BGP</strong>——這是這次
-              導入 Cilium 最主要的架構決定,不是漏掉沒設。</td>
-          </tr>
-          <tr>
-            <td class="mono">kubeProxyReplacement: true</td>
-            <td>用 Cilium 的 eBPF 實作<strong>取代</strong> kube-proxy
-              (使用者明確要求)——不再另外裝 kube-proxy,對應的
-              <code>kubeadm init</code> 也改成
-              <code>--skip-phases=addon/kube-proxy</code>,見
-              <a href="role-kubeadm.html">Role: kubeadm</a>。</td>
-          </tr>
-          <tr>
-            <td class="mono">k8sServiceHost / k8sServicePort</td>
-            <td>沒有 kube-proxy 的話,cluster 裡不存在任何東西幫 Cilium
-              自己把 apiserver 的 ClusterIP 轉成真正的後端位址——Cilium
-              在 kube-proxy-free 模式下需要一個<strong>明確、不靠
-              kube-proxy 就能連到</strong>的 apiserver 入口,直接沿用
-              <code>apiserver_hostname</code>(<code>k8s-api.internal</code>)
-              /<code>apiserver_port</code>,細節見下方的第四個 bug。</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+<h3 id="values">現在的 values</h3>
+<p>下表逐項對照 <code>roles/cilium/templates/cilium-values.yaml.j2</code>。</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>欄位</th><th>值</th><th>為什麼</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="mono">routingMode</td>
+        <td><code>native</code></td>
+        <td>不用 VXLAN／Geneve overlay，跨節點封包直接帶 pod 真實 IP 走底層網路。前提是底層知道怎麼路由每個節點的 PodCIDR，這正是 FRR iBGP fabric 在做的事。完整理由見<a href="network-architecture.html">網路架構總覽</a>。</td>
+      </tr>
+      <tr>
+        <td class="mono">ipv4NativeRoutingCIDR</td>
+        <td><code>{{ cluster_pod_cidr }}</code>（<code>172.16.0.0/16</code>）</td>
+        <td>告訴 Cilium 這個範圍的目的地交給底層網路處理，不要自己 masquerade。設成整個叢集的 pod CIDR。</td>
+      </tr>
+      <tr>
+        <td class="mono">autoDirectNodeRoutes</td>
+        <td><code>false</code></td>
+        <td>關掉 Cilium 判斷節點是否同 L2 網段、自動加直連路由的功能。<code>k8s-net</code> 雖然是同一個 flat subnet，但節點 PodCIDR 的路由刻意交給 FRR／BGP，避免兩邊互相打架。</td>
+      </tr>
+      <tr>
+        <td class="mono">ipam.mode</td>
+        <td><code>cluster-pool</code></td>
+        <td>由 cilium-operator 配發每個節點的 CIDR，記錄在 <code>CiliumNode</code> 的 <code>.spec.ipam.podCIDRs</code>，不依賴 kube-controller-manager 的 node-ipam-controller。<code>bgp_announce.yml</code> 直接讀這個欄位。</td>
+      </tr>
+      <tr>
+        <td class="mono">ipam.operator.clusterPoolIPv4PodCIDRList</td>
+        <td><code>172.16.0.0/16</code></td>
+        <td>配發的來源範圍。套用後不能改既有元素（Cilium 官方文件明講）。</td>
+      </tr>
+      <tr>
+        <td class="mono">ipam.operator.clusterPoolIPv4MaskSize</td>
+        <td><code>24</code>（<code>cluster_pod_cidr_node_mask</code>）</td>
+        <td>每個節點分到一個 <code>/24</code>。和上一列一樣，套用後不能再改，要改只能用 <code>kubeadm-reset.yml</code> 整個叢集重建。</td>
+      </tr>
+      <tr>
+        <td class="mono">bgpControlPlane.enabled</td>
+        <td><code>false</code></td>
+        <td>不使用 Cilium 自己的 BGP，見<a href="#adr-no-bgp">下方的決策紀錄</a>。</td>
+      </tr>
+      <tr>
+        <td class="mono">kubeProxyReplacement</td>
+        <td><code>true</code></td>
+        <td>用 Cilium 的 eBPF 實作取代 kube-proxy，見 <a href="#kube-proxy-replacement">kube-proxy 取代</a>。</td>
+      </tr>
+      <tr>
+        <td class="mono">bpf.masquerade</td>
+        <td><code>true</code></td>
+        <td><code>kubeProxyReplacement</code> 只決定 Service 負載平衡是否用 eBPF，不會連帶打開 BPF masquerade。chart 預設是 <code>false</code>，masquerade 和 host routing 會停在 legacy iptables／netfilter。kernel 6.8 和 Cilium 1.19.6 都超過 BPF host routing 要求的 5.10 以上。見 <a href="#bug-46">Bug #46</a>。</td>
+      </tr>
+      <tr>
+        <td class="mono">k8sServiceHost／k8sServicePort</td>
+        <td><code>{{ apiserver_hostname }}</code>（<code>k8s-api.internal</code>）／<code>{{ apiserver_port }}</code></td>
+        <td>沒有 kube-proxy 時，Cilium agent 啟動當下需要一個不靠 kube-proxy 就連得到的 apiserver 入口。必須用 hostname，不能用 tor 的 IP，見 <a href="#bug-24">Bug #24</a>。</td>
+      </tr>
+      <tr>
+        <td class="mono">hubble.enabled／relay／ui</td>
+        <td>全部 <code>true</code></td>
+        <td>觀測 eBPF 資料平面實際看到的流量。relay 聚合各節點 agent 的資料，ui 才是對外的網頁介面。對外掛載見 <a href="#hubble">Hubble UI</a>。</td>
+      </tr>
+      <tr>
+        <td class="mono">extraConfig.enable-remote-node-masquerade</td>
+        <td><code>"true"</code></td>
+        <td>繞過底層 fabric 問題的 workaround，見 <a href="#remote-node-masquerade">remote-node-masquerade</a>。</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
-    <p>helm 安裝本身用 <code>kubernetes.core.helm</code> 模組,
-      <code>wait: true</code> + <code>wait_timeout: 5m0s</code>
-      讓 ansible 等到 helm 認定的 release 就緒才算完成這一步,之後再多加
-      一道 <code>kubectl rollout status daemonset/cilium</code>
-      做二次確認。</p>
+<h3 id="podcidr-frr">PodCIDR 如何進入 FRR</h3>
+<p>每個節點把自己被配發的 CIDR 讀出來，用 <code>vtysh</code> 加一個 <code>network</code> 陳述式到本地 FRR，讓 iBGP fabric 把這個 prefix 廣播出去。這和 Phase 1 用 <code>dummy0</code> 加 <code>network</code> 宣告 Service VIP 是同一招，見 <a href="l4lb-history.html">DSR / L4LB 歷史</a>。差別是 PodCIDR 在 Cilium 執行期才決定，沒辦法像 <code>terraform.tfvars</code> 的 <code>announce_prefix</code> 那樣在開機時寫死。</p>
+<p>讀取來源是 <code>kubectl get ciliumnode &lt;節點名&gt; -o jsonpath={.spec.ipam.podCIDRs[0]}</code>。<code>cluster-pool</code> 模式下，CiliumNode 是權威來源，<code>Node.spec.podCIDR</code> 不再有值。</p>
 
-    <h3>把 PodCIDR 塞進 FRR——最複雜的一個 bug</h3>
-    <p>目標很單純:每個節點把自己被配發的 CIDR 讀出來(
-      <code>kubectl get ciliumnode {{ inventory_hostname }} -o
-      jsonpath={.spec.ipam.podCIDRs[0]}</code>,cluster-pool 模式下這是
-      權威來源,不是 <code>Node.spec.podCIDR</code>),用
-      <code>vtysh</code> 加一個 <code>network</code> 陳述式到本地
-      FRR,讓既有 iBGP fabric 把這個 prefix 廣播出去——跟 Phase 1 用
-      <code>dummy0</code> + <code>network</code> 宣告 Service VIP
-      是同一招(見 <a href="l4lb-history.html">DSR / L4LB 歷史頁面</a>),
-      只是這次要宣告的 prefix 是 Cilium 執行期間才動態決定的。</p>
-
-    <h4>Bug:zebra 不認 Cilium 建的 route</h4>
-    <p>FRR 的 <code>network</code> 陳述式要求「這個 prefix 在 zebra
-      (FRR 的路由管理 daemon)自己的 RIB 裡有一筆有效(non-blackhole)
-      的對應 route」才會真的宣告出去。天真的假設是:Cilium native
-      routing 模式本來就會在 kernel 裡建一筆整個節點 PodCIDR 指到
-      <code>cilium_host</code> 的 connected route,這筆 route 應該會被
-      zebra 自動撿到。</p>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">實測:kernel 有,但 zebra 沒有</span></div>
-      <pre><span class="dim">$ ip route show 172.16.0.0/24</span>
-<span class="out">172.16.0.0/24 via 10.244.0.35 dev cilium_host proto kernel</span>   <span class="ok">← kernel 有</span>
-
-<span class="dim">$ vtysh -c "show ip route 172.16.0.0/24"</span>
-<span class="bad">% Network not in table</span>                                        <span class="bad">← zebra 沒有</span></pre>
-    </div>
-    <p>試過 <code>redistribute kernel</code>(讓 zebra 主動吸收所有
-      <code>proto kernel</code> 的路由)也沒用,同一個結果。當時的懷疑
-      (目前沒有進一步深入 FRR 原始碼確認)是 zebra 對「<code>proto kernel</code>
-      但帶 <code>via</code> gateway」這種不是單純 connected route 的
-      條目有特殊處理,只有真正的 connected route(沒有 <code>via</code>
-      、只有 <code>dev</code>)才會被無條件納入。</p>
-
-    <h4>修法:自己補一條 Null0 靜態路由當「憑證」</h4>
-    <p>既然沒辦法讓 zebra 認得 Cilium 建的 route,就自己在 FRR 裡補一條
-      route 給 zebra 認——用 <code>Null0</code>(blackhole,不指向任何
-      真實介面)避免這條 route 真的影響封包轉送,同時設一個刻意偏高的
-      <code>distance</code>(FRR 的 administrative distance,數字越大
-      優先權越低),確保 kernel 裡如果同時存在 Cilium 的真實 route 跟
-      這條假 route,永遠是 Cilium 的那條贏。</p>
-
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">實測過程:distance 255 先失敗</span></div>
-      <pre><span class="dim">$ vtysh -c "configure terminal" -c "ip route 172.16.0.0/24 Null0 255" -c "end"
-$ vtysh -c "show ip bgp 172.16.0.0/24"</span>
-<span class="out">    0.0.0.0 (inaccessible) ... </span><span class="bad">invalid</span><span class="out">, sourced, local</span>   <span class="bad">← 還是 invalid!</span></pre>
-    </div>
-    <div class="callout callout-warn">
-      <p><strong>255 是 FRR 的保留值</strong>,語意是「這條路由永遠不會被
-      選上」——不只不會裝進 kernel FIB,連 BGP 的 <code>network</code>
-      驗證都會把它當成不存在。這是實測發現的,不是文件先讀到才避開。
-      改用 <code>200</code>(一個夠高、但不是保留值的數字)才成功:</p>
-    </div>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">distance 200:成功</span></div>
-      <pre><span class="dim">$ vtysh -c "configure terminal" -c "ip route 172.16.0.0/24 Null0 200" -c "end"
-$ vtysh -c "show ip route 172.16.0.0/24"</span>
-<span class="out">Routing entry for 172.16.0.0/24
-  Known via "static", distance 200, metric 0, </span><span class="ok">best</span>
-<span class="dim">$ vtysh -c "show ip bgp 172.16.0.0/24"</span>
-<span class="out">    ... </span><span class="ok">valid, sourced, local, best</span><span class="out">
-  Advertised to non peer-group peers: 10.10.0.10</span>   <span class="ok">← 真的被宣告出去了</span></pre>
-    </div>
-
-    <p>關鍵的驗證是確認這條 <code>distance 200</code> 的假路由<strong>
-      沒有真的接管封包轉送</strong>:</p>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">kernel FIB 裡兩條路由同時存在,但實際查詢選中 Cilium 的那條</span></div>
-      <pre><span class="dim">$ ip route show 172.16.0.0/24</span>
-<span class="out">172.16.0.0/24 via 10.244.0.35 dev cilium_host proto kernel    </span><span class="dim"># metric 0(隱含)</span><span class="out">
-blackhole 172.16.0.0/24 proto static metric 20                </span><span class="dim"># 我們加的這條</span><span class="out">
-
-$ ip route get 172.16.0.100                                     </span><span class="dim"># 挑一個 PodCIDR 內的位址</span><span class="out">
-172.16.0.100 dev cilium_host src 10.244.0.35                    </span><span class="ok">← 選的是 cilium_host,不是 blackhole</span></pre>
-    </div>
-    <p>metric 0(Cilium 的 route)比 metric 20(我們加的 blackhole)低,
-      實際封包轉送查詢永遠選中前者——這條 Null0 路由的唯一作用是讓
-      zebra/BGP 的 <code>network</code> 陳述式有東西可以驗證,對真實流量
-      完全透明。</p>
-
-    <h4>最終的完整 vtysh 序列</h4>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/cilium/tasks/bgp_announce.yml(精簡)</span></div>
-      <pre><span class="out">vtysh -c "configure terminal" \
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/cilium/tasks/bgp_announce.yml（精簡）</span></div>
+  <pre><span class="out">vtysh -c "configure terminal" \
       -c "ip route 172.16.0.0/24 Null0 200" \
       -c "end" -c "write memory"
 
@@ -324,221 +204,275 @@ vtysh -c "configure terminal" \
       -c "router bgp 65000" \
       -c "network 172.16.0.0/24" \
       -c "end" -c "write memory"</span></pre>
-    </div>
-    <p>兩個步驟都先讀一次 <code>show running-config</code>,用字串比對
-      確認「這條設定還沒存在」才執行——冪等,重跑不會累加重複設定。</p>
+</div>
+<p>這段做三件事：</p>
+<ol>
+  <li>讀取 CiliumNode 的 PodCIDR，並斷言有拿到值。拿不到代表 cilium-operator 沒有正常運作。</li>
+  <li>加一條 <code>distance 200</code> 的 Null0 靜態路由，給 zebra 一個「這個 prefix 存在」的憑證。原因見 <a href="#bug-19">Bug #19</a>。</li>
+  <li>在 <code>router bgp</code> 加 <code>network</code>，讓 fabric 廣播。</li>
+</ol>
+<p>兩個寫入步驟都先讀 <code>show running-config</code>，確認設定還不存在才執行，所以重跑不會累加重複設定。</p>
 
-    <h3>另一個間接發現的 bug:service-cidr 路由</h3>
-    <p>裝 Cilium 過程中間接發現、但根因跟修法都不屬於這個 role 的 bug——
-      Cilium 的 init container 連 ClusterIP 逾時,根因是 hostNetwork
-      流量的來源位址選擇問題,完整故事見
-      <a href="role-kubelet.html">Role: kubelet</a>。</p>
+<div class="callout callout-info">
+  <p>Null0 路由只用來通過 zebra 的驗證，不影響封包轉送。kernel 裡 Cilium 的 route 是 metric 0，這條 blackhole 是 metric 20，實際查詢永遠選中 Cilium 的那條。實測輸出在 <a href="#bug-19">Bug #19</a>。</p>
+</div>
 
-    <h3>Bug:kube-proxy 移除後,<code>k8sServiceHost</code> 設成 tor 的 IP 直接讓所有 Cilium pod 掛掉</h3>
-    <p>移除 kube-proxy、改成 <code>kubeProxyReplacement: true</code>
-      之後,第一版直覺地把 <code>k8sServiceHost</code> 設成
-      <code>hostvars['tor']['fabric_ip']</code>——邏輯上看起來合理:
-      apiserver 的實際流量本來就是先到 tor 的 haproxy,再轉發給三台
-      master(見 <a href="role-apiserver-lb.html">Role: apiserver-lb</a>),
-      所以「Cilium 直接連 tor 的 IP」感覺是抄了一個近路,少一次 DNS
-      查詢。</p>
+<h4 id="adr-no-bgp">決策紀錄：不使用 Cilium BGP Control Plane</h4>
+<div class="adr">
+  <p><strong>決策</strong>：<code>bgpControlPlane.enabled: false</code>，PodCIDR 的宣告由 FRR 負責。</p>
+  <p><strong>理由</strong>：fabric 的 iBGP 已經由 FRR 負責，tor 是 route reflector，見 <a href="bgp-fabric.html#next-hop-self">FRR / iBGP Fabric</a>。再讓 Cilium 跑一套 BGP 實作，就有兩個 daemon 對同一批節點宣告路由，策略和 next-hop 行為會互相打架。</p>
+  <p><strong>考慮過的替代方案</strong>：Cilium BGP Control Plane 直接和 tor 建立 peering — 會與既有的 FRR session 並存。route reflector 要多處理一種 client，BGP 設定也要維護兩套。</p>
+  <p><strong>代價</strong>：要自己維護 <code>bgp_announce.yml</code> 這段 vtysh 流程，並用 Null0 路由繞過 zebra 的限制（<a href="#bug-19">Bug #19</a>）。PodCIDR 變動時，宣告不會自動跟著更新，需要重跑 playbook。</p>
+</div>
 
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">實測:所有 cilium pod 卡在 Init:CrashLoopBackOff</span></div>
-      <pre><span class="bad">Unable to connect to the server: tls: failed to verify certificate: x509:
+<h3 id="kube-proxy-replacement">kube-proxy 取代</h3>
+<p>叢集沒有安裝 kube-proxy，Service 的負載平衡全部由 Cilium 的 eBPF 資料平面處理。Cilium 端的設定是 <code>kubeProxyReplacement: true</code>，kubeadm 端對應使用 <code>--skip-phases=addon/kube-proxy</code>（見 <a href="role-kubeadm.html">Role: kubeadm</a>）。</p>
+<div class="adr">
+  <p><strong>決策</strong>：用 Cilium eBPF 取代 kube-proxy。</p>
+  <p><strong>理由</strong>：Service 轉發只剩一套資料平面，不需要 kube-proxy 的 iptables 規則鏈與 Cilium 的 BPF map 並存。</p>
+  <p><strong>考慮過的替代方案</strong>：保留 kube-proxy（iptables 或 ipvs 模式）搭配 Cilium — 兩套實作都會處理 Service 流量，排錯時要判斷是哪一套在動作。</p>
+  <p><strong>代價</strong>：Cilium agent 啟動時不能依賴 kube-proxy 轉發 ClusterIP，必須明確設定 <code>k8sServiceHost</code>／<code>k8sServicePort</code>，這是標準的 kube-proxy-free bootstrap 問題。這個值用 hostname 而不是 IP，見 <a href="#bug-24">Bug #24</a>。</p>
+</div>
+<p>Istio 完全不受影響。它在 L7 對 Kubernetes Service 這個抽象概念操作，不依賴 ClusterIP 是由 iptables 還是 eBPF 轉發（見 <a href="role-istio.html">Role: istio</a>）。</p>
+
+<h3 id="hubble">Hubble UI 的對外掛載</h3>
+<p>Hubble UI 本身沒有登入機制，只靠 Cloudflare Access 擋在前面。它透過 Istio 的共用 Gateway 對外，網址是 <code>hubble_hostname</code>（<code>hubble.dough-ops.com</code>）。</p>
+<p>這個掛載由獨立的 <code>playbooks/k8s/hubble-expose.yml</code> 執行，不在 <code>roles/cilium</code> 的主流程裡。原因是 <code>VirtualService</code> 這個 CRD 由 Istio 提供，而 <code>cilium.yml</code> 排在 <code>istio.yml</code> 之前，從零建置時 CRD 還不存在，直接 apply 會失敗：<code>no matches for kind "VirtualService"</code>。所以 <code>hubble-expose.yml</code> 在 <code>k8s.yml</code> 裡排在 <code>istio.yml</code> 之後。</p>
+<p>這個 playbook 用 <code>import_role</code> 搭配 <code>tasks_from: hubble_expose</code>。<code>tasks_from</code> 只在 task 層級的 <code>import_role</code>／<code>include_role</code> 生效。寫在 play 層級的 <code>roles:</code> 清單會被忽略，結果是整個 <code>main.yml</code> 被重跑一次，包含 helm 安裝和 <code>bgp_announce</code>。</p>
+
+<h3 id="limits">已知限制與 workaround</h3>
+<p>目前唯一偏離「pod 內部一律帶真實 IP」設計的地方，是 <code>enable-remote-node-masquerade</code>。</p>
+
+<h4 id="remote-node-masquerade">remote-node-masquerade</h4>
+<div class="callout callout-danger">
+  <p><strong>這是繞過底層 fabric 問題的 workaround，不是設計意圖。</strong>native routing 的前提是 pod 對外一律帶真實 pod IP，只有真正離開叢集的流量才需要 masquerade，叢集內部（pod↔pod、pod→node）完全不 NAT。這個設定讓「pod → 叢集內其他節點的真實 host IP」的來源位址被改寫成發起節點自己的 IP，違反了這個前提。</p>
+</div>
+
+<div class="adr">
+  <p><strong>決策</strong>：在 <code>cilium-values.yaml.j2</code> 打開 <code>extraConfig.enable-remote-node-masquerade: "true"</code>。</p>
+  <p><strong>理由</strong>：OpenStack／OVN fabric 會靜默丟棄 pod-CIDR（<code>172.16.0.0/16</code>）來源的封包，除非目的地是 tor。節點自己真實 IP 來源的封包永遠暢通。讓 pod 發往節點真實 IP 的封包先偽裝成節點來源，就能繞過這個問題。</p>
+  <p><strong>考慮過的替代方案</strong>：修底層 fabric — 需要 OVN Southbound DB 或 hypervisor OVS flow table 的權限，租戶身份查不到。僅依賴 <code>ipv4NativeRoutingCIDR</code> — 擋不住這條流量，因為 BPF masquerade 對 remote-node／kube-apiserver identity 的目的地有寫死的豁免，不受這個 CIDR 控制。</p>
+  <p><strong>代價</strong>：apiserver 看到的來源位址不再是發起連線的 pod。同一節點上所有 pod 對 apiserver 的連線，在 audit log 和連線來源欄位都顯示成同一個節點 IP，失去「哪個 pod 打了這次 API」的可追蹤性。</p>
+</div>
+
+<h5>影響範圍</h5>
+<ul>
+  <li>只影響「pod → 叢集內其他節點的真實 IP」。目前唯一踩到的情境是 pod → <code>kubernetes</code> Service：它是 no-selector Service，Endpoints 直接指向三台 master 的 <code>6443</code>。</li>
+  <li>不影響 pod↔pod，也不影響 pod → 一般有 selector 的 ClusterIP，這些流量繼續帶真實 pod IP。</li>
+  <li>日後若有其他東西讓 pod 直接連某個節點的真實 IP，也會被悄悄 SNAT。</li>
+  <li>Cilium 官方文件提醒，這個選項會限制 ingress host firewall 對 pod → node 方向的政策執行能力。叢集目前沒有依賴 <code>remote-node</code> entity 的 NetworkPolicy 或 CiliumNetworkPolicy，以後加的話要重新確認。</li>
+</ul>
+
+<h5>何時可以拿掉</h5>
+<p>底層 fabric 的問題修好之後，整段 <code>extraConfig</code> 可以移除，讓 pod 對 apiserver 的連線恢復帶真實 pod IP。這個設定只是繞過症狀，沒有解決根因，所以拿掉之前要先重新驗證底層問題是否真的消失。排錯過程和證據見 <a href="troubleshooting.html#bug-47">Bug #47</a>。</p>
+
+<h5>為什麼是這個設定</h5>
+<p>用分層測試把「pod → apiserver 全新連線逾時」收斂成一個乾淨的規律：</p>
+<ul>
+  <li>pod → tor 本身：暢通。</li>
+  <li>節點自己真實 IP → 任何其他節點：暢通。</li>
+  <li>pod-CIDR 來源 → 除 tor 以外的任何節點：封包在 OpenStack fabric 消失。</li>
+</ul>
+<p>兩端同步 <code>tcpdump</code>，發送端看得到封包送出，接收端零封包，所以問題在線上，不在任何一台 VM 內部。<code>cilium-dbg monitor</code> 證實 Cilium 每次都放行，把封包送上 <code>ens3</code>（<code>action: allow</code>），和 Cilium 的 policy 或 datapath 無關。Neutron port 的 <code>port_security_enabled</code>、MAC、IP 也逐一查過沒有異常。往下需要 OVN Southbound DB 或 hypervisor OVS flow table，共享雲（<code>openstack.cloudnative.tw</code>）只給一般 project 身份，查不到。</p>
+<p>這個選項本來的設計目的是讓 remote node 的 firewall 規則能用單一節點 IP 辨識流量，見 Cilium 官方的 <a href="https://docs.cilium.io/en/stable/network/concepts/masquerading/" target="_blank">masquerading 文件</a>。這裡借用它的效果繞開 fabric 的問題。</p>
+
+<h5>Helm 沒有對應欄位</h5>
+<p>chart 的 <code>values.yaml</code> 沒有把這個 agent flag 包成 camelCase 欄位，所以用 <code>extraConfig</code> 直接把 kebab-case 的 ConfigMap key 塞進去：</p>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/cilium/templates/cilium-values.yaml.j2</span></div>
+  <pre><span class="out">extraConfig:
+  enable-remote-node-masquerade: "true"</span></pre>
+</div>
+
+<div class="callout callout-warn">
+  <p><strong>改 <code>extraConfig</code> 之後 agent 不會自動重啟。</strong>只會更新 ConfigMap，<code>helm upgrade</code> 和 <code>kubectl rollout status daemonset/cilium</code> 都回報成功，但那只代表 DaemonSet 的 pod template 沒變，沒有 pending rollout。這類會改變編譯後 BPF 程式邏輯的設定，agent 不重啟就不會重新載入，ConfigMap 改了也不生效。第一次驗證照標準流程：改 values、跑 <code>k8s/cilium.yml</code>、重測，結果完全沒效果，才發現這個陷阱。套用後要手動重啟：</p>
+  <div class="term">
+    <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">在 bastion 上</span></div>
+    <pre><span class="prompt">$</span> <span class="cmd">kubectl -n cilium rollout restart daemonset/cilium</span>
+<span class="prompt">$</span> <span class="cmd">kubectl -n cilium rollout status daemonset/cilium --timeout=180s</span></pre>
+  </div>
+</div>
+
+<h5>怎麼確認生效</h5>
+<p>用 <code>tcpdump</code> 比較前後：</p>
+<ul>
+  <li>生效前，pod → 節點真實 IP 的 SYN 來源位址是 pod IP（<code>172.16.1.x</code>）。</li>
+  <li>生效後，同一條連線的 SYN 來源位址變成發起節點自己的 IP（<code>10.10.0.x</code>），三向交握完成。</li>
+</ul>
+<p>原本卡住的 <code>argocd-application-controller-0</code> 不需要重建，就從 <code>0/1</code> 自動恢復成 <code>1/1 Running</code>。</p>
+
+<h3 id="bugs">實測踩到的 bug</h3>
+<p>下列 bug 的完整編號登錄在 <a href="troubleshooting.html">Bug 事後檢討</a>。這頁保留和 Cilium 設定直接相關的實測細節。</p>
+
+<section class="bug" id="bug-19">
+  <h4>#19 · FRR 的 <code>network</code> 陳述式一直是 invalid</h4>
+  <ul>
+    <li><strong>症狀</strong>：<code>network</code> 陳述式要求 prefix 在 zebra 的 RIB 裡有一筆有效（non-blackhole）的 route，才會真的宣告。實際上 BGP 表顯示 <code>invalid, not advertised</code>。</li>
+    <li><strong>根因</strong>：Cilium 為節點 PodCIDR 在 kernel 建了一筆指向 <code>cilium_host</code> 的 route，kernel 看得到，zebra 卻沒有匯入。<code>redistribute kernel</code> 也沒用。懷疑 zebra 對「<code>proto kernel</code> 但帶 <code>via</code> gateway」這種不是單純 connected route 的條目有特殊處理，只有沒有 <code>via</code>、只有 <code>dev</code> 的 connected route 才會被無條件納入。這個懷疑沒有進一步比對 FRR 原始碼。</li>
+    <li><strong>修法</strong>：在 FRR 補一條 <code>Null0</code> 靜態路由，<code>distance 200</code>。Null0 是 blackhole，不指向真實介面，不會影響轉送。distance 刻意設高，確保 kernel 裡 Cilium 的真實 route 永遠贏。<strong>不能用 255</strong>，那是 FRR 的保留值，語意是「永遠不會被選上」。</li>
+    <li><strong>怎麼確認修好</strong>：<code>show ip bgp</code> 顯示 <code>valid, sourced, local, best</code>，且 <code>ip route get</code> 選中 <code>cilium_host</code>，見下方輸出。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-19">Bug #19</a></li>
+  </ul>
+</section>
+
+<p>先確認 kernel 有、zebra 沒有：</p>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">實測：kernel 有，但 zebra 沒有</span></div>
+  <pre><span class="dim">$ ip route show 172.16.0.0/24</span>
+<span class="out">172.16.0.0/24 via 10.244.0.35 dev cilium_host proto kernel</span>   <span class="ok">← kernel 有</span>
+
+<span class="dim">$ vtysh -c "show ip route 172.16.0.0/24"</span>
+<span class="bad">% Network not in table</span>                                        <span class="bad">← zebra 沒有</span></pre>
+</div>
+
+<p>第一次嘗試用 <code>distance 255</code>，仍然 invalid：</p>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">實測過程：distance 255 先失敗</span></div>
+  <pre><span class="dim">$ vtysh -c "configure terminal" -c "ip route 172.16.0.0/24 Null0 255" -c "end"
+$ vtysh -c "show ip bgp 172.16.0.0/24"</span>
+<span class="out">    0.0.0.0 (inaccessible) ... </span><span class="bad">invalid</span><span class="out">, sourced, local</span>   <span class="bad">← 還是 invalid</span></pre>
+</div>
+<div class="callout callout-warn">
+  <p>255 不只不會裝進 kernel FIB，連 BGP 的 <code>network</code> 驗證都會把它當成不存在。這是實測發現的。改用 <code>200</code>（夠高、但不是保留值）才成功。</p>
+</div>
+
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">distance 200：成功</span></div>
+  <pre><span class="dim">$ vtysh -c "configure terminal" -c "ip route 172.16.0.0/24 Null0 200" -c "end"
+$ vtysh -c "show ip route 172.16.0.0/24"</span>
+<span class="out">Routing entry for 172.16.0.0/24
+  Known via "static", distance 200, metric 0, </span><span class="ok">best</span>
+<span class="dim">$ vtysh -c "show ip bgp 172.16.0.0/24"</span>
+<span class="out">    ... </span><span class="ok">valid, sourced, local, best</span><span class="out">
+  Advertised to non peer-group peers: 10.10.0.10</span>   <span class="ok">← 真的被宣告出去了</span></pre>
+</div>
+
+<p>關鍵的驗證是確認這條假路由沒有接管封包轉送：</p>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">kernel FIB 兩條路由並存，實際查詢選中 Cilium 的那條</span></div>
+  <pre><span class="dim">$ ip route show 172.16.0.0/24</span>
+<span class="out">172.16.0.0/24 via 10.244.0.35 dev cilium_host proto kernel    </span><span class="dim"># metric 0（隱含）</span><span class="out">
+blackhole 172.16.0.0/24 proto static metric 20                </span><span class="dim"># role 加的這條</span><span class="out">
+
+$ ip route get 172.16.0.100                                     </span><span class="dim"># 挑一個 PodCIDR 內的位址</span><span class="out">
+172.16.0.100 dev cilium_host src 10.244.0.35                    </span><span class="ok">← 選的是 cilium_host，不是 blackhole</span></pre>
+</div>
+<p>metric 0 的 Cilium route 比 metric 20 的 blackhole 優先，所以 Null0 路由只提供 zebra 驗證用的憑證，對真實流量透明。</p>
+
+<section class="bug" id="bug-24">
+  <h4>#24 · 移除 kube-proxy 後，<code>k8sServiceHost</code> 設成 tor 的 IP 讓 Cilium 全掛</h4>
+  <ul>
+    <li><strong>症狀</strong>：所有 cilium pod 卡在 <code>Init:CrashLoopBackOff</code>，錯誤是 TLS 憑證驗證失敗。</li>
+    <li><strong>根因</strong>：kube-apiserver 憑證的 SAN 由 <code>kubeadm init --control-plane-endpoint</code> 傳入的字串和三台 master 各自的 IP 決定，tor 的 IP 從來不在清單裡。tor 上的 haproxy 只轉發 TCP，apiserver 不知道流量經過了誰。Cilium 用 tor 的 IP（<code>10.10.0.10</code>）發起 TLS 時，憑證對不上。</li>
+    <li><strong>修法</strong>：<code>k8sServiceHost</code> 改成 <code>apiserver_hostname</code>（<code>k8s-api.internal</code>），也就是 <code>kubeadm init --control-plane-endpoint</code> 當初傳入的同一個字串，SAN 本來就包含它。</li>
+    <li><strong>怎麼確認修好</strong>：所有 cilium pod 從 <code>Init:CrashLoopBackOff</code> 變成 <code>1/1 Running</code>。hostNetwork 的 pod（Cilium agent 就是）可以透過節點自己的 <code>/etc/hosts</code>（由 <code>apiserver_dns</code> role 寫入）解析這個 hostname，不需要另外處理 pod 專屬的 DNS 設定。</li>
+    <li><strong>相關</strong>：與 <a href="troubleshooting.html#bug-16">#16</a>、<a href="troubleshooting.html#bug-23">#23</a> 同類，都是「憑證 SAN 綁特定字串或 IP，中間節點不能頂替」。見 <a href="role-kubeadm.html">Role: kubeadm</a>、<a href="troubleshooting.html#bug-24">Bug #24</a>。</li>
+  </ul>
+</section>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">實測：cilium pod 的錯誤訊息</span></div>
+  <pre><span class="bad">Unable to connect to the server: tls: failed to verify certificate: x509:
 certificate is valid for 172.18.0.1, 10.10.0.20, 10.10.0.21, 10.10.0.22,
 not 10.10.0.10</span></pre>
-    </div>
+</div>
 
-    <div class="callout callout-danger">
-      <p><strong>根因</strong>:kube-apiserver 憑證的 SAN(Subject
-      Alternative Name)清單,是照 <code>kubeadm init
-      --control-plane-endpoint</code> 當時傳入的<strong>字串</strong>跟
-      三台 master 各自的 IP 決定的——tor 的 IP <strong>從來不在這份
-      清單裡</strong>,因為 tor 上的 haproxy 對 apiserver 而言完全透明
-      (它只是轉發 TCP,apiserver 不知道流量經過了誰)。Cilium 用
-      <code>k8sServiceHost</code> 直接發起 TLS 連線時,拿到的憑證跟它
-      連線用的 IP(tor 的 10.10.0.10)對不上,TLS 驗證直接失敗——這跟
-      <a href="role-kubeadm.html">Role: kubeadm</a> 裡
-      <code>kubeadm init phase upload-certs</code> 那個 advertise
-      address 的 bug,本質上是同一類「憑證 SAN 綁的是特定字串/IP,
-      任何中間節點都不能拿自己的位址頂替」的教訓,只是這次撞在 Cilium
-      這一側。</p>
-    </div>
+<section class="bug" id="bug-46">
+  <h4>#46 · Cilium 停在 legacy iptables masquerade</h4>
+  <ul>
+    <li><strong>症狀</strong>：<code>cilium-dbg status --verbose</code> 顯示 <code>Routing: Host: Legacy</code>、<code>Masquerading: IPTables</code>，叢集明明已拿掉 kube-proxy。</li>
+    <li><strong>根因</strong>：<code>kubeProxyReplacement: true</code> 和 <code>bpf.masquerade</code> 是 chart 裡兩個獨立的開關，values 一直沒設後者，預設 <code>false</code>。</li>
+    <li><strong>修法</strong>：<code>cilium-values.yaml.j2</code> 補上 <code>bpf.masquerade: true</code>。</li>
+    <li><strong>怎麼確認修好</strong>：<code>cilium-dbg status --verbose</code> 不再出現 <code>Legacy</code>／<code>IPTables</code>。</li>
+    <li><strong>相關</strong>：排查 pod → apiserver 逾時時發現，但不是該逾時的根因，根因是 <a href="troubleshooting.html#bug-47">#47</a>。見 <a href="troubleshooting.html#bug-46">Bug #46</a>。</li>
+  </ul>
+</section>
 
-    <p>修法是把 <code>k8sServiceHost</code> 改成
-      <code>apiserver_hostname</code>(<code>k8s-api.internal</code>)這個
-      <strong>hostname</strong>,不是任何 IP——這也是當初
-      <code>kubeadm init --control-plane-endpoint</code> 傳入的同一個
-      字串,SAN 清單本來就包含它。改完之後所有 cilium pod 立刻從
-      <code>Init:CrashLoopBackOff</code> 變成 <code>1/1 Running</code>。
-      另外實測確認 hostNetwork 模式的 pod(Cilium 的 agent 就是)可以
-      正確透過節點自己的 <code>/etc/hosts</code>(<code>apiserver_dns</code>
-      role 寫入的)解析這個 hostname,不需要另外處理 pod 專屬的 DNS/hosts
-      設定。</p>
+<section class="bug" id="bug-47">
+  <h4>#47 · pod → 節點真實 IP 的新連線逾時</h4>
+  <ul>
+    <li><strong>症狀</strong>：pod 對 apiserver 的全新連線逾時，已經跑很久的 pod 不受影響。</li>
+    <li><strong>根因</strong>：底層 OpenStack fabric 丟棄 pod-CIDR 來源的封包，詳見 <a href="#remote-node-masquerade">remote-node-masquerade</a>。</li>
+    <li><strong>修法</strong>：打開 <code>enable-remote-node-masquerade</code>，這是 workaround。</li>
+    <li><strong>怎麼確認修好</strong>：<code>tcpdump</code> 看到 SYN 來源位址變成節點 IP，三向交握成功。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-47">Bug #47</a></li>
+  </ul>
+</section>
 
-    <h3 id="history-node-ipam">歷史紀錄:ipam.mode=kubernetes 時期的第一段(已淘汰)</h3>
-    <p>2026-08-06 之前,PodCIDR 配發走的是
-      <code>ipam.mode=kubernetes</code>,權威來源是
-      <code>Node.spec.podCIDR</code>,要靠這裡記錄的這一段先讓
-      kube-controller-manager 願意配發。改成 <code>cluster-pool</code>
-      之後這整段已經不存在(<code>roles/cilium/tasks/enable_pod_cidr_allocation.yml</code>
-      已刪除,<code>roles/cilium/tasks/main.yml</code> 也不再呼叫它),
-      留在這裡純粹是因為撞到的 YAML 陷阱教訓通用,值得保留。</p>
+<section class="bug" id="bug-18">
+  <h4>#18 · 安裝 Cilium 時 init container 連 ClusterIP 逾時</h4>
+  <ul>
+    <li><strong>症狀</strong>：Cilium 的 init container 連 ClusterIP 逾時。</li>
+    <li><strong>根因</strong>：hostNetwork 流量的來源位址選擇問題，根因和修法都不屬於這個 role。</li>
+    <li><strong>修法</strong>：見 <a href="role-kubelet.html">Role: kubelet</a>。</li>
+    <li><strong>怎麼確認修好</strong>：init container 能連上 ClusterIP，Cilium 正常啟動。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-18">Bug #18</a></li>
+  </ul>
+</section>
 
-    <p><code>kubeadm init</code> 當時故意沒帶 <code>--pod-network-cidr</code>
-      (見 <a href="role-kubeadm.html">Role: kubeadm</a>),所以
-      kube-controller-manager 沒有 <code>--allocate-node-cidrs</code>,
-      沒有任何 Node 物件會有 <code>.spec.podCIDR</code>——但當時
-      <code>ipam.mode=kubernetes</code> 需要這個欄位才能運作。這一段
-      直接編輯 kube-controller-manager 的 static pod manifest,補上兩個
-      flag。</p>
+<h3 id="verify">驗證方式</h3>
+<p>最完整的驗證是 <a href="testing.html">smoke-test</a>，它會確認節點與 pod 就緒、tor 上每個節點恰好一條 PodCIDR 路由，以及跨節點 pod 流量。手動檢查可以用下列指令：</p>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">在 bastion 上</span></div>
+  <pre><span class="prompt">$</span> <span class="cmd">kubectl -n cilium get pods</span>
+<span class="prompt">$</span> <span class="cmd">kubectl get ciliumnode -o custom-columns=NAME:.metadata.name,CIDR:.spec.ipam.podCIDRs</span>
+<span class="prompt">$</span> <span class="cmd">kubectl -n cilium exec ds/cilium -- cilium-dbg status --verbose</span></pre>
+</div>
+<p><strong>預期結果</strong>：所有 cilium pod 為 <code>Running</code>；每個節點都有一個 <code>/24</code>；<code>cilium-dbg status</code> 沒有 <code>Legacy</code>／<code>IPTables</code>。</p>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">在任一 k8s 節點上</span></div>
+  <pre><span class="prompt">$</span> <span class="cmd">sudo vtysh -c "show ip bgp 172.16.0.0/24"</span>
+<span class="prompt">$</span> <span class="cmd">ip route get 172.16.0.100</span></pre>
+</div>
+<p><strong>預期結果</strong>：BGP 表顯示 <code>valid, sourced, local, best</code>；<code>ip route get</code> 選中 <code>cilium_host</code>。</p>
 
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">/etc/kubernetes/manifests/kube-controller-manager.yaml(補上的部分)</span></div>
-      <pre><span class="out">    - --allocate-node-cidrs=true
+<h3 id="history">演進歷史</h3>
+
+<h4 id="history-ipam">IPAM 從 kubernetes 改成 cluster-pool</h4>
+<p>早期 IPAM 使用 <code>ipam.mode=kubernetes</code>，權威來源是 <code>Node.spec.podCIDR</code>，由 kube-controller-manager 配發。改成 <code>cluster-pool</code> 後，配發改由 cilium-operator 負責，記錄在 <code>CiliumNode</code>。原本那整段「讓 kube-controller-manager 配發 PodCIDR」的 task 已經刪除，檔案是 <code>roles/cilium/tasks/enable_pod_cidr_allocation.yml</code>，<code>main.yml</code> 也不再呼叫。</p>
+<p>這段在當時的做法，是直接編輯 kube-controller-manager 的 static pod manifest 補上三個 flag。<code>kubeadm init</code> 當時故意沒帶 <code>--pod-network-cidr</code>（見 <a href="role-kubeadm.html">Role: kubeadm</a>），所以沒有任何 Node 物件有 <code>.spec.podCIDR</code>。</p>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">/etc/kubernetes/manifests/kube-controller-manager.yaml（補上的部分）</span></div>
+  <pre><span class="out">    - --allocate-node-cidrs=true
     - --cluster-cidr=172.16.0.0/16
     - --node-cidr-mask-size=24</span></pre>
-    </div>
-
-    <div class="callout callout-danger">
-      <p><strong>Bug:YAML block 純量把 3 台 master 的 manifest 全部搞壞</strong>
-      ——第一版用 <code>block: |</code>(YAML block 純量)寫這三行,結果
-      YAML 的縮排規則是「取每行共同的最小縮排當基準,整段砍掉」:三行
-      源碼縮排一樣深,砍完全部變成 0 縮排,插進這個 YAML list
-      (<code>command:</code> 底下)裡直接是語法錯誤。結果是
-      <strong>3 台 master 的 kube-controller-manager 同時壞掉</strong>
-      ——kubelet 的錯誤訊息是
-      <code>couldn't parse as pod(yaml: line 28: did not find expected key)</code>,
-      這台機器的 kube-controller-manager 直接從叢集裡消失(kubelet 判斷
-      manifest 無效,不會保留舊的容器)。因為 leader election 機制,這代表
-      整個叢集<strong>沒有任何一個 kube-controller-manager 在運作</strong>
-      ,一直到修好為止。</p>
-      <p>修法是<strong>不用 YAML block 純量,改用單行雙引號字串 + 手動寫
-      <code>\n</code></strong>:</p>
-    </div>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">enable_pod_cidr_allocation.yml(修復後,已刪除)</span></div>
-      <pre><span class="out">block: "    - --allocate-node-cidrs=true\n    - --cluster-cidr={{ cluster_pod_cidr }}\n    - --node-cidr-mask-size={{ cluster_pod_cidr_node_mask }}"</span></pre>
-    </div>
-    <p>雙引號字串裡的縮排跟換行是逐字元照打,不會被 YAML 自動吃掉——
-      這是能可靠控制輸出縮排的寫法。<code>blockinfile</code> 本身用
-      marker 比對(不是比對內容),所以就算檔案當下是壞的 YAML 也沒關係,
-      它純粹是逐行文字操作,重新執行同一個 task,marker
-      之間的內容就會被換成修好的版本。</p>
-
-    <p>補完 flag 之後,還需要<strong>主動等待</strong> kube-controller-manager
-      真的重啟(kubelet 的 static pod 檔案監控有輪詢間隔,不是立即生效)、
-      而且真的完成配發:</p>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">enable_pod_cidr_allocation.yml(已刪除)</span></div>
-      <pre><span class="out">- command: kubectl get nodes -o jsonpath={.items[*].spec.podCIDR}
+</div>
+<p>補完 flag 之後還要主動等待 kube-controller-manager 重啟並真的完成配發，因為 kubelet 對 static pod 檔案的監控有輪詢間隔：</p>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">enable_pod_cidr_allocation.yml（已刪除）</span></div>
+  <pre><span class="out">- command: kubectl get nodes -o jsonpath={.items[*].spec.podCIDR}
   delegate_to: bastion
   until: node_pod_cidrs.stdout.split() | length == groups['k8s_nodes'] | length
   retries: 30
   delay: 10
   run_once: true</span></pre>
-    </div>
-    <p>用 <code>until</code> 輪詢直到 7 個節點都拿到 <code>podCIDR</code>
-      ——這是當時唯一一個「主動等結果」而不是假設立即生效的地方,因為
-      這是唯一一個依賴另一個 controller(kube-controller-manager)非同步
-      反應的步驟。cluster-pool 模式下不再需要這一段等待——cilium-operator
-      自己配發 CiliumNode 的速度不依賴 kube-controller-manager 的
-      static pod 重啟週期。</p>
+</div>
+<p>這是當時唯一依賴另一個 controller 非同步反應的步驟，所以用 <code>until</code> 輪詢直到所有節點都拿到 <code>podCIDR</code>。<code>cluster-pool</code> 模式下不再需要這段等待。</p>
 
-    <h3 id="remote-node-masquerade">⚠️ 偏離原始設計意圖的設定:<code>enable-remote-node-masquerade</code></h3>
-    <div class="callout callout-danger">
-      <p><strong>這個小節記錄的是一個 workaround,不是一個乾淨的架構決定——先講清楚它跟原本想要的
-        東西差在哪裡。</strong>整個 native routing 設計的前提(見上面「<code>ipv4NativeRoutingCIDR</code>」
-        那一列、跟 <a href="network-architecture.html">網路架構總覽</a>)是「pod 對外一律帶真實
-        pod IP,只有 Cilium 認定<strong>真的離開叢集</strong>的流量才需要 masquerade,叢集內部
-        (不管是 pod↔pod 還是 pod→node)完全不用 NAT」。<code>CLAUDE.md</code>「Architecture
-        notes」的「NAT happens exactly once, at TOR」也是同一個前提的另一種說法。</p>
-      <p>這裡打開的 <code>extraConfig.enable-remote-node-masquerade: "true"</code>
-        <strong>違反了這個前提</strong>:它讓「pod → 叢集內其他節點的真實 host IP」這一類流量,
-        來源位址被強制改寫成發起節點自己的 IP,不再是 pod 的真實位址。目前唯一會踩到這條路徑的
-        情境是 pod → <code>kubernetes</code> 這個 no-selector Service(Endpoints 直接指向三台
-        master 的 <code>6443</code>),但只要以後有其他東西讓 pod 直接連某個節點的真實 IP
-        (不是透過 Pod IP 或一般有 selector 的 Service),都會被這條規則悄悄 SNAT 掉,行為跟
-        native routing 原本承諾的不一樣。</p>
-    </div>
-
-    <p>完整的排錯過程記在 <a href="troubleshooting.html">Bug 事後檢討 #47</a>,這裡只講
-      <strong>為什麼</strong>要打開這個設定、以及打開之後具體改變了什麼。</p>
-
-    <h4>根因不在 Cilium,也不在這個 repo 管得到的任何設定裡</h4>
-    <p>用分層測試把「pod → apiserver 全新連線逾時」這個症狀收斂到一個很乾淨的規律:<strong>pod →
-      TOR 本身</strong>暢通無阻;<strong>節點自己真實 IP → 任何其他節點</strong>(不管是不是
-      TOR)也暢通無阻;唯獨<strong>pod-CIDR 來源 → 除了 TOR 以外的任何節點</strong>,封包在
-      OpenStack fabric 裡消失,兩端 <code>tcpdump</code> 同步抓包,發送端看得到封包送出、
-      接收端完全零封包——不是任何一台 VM 內部的規則擋掉的,是「線」上的問題。<code>cilium-dbg
-      monitor</code> 證實 Cilium 每次都放行、把封包送上 <code>ens3</code>(<code>action: allow</code>),
-      跟 Cilium 的 policy/datapath 無關;Neutron port 的 <code>port_security_enabled</code>、
-      MAC、IP 也都逐一查過沒有異常。往下需要 OVN Southbound DB 或 hypervisor OVS flow table
-      才能繼續,這個共享雲(<code>openstack.cloudnative.tw</code>)只有一般 project 身份,查不到。</p>
-
-    <h4>為什麼是 <code>enable-remote-node-masquerade</code> 這個設定</h4>
-    <p>因為「節點自己真實 IP 來源」的封包永遠暢通,而「pod-CIDR 來源」的封包永遠不通(除非目的地
-      是 TOR),最直接的繞路方式就是讓 pod 發往節點真實 IP 的封包,在離開節點之前先偽裝成
-      「節點自己真實 IP 來源」——這正是 Cilium 官方
-      <a href="https://docs.cilium.io/en/stable/network/concepts/masquerading/" target="_blank">masquerading 文件</a>
-      裡這個選項的原始設計目的,只是通常用在別的情境(讓 remote node 的 firewall 規則能用單一
-      節點 IP 辨識流量),不是拿來繞開底層 fabric 的問題。文件也解釋了為什麼原本的
-      <code>ipv4NativeRoutingCIDR</code>(設成整個 pod CIDR)攔不住這條流量——BPF masquerade
-      對「目的地是 remote-node/kube-apiserver identity」的流量有寫死的豁免,不受這個 CIDR 控制,
-      要另外用這個旗標明確關掉那個豁免。</p>
-
-    <h4>Helm value 沒有這個欄位,要用 <code>extraConfig</code> escape hatch</h4>
-    <p>Cilium chart 的 <code>values.yaml</code> 沒有把這個 cilium-agent flag 包成獨立的
-      camelCase 欄位——用 chart 官方支援的 <code>extraConfig</code>(直接把 kebab-case 的
-      ConfigMap key 塞進去,繞過 Helm 的欄位對照層)：</p>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/cilium/templates/cilium-values.yaml.j2</span></div>
-      <pre><span class="out">extraConfig:
-  enable-remote-node-masquerade: "true"</span></pre>
-    </div>
-
-    <div class="callout callout-warn">
-      <strong>陷阱:改 <code>extraConfig</code> 只會更新 ConfigMap,不會自動重啟 agent</strong>
-      <p>套用之後 <code>helm upgrade</code> 跟 <code>kubectl rollout status daemonset/cilium</code>
-        都回報成功——但那只代表「DaemonSet 的 pod template 沒變,沒有 pending rollout 要等」,
-        <strong>agent pod 實際上完全沒有被重啟過</strong>。<code>enable-remote-node-masquerade</code>
-        這種會改變編譯後 BPF 程式邏輯的設定,agent 不重啟就不會重新產生/載入新的 BPF 程式,
-        ConfigMap 改了也不會生效。第一次驗證時就是照著標準流程(改 values → 跑
-        <code>k8s/cilium.yml</code> → 重測)卻完全沒效果才發現這個坑——一定要另外手動：</p>
-      <div class="term">
-        <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">套用後必做的一步</span></div>
-        <pre><span class="out">kubectl -n cilium rollout restart daemonset/cilium
-kubectl -n cilium rollout status daemonset/cilium --timeout=180s</span></pre>
-      </div>
-    </div>
-
-    <h4>驗證方式跟代價</h4>
-    <p>用 <code>tcpdump</code> 確認生效前後的差異:生效前,pod → 節點真實 IP 的 SYN 來源位址是
-      pod IP(<code>172.16.1.x</code>);生效後,同一條連線的 SYN 來源位址變成發起節點自己的
-      IP(<code>10.10.0.x</code>),完整三向交握成功。卡住的 <code>argocd-application-controller-0</code>
-      不需要重建就從 <code>0/1</code> 自動恢復成 <code>1/1 Running</code>。</p>
-    <p>代價是<strong>apiserver 看到的來源位址不再是真正發起連線的 pod</strong>——同一個節點上
-      所有 pod 對 apiserver 的連線,在 apiserver 的 audit log / 連線來源欄位都會顯示成同一個
-      節點 IP,失去「哪個 pod 打了這次 API 呼叫」的可追蹤性。這個範圍只限「pod → 節點真實
-      IP」,<strong>不影響</strong>pod↔pod、pod→一般有 selector 的 ClusterIP 這些情境——那些
-      流量繼續帶著真實 pod IP,native routing 的核心設計沒有被推翻,只是多開了這一個例外。
-      Cilium 官方文件也提醒這個選項會限制 ingress host firewall 對「pod → node」方向的政策
-      執行能力——這個叢集目前沒有依賴 <code>remote-node</code> entity 的
-      NetworkPolicy/CiliumNetworkPolicy,但以後加的話要重新確認這條警告。</p>
-    <p>如果之後 <code>openstack.cloudnative.tw</code> 的維運方查出並修好底層 fabric 的問題,
-      這個 <code>extraConfig</code> 設定理論上可以整段拿掉,讓 pod 對 apiserver 的連線恢復帶著
-      真實 pod IP——這是繞過症狀的修法,不是解決根因的修法,拿掉之前要重新驗證底層問題是否
-      真的已經不存在。</p>
+<section class="bug" id="bug-17">
+  <h4>#17 · YAML block 純量讓 3 台 master 的 kube-controller-manager 同時消失</h4>
+  <ul>
+    <li><strong>症狀</strong>：kubelet 的錯誤訊息是 <code>couldn't parse as pod(yaml: line 28: did not find expected key)</code>。三台 master 的 kube-controller-manager 同時從叢集消失，因為 kubelet 判斷 manifest 無效，不會保留舊容器。leader election 的結果是整個叢集沒有任何 kube-controller-manager 在運作，直到修好為止。</li>
+    <li><strong>根因</strong>：第一版用 <code>block: |</code> 寫那三行。YAML block 純量取每行共同的最小縮排當基準並整段砍掉，三行縮排一樣深，砍完變成 0 縮排，插進 <code>command:</code> 底下的 list 就是語法錯誤。</li>
+    <li><strong>修法</strong>：不用 block 純量，改用單行雙引號字串加手動寫 <code>\n</code>。雙引號字串裡的縮排和換行逐字元照打，不會被 YAML 自動吃掉。<code>blockinfile</code> 以 marker 比對而不是比對內容，所以檔案當下是壞的 YAML 也沒關係，重跑同一個 task 就會換成修好的版本。</li>
+    <li><strong>怎麼確認修好</strong>：3 台 master 的 kube-controller-manager 都恢復運作。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-17">Bug #17</a>，與 #13、#22 同屬 ansible 字串處理陷阱。</li>
+  </ul>
+</section>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">enable_pod_cidr_allocation.yml（修復後，已刪除）</span></div>
+  <pre><span class="out">block: "    - --allocate-node-cidrs=true\n    - --cluster-cidr={{ cluster_pod_cidr }}\n    - --node-cidr-mask-size={{ cluster_pod_cidr_node_mask }}"</span></pre>
+</div>
 
     <div class="page-nav">
-      <a class="prev" href="role-apiserver-lb.html"><span class="dir">上一頁</span><span class="ttl">← Role: apiserver-lb</span></a>
-      <a class="next" href="role-istio.html"><span class="dir">下一頁</span><span class="ttl">Role: istio →</span></a>
+      <a class="prev" href="role-apiserver-lb.html"><span class="dir">上一頁</span>
+        <span class="ttl">← Role: apiserver-lb</span></a>
+      <a class="next" href="role-istio.html"><span class="dir">下一頁</span>
+        <span class="ttl">Role: istio →</span></a>
     </div>
 
     <footer class="page-footer">
-      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
-      <span>最後更新:2026-08-12</span>
+      <span>文件站原始碼：<a href="https://github.com/DoughOps/terraform-k8s-docs" target="_blank" rel="noopener">DoughOps/terraform-k8s-docs</a></span>
+      <span>最後更新：2026-11-01（對應 commit e91424f）</span>
     </footer>
   </div>
 </div>

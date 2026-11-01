@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>身份聯邦登入流程 — k8s + BGP Lab 技術詳解</title>
+<title>身份聯邦登入流程 — k8s + BGP Lab 技術文件</title>
 <link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
@@ -12,16 +12,17 @@
   <div class="sidebar-logo">
     <a class="sidebar-logo-link" href="index.html">
       <h1>🛰️ k8s + BGP Lab</h1>
-      <span>OpenStack Lab · 技術詳解 v15</span>
+      <span>OpenStack Lab 技術文件</span>
     </a>
   </div>
   <nav>
     <div class="nav-group">
-      <div class="nav-group-label">總覽</div>
+      <div class="nav-group-label">開始</div>
       <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
       <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
       <a class="nav-link" href="user-guide.html"><span class="icon">🧑‍💻</span> 叢集使用手冊</a>
       <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+      <a class="nav-link" href="glossary.html"><span class="icon">📖</span> 術語表</a>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">網路架構</div>
@@ -32,36 +33,39 @@
       <div class="nav-group-label">基礎設施</div>
       <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
       <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
-      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
     </div>
     <div class="nav-group">
-      <div class="nav-group-label">Ansible 自動化</div>
-      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <div class="nav-group-label">叢集元件</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> Ansible 框架設計</a>
       <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
       <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
       <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
       <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
       <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
       <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試與 smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">對外入口與身份驗證</div>
       <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
       <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">📋</span> Cloudflare 設定清單</a>
       <a class="nav-link" href="role-vault.html"><span class="icon">🔒</span> Role: vault</a>
       <a class="nav-link" href="role-keycloak-dex.html"><span class="icon">🪪</span> Role: keycloak / dex</a>
       <a class="nav-link active" href="identity-federation-flow.html"><span class="icon">🧩</span> 身份聯邦登入流程</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">平台服務</div>
       <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
       <a class="nav-link" href="role-gitlab.html"><span class="icon">🦊</span> Role: gitlab</a>
       <a class="nav-link" href="role-argocd.html"><span class="icon">🐙</span> Role: argocd</a>
-      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
-      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
-    </div>
-    <div class="nav-group">
-      <div class="nav-group-label">Cloudflare 手動設定</div>
-      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具</a>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">專案紀錄</div>
       <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
-      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">🗒️</span> Changelog</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB 歷史</a>
     </div>
   </nav>
 </aside>
@@ -69,8 +73,9 @@
 <div class="main">
   <header class="topbar">
     <div class="topbar-left">
-      <button class="menu-btn" aria-label="Toggle menu">☰</button>
-      <span class="topbar-crumb">Lab Docs / <strong>身份聯邦登入流程</strong></span>
+      <button class="menu-btn" aria-label="切換選單">☰</button>
+      <span class="topbar-crumb">對外入口與身份驗證 /
+        <strong>身份聯邦登入流程</strong></span>
     </div>
     <div class="topbar-right">
       <span class="topbar-badge">cloudnative.tw · AS 65000</span>
@@ -82,12 +87,12 @@
 
   <div class="content">
 
-    <h2><span class="eyebrow">身份驗證</span>身份聯邦登入流程</h2>
-    <p class="lede">開瀏覽器連到 <code>whoami.dough-ops.com</code>,到看到頁面印出自己的身份資訊,中間會經過六個節點。
-      <a href="role-keycloak-dex.html">Role: keycloak / dex</a> 那頁講的是「為什麼要這樣設計」,以及過程中撞到的五個
-      bug。這頁講的是「整個系統長什麼樣子」跟「一次登入實際會怎麼走」。</p>
+    <h2><span class="eyebrow">對外入口與身份驗證</span>
+    身份聯邦登入流程</h2>
 
-    <h3>整體架構</h3>
+<p class="lede">從瀏覽器開啟 <code>whoami.dough-ops.com</code>，到頁面印出你的身份資訊，中間會經過六個節點。這頁說明整個系統的組成，以及一次登入實際怎麼走。設計理由和實測踩到的 bug 見 <a href="role-keycloak-dex.html">Role: keycloak / dex</a>。</p>
+
+    <h3 id="architecture">整體架構</h3>
     <div class="flow">
       <div class="flow-step"><div class="flow-box green">瀏覽器</div></div>
       <div class="flow-arrow">→</div>
@@ -101,63 +106,56 @@
       <div class="flow-arrow">→</div>
       <div class="flow-step"><div class="flow-box danger">Cloudflare Access<br><small>Keycloak 的上游 IdP</small></div></div>
     </div>
-    <p class="flow-caption">瀏覽器沿著這條路徑一路往右,走到最後一站再沿原路被送回來,最後停在 whoami 頁面。下一節會逐站
-      說明每個節點在做什麼;完整的來回順序留到「登入流程」那節再細看。</p>
+    <p class="flow-caption">瀏覽器沿著這條路徑一路往右，走到最後一站再沿原路被送回來，最後停在 whoami 頁面。下一節逐站說明每個節點在做什麼，完整的來回順序見<a href="#login-flow">登入流程</a>。</p>
 
     <div class="callout callout-info">
-      <p><strong>Cloudflare Access 在圖上出現兩次,是兩個完全獨立的設定。</strong>第一個是擋在最外層的邊緣閘門——任何人
-        開任何一個 <code>*.dough-ops.com</code> 網址,都會先經過它,確認是 <code>doughops</code> GitHub org 的成員。
-        第二個是 Keycloak 專門拿來當「上游身份來源」用的另一組設定,只有 Keycloak 自己會呼叫它,一般瀏覽器流量不會直接
-        碰到。兩者只是剛好用同一個產品做兩件不同的事,彼此獨立設定、獨立的 session。</p>
+      <p><strong>Cloudflare Access 在圖上出現兩次，是兩組獨立的設定。</strong>第一組是最外層的邊緣閘門：任何人開任何一個 <code>*.dough-ops.com</code> 網址，都會先經過它，確認是 <code>doughops</code> GitHub org 的成員。第二組是 Keycloak 的上游身份來源，只有 Keycloak 會呼叫它，一般瀏覽器流量不會直接碰到。兩組用同一個產品，但設定與 session 各自獨立。</p>
     </div>
 
-    <h3>六個節點,各自負責什麼</h3>
+    <h3 id="nodes">六個節點的職責</h3>
 
-    <h4>Cloudflare Access(邊緣閘門)</h4>
-    <p>Cloudflare 的反向代理驗證層。請求先到 Cloudflare 的邊緣節點,確認身份之後才放行到真正的伺服器。這個 lab 裡每個
-      <code>*.dough-ops.com</code> 網址預設都掛在這一關底下,只放行 <code>doughops</code> GitHub org 的成員。</p>
+    <h4>Cloudflare Access（邊緣閘門）</h4>
+    <p>Cloudflare 的反向代理驗證層。請求先到 Cloudflare 邊緣，確認身份之後才放行到真正的伺服器。Lab 裡每個 <code>*.dough-ops.com</code> 網址預設都在這一關底下，只放行 <code>doughops</code> GitHub org 的成員。</p>
 
     <h4>oauth2-proxy</h4>
-    <p>擋在 <code>whoami</code> 前面的認證反向代理。它自己不管理任何使用者資料,只認一個上游 OIDC provider——這裡是
-      Dex,不是 Keycloak 或 Cloudflare。驗證通過後,它把身份轉成 HTTP header 塞給後面的 <code>whoami</code>,自己另外
-      維護一份 session cookie,不用每個請求都重新驗證一次。</p>
+    <p>擋在 <code>whoami</code> 前面的認證反向代理。它自己不管理任何使用者資料，只認一個上游 OIDC provider，這裡是 Dex。驗證通過後，它把身份轉成 HTTP header 塞給後面的 <code>whoami</code>，自己另外
+      維護一份 session cookie，不用每個請求都重新驗證一次。</p>
 
     <h4>Dex</h4>
-    <p><a href="https://dexidp.io/" target="_blank">dexidp/dex</a>,叢集內唯一對外的 OIDC issuer
-      (<code>https://dex.dough-ops.com</code>)。它本身不管密碼,只是把一個標準的 OIDC 介面,轉接到後面某一個
-      「connector」——這裡接的是 Keycloak。叢集裡的工具只需要認識 Dex 這一個 issuer,不需要各自知道公司實際用的是
-      Keycloak,這是<a href="role-keycloak-dex.html">為什麼中間要多一層 Dex</a>的原因。</p>
+    <p><a href="https://dexidp.io/" target="_blank">dexidp/dex</a>，叢集內唯一對外的 OIDC issuer
+      （<code>https://dex.dough-ops.com</code>）。它本身不管密碼，只是把一個標準的 OIDC 介面，轉接到後面某一個
+      「connector」——這裡接的是 Keycloak。叢集裡的工具只需要認識 Dex 這一個 issuer，不需要各自知道公司實際用的是
+      Keycloak，原因見 <a href="role-keycloak-dex.html">Role: keycloak / dex</a> 的 Dex 設計說明。</p>
 
     <h4>Keycloak</h4>
-    <p>開源的身份與存取管理系統,模擬「公司既有、獨立於任何一個叢集的 SSO 來源」。它自己不直接管密碼——realm 裡設定了
-      一個 Identity Provider,把真正的登入動作再轉一手給下一個節點:Cloudflare Access。</p>
+    <p>開源的身份與存取管理系統，模擬「公司既有、獨立於任何一個叢集的 SSO 來源」。它自己不直接管密碼。realm 裡設定了
+      一個 Identity Provider，把真正的登入動作再轉一手給下一個節點：Cloudflare Access。</p>
 
-    <h4>Cloudflare Access(Keycloak 的上游 IdP)</h4>
-    <p>跟第一站是同一個產品,設定完全獨立,名字叫 <code>keycloak-sso</code>。它讓 Cloudflare 反過來扮演一個標準
-      OIDC provider,給 Keycloak 當上游用——所以 Keycloak 自己也不用管密碼,一路把驗證責任往外推,最終落在
-      Cloudflare 的 GitHub org 檢查上。</p>
+    <h4>Cloudflare Access（Keycloak 的上游 IdP）</h4>
+    <p>跟第一站是同一個產品，設定完全獨立，名字叫 <code>keycloak-sso</code>。它讓 Cloudflare 反過來扮演一個標準
+      OIDC provider，給 Keycloak 當上游用。所以 Keycloak 也不用管密碼，驗證責任一路往外推，最終落在 Cloudflare 的 GitHub org 檢查上。</p>
 
     <h4>whoami</h4>
-    <p><a href="https://github.com/traefik/whoami" target="_blank">traefik/whoami</a>,一個只會把收到的 HTTP
-      request 原封不動印出來的測試網站。它不是真正要用的應用,純粹用來驗證整條鏈最後有沒有把正確的身份資訊帶到——你在
-      瀏覽器看到的那些 header,就是驗收結果。</p>
+    <p><a href="https://github.com/traefik/whoami" target="_blank">traefik/whoami</a>，一個只會把收到的 HTTP
+      request 原封不動印出來的測試網站。它不是真正要用的應用，純粹用來驗證整條鏈最後有沒有把正確的身份資訊帶到。你在瀏覽器看到的那些 header，就是驗收結果。</p>
 
-    <h3>登入流程,一步一步走(乾淨瀏覽器,第一次登入)</h3>
+    <h3 id="login-flow">登入流程</h3>
+    <p>下面以乾淨的瀏覽器、第一次登入為例，一步一步走。</p>
 
-    <p><strong>第 1 步:whoami → 邊緣閘門 → oauth2-proxy → Dex</strong></p>
+    <p><strong>第 1 步：whoami → 邊緣閘門 → oauth2-proxy → Dex</strong></p>
     <div class="flow">
       <div class="flow-step"><div class="flow-box green">瀏覽器開<br>whoami.dough-ops.com</div></div>
       <div class="flow-arrow">→</div>
-      <div class="flow-step"><div class="flow-box danger">Cloudflare Access<br><small>還沒 session,跳出<br>GitHub org 登入畫面</small></div></div>
+      <div class="flow-step"><div class="flow-box danger">Cloudflare Access<br><small>還沒 session，跳出<br>GitHub org 登入畫面</small></div></div>
       <div class="flow-arrow">→</div>
       <div class="flow-step"><div class="flow-box accent">oauth2-proxy<br><small>還沒自己的 session</small></div></div>
       <div class="flow-arrow">→</div>
       <div class="flow-step"><div class="flow-box accent">導去 Dex</div></div>
     </div>
-    <p>過了邊緣閘門之後,oauth2-proxy 檢查自己的 <code>_oauth2_proxy</code> cookie。沒有的話,就把瀏覽器導去它設定的
-      上游 OIDC provider,也就是 Dex。</p>
+    <p>過了邊緣閘門之後，oauth2-proxy 檢查自己的 <code>_oauth2_proxy</code> cookie。沒有的話，就把瀏覽器導去它設定的
+      上游 OIDC provider，也就是 Dex。</p>
 
-    <p><strong>第 2 步:Dex → Keycloak 登入頁</strong></p>
+    <p><strong>第 2 步：Dex → Keycloak 登入頁</strong></p>
     <div class="flow">
       <div class="flow-step"><div class="flow-box accent">Dex<br><small>沒有自己的 session</small></div></div>
       <div class="flow-arrow">→</div>
@@ -165,11 +163,9 @@
       <div class="flow-arrow">→</div>
       <div class="flow-step"><div class="flow-box">帳密欄位<br>+「Login with Cloudflare」</div></div>
     </div>
-    <p>Dex 把瀏覽器導去 Keycloak 的登入頁面。頁面上有兩個選項:輸入 Keycloak 自己的帳密,或是點「Login with
-      Cloudflare」——後者是 realm 裡設定的 Identity Provider 產生出來的按鈕,對應 <a href="role-keycloak-dex.html">Bug
-      #3</a> 修好之後,Cloudflare 特別放行給這個頁面用的那條路徑。</p>
+    <p>Dex 把瀏覽器導去 Keycloak 的登入頁面。頁面上有兩個選項：輸入 Keycloak 自己的帳密，或是點「Login with Cloudflare」。後者是 realm 裡的 Identity Provider 產生的按鈕。頁面使用的路徑由 Cloudflare Access 針對機器對機器流量放行，見 <a href="troubleshooting.html#bug-50">Bug #50</a>。</p>
 
-    <p><strong>第 3 步:點「Login with Cloudflare」→ 再過一次 Cloudflare Access</strong></p>
+    <p><strong>第 3 步：點「Login with Cloudflare」→ 再過一次 Cloudflare Access</strong></p>
     <div class="flow">
       <div class="flow-step"><div class="flow-box purple">Keycloak</div></div>
       <div class="flow-arrow">→</div>
@@ -177,12 +173,12 @@
       <div class="flow-arrow">→</div>
       <div class="flow-step"><div class="flow-box purple">回到 Keycloak</div></div>
     </div>
-    <p>這是整條鏈裡唯一會讓人覺得「怎麼又跳出 Cloudflare」的地方。原因很單純:<code>keycloak-sso</code> 跟第 1 步的
-      邊緣閘門是兩個不同的 Access Application,Cloudflare 需要重新確認一次。底層的 GitHub 登入狀態通常還在,所以只要
-      點一下,不用重新輸入帳密。Keycloak 拿到 Cloudflare 核發的身份之後,會在 <code>keycloak.dough-ops.com</code>
-      這個網址上建立自己的一份 realm session——這份 session 是下一節「為什麼重新整理會直接過」的關鍵。</p>
+    <p>這是整條鏈裡唯一會讓人覺得「怎麼又跳出 Cloudflare」的地方。原因很單純：<code>keycloak-sso</code> 跟第 1 步的
+      邊緣閘門是兩個不同的 Access Application,Cloudflare 需要重新確認一次。底層的 GitHub 登入狀態通常還在，所以只要
+      點一下，不用重新輸入帳密。Keycloak 拿到 Cloudflare 核發的身份之後，會在 <code>keycloak.dough-ops.com</code>
+      這個網址上建立自己的一份 realm session。這份 session 是下一節「為什麼重新整理會直接過」的關鍵。</p>
 
-    <p><strong>第 4 步:Keycloak → Dex → oauth2-proxy → whoami</strong></p>
+    <p><strong>第 4 步：Keycloak → Dex → oauth2-proxy → whoami</strong></p>
     <div class="flow">
       <div class="flow-step"><div class="flow-box purple">Keycloak</div></div>
       <div class="flow-arrow">→</div>
@@ -192,78 +188,72 @@
       <div class="flow-arrow">→</div>
       <div class="flow-step"><div class="flow-box green">whoami<br><small>印出收到的 header</small></div></div>
     </div>
-    <p>Keycloak 把結果交還給 Dex,Dex 拿它去跟 Keycloak 換 token,再用自己的身份簽出一份新的 id_token
-      (<code>iss</code> 是 <code>https://dex.dough-ops.com</code>,不是 Keycloak)。這份 id_token 交給
-      oauth2-proxy,oauth2-proxy 驗證通過(<a href="role-keycloak-dex.html">Bug #5</a> 那個
-      <code>--insecure-oidc-allow-unverified-email</code> 就是在這一步生效)、設好自己的 session cookie,最後才把
-      請求轉發給 <code>whoami</code>,同時附上 <code>Authorization</code>、<code>X-Forwarded-Email</code> 這些
-      header。<code>whoami</code> 把收到的 request 印出來,就是你看到的那頁。</p>
+    <p>Keycloak 把結果交還給 Dex。Dex 拿它去跟 Keycloak 換 token，再用自己的身份簽出一份新的 id_token，<code>iss</code> 是 <code>https://dex.dough-ops.com</code>，不是 Keycloak。</p>
+    <p>這份 id_token 交給 oauth2-proxy 驗證，<code>--insecure-oidc-allow-unverified-email</code> 就是在這一步生效，見 <a href="troubleshooting.html#bug-52">Bug #52</a>。驗證通過後，oauth2-proxy 設好自己的 session cookie，再把請求轉發給 <code>whoami</code>，同時附上 <code>Authorization</code> 和 <code>X-Forwarded-Email</code> 等 header。<code>whoami</code> 把收到的 request 印出來，就是你看到的那頁。</p>
 
-    <h3>為什麼重新整理會直接過</h3>
-    <p>上面走完一輪之後,鏈上四個節點各自留下一份 session,彼此獨立、有效期也不同:</p>
+    <h3 id="sessions">為什麼重新整理會直接過</h3>
+    <p>上面走完一輪之後，鏈上四個節點各自留下一份 session，彼此獨立、有效期也不同：</p>
     <div class="table-wrap">
       <table>
         <thead><tr><th>節點</th><th>session 存在哪</th><th>有效期</th></tr></thead>
         <tbody>
-          <tr><td>Cloudflare Access(邊緣閘門)</td><td class="mono">CF_Authorization cookie</td><td class="mono">24h</td></tr>
-          <tr><td>Cloudflare Access(keycloak-sso)</td><td class="mono">CF_Authorization + CF_AppSession cookie</td><td class="mono">730h(約 30 天)</td></tr>
-          <tr><td>Keycloak(doughops realm)</td><td>Keycloak 在 keycloak.dough-ops.com 上設的 session cookie</td><td>realm 的預設 SSO session 設定</td></tr>
+          <tr><td>Cloudflare Access（邊緣閘門）</td><td class="mono">CF_Authorization cookie</td><td class="mono">24h</td></tr>
+          <tr><td>Cloudflare Access（keycloak-sso）</td><td class="mono">CF_Authorization + CF_AppSession cookie</td><td class="mono">730h（約 30 天）</td></tr>
+          <tr><td>Keycloak（doughops realm）</td><td>Keycloak 在 keycloak.dough-ops.com 上設的 session cookie</td><td>realm 的預設 SSO session 設定</td></tr>
           <tr><td>oauth2-proxy</td><td class="mono">_oauth2_proxy cookie</td><td>helm values 設定的 cookie expire</td></tr>
         </tbody>
       </table>
     </div>
-    <p>單純重新整理 <code>whoami.dough-ops.com</code>,通常連 Dex 都不會再打:oauth2-proxy 自己的
-      <code>_oauth2_proxy</code> cookie 還有效,它就直接放行,上面四步都不會發生。</p>
-    <p>比較嚴格的驗證方式,是等 <code>_oauth2_proxy</code> 這個 cookie 過期或被清掉之後再訪問一次。這時候流程會重新從
-      第 1 步跑,但因為 Keycloak 跟兩個 Cloudflare Access 的 session 都還在,每一站都是瞬間放行,不需要任何手動點擊。
-      唯一的例外是 Dex——它<a href="role-keycloak-dex.html">天生沒有自己的 session</a>,一定會重新跳轉一次去問
-      Keycloak,只是 Keycloak 這邊秒答,肉眼看不出來。這正是設計文件裡「第二次完全靜默」這條驗收標準要驗證的事。</p>
+    <p>單純重新整理 <code>whoami.dough-ops.com</code>，通常連 Dex 都不會再打：oauth2-proxy 自己的
+      <code>_oauth2_proxy</code> cookie 還有效，它就直接放行，上面四步都不會發生。</p>
+    <p>比較嚴格的驗證方式，是等 <code>_oauth2_proxy</code> 這個 cookie 過期或被清掉之後再訪問一次。這時候流程會重新從
+      第 1 步跑，但因為 Keycloak 跟兩個 Cloudflare Access 的 session 都還在，每一站都是瞬間放行，不需要任何手動點擊。
+      唯一的例外是 Dex，它<a href="troubleshooting.html#bug-51">天生沒有自己的 session</a>，一定會重新跳轉一次去問
+      Keycloak，只是 Keycloak 這邊秒答，肉眼看不出來。這就是「第二次完全靜默」這條驗收標準要驗證的事。</p>
 
-    <h3>自己重新驗證一次</h3>
-    <p>跟 <a href="role-keycloak-dex.html">Role: keycloak / dex</a> 頁「驗證方式」那段是同一套檢查:</p>
+    <h3 id="verify">自己重新驗證一次</h3>
+    <p>跟 <a href="role-keycloak-dex.html">Role: keycloak / dex</a> 頁「驗證方式」那段是同一套檢查：</p>
     <ul>
-      <li>清 cookie(或用無痕視窗)開 <code>whoami.dough-ops.com</code>,依序應該看到:Cloudflare GitHub org 畫面 →
+      <li>清除 cookie（或用無痕視窗）後開 <code>whoami.dough-ops.com</code>，依序應該看到：Cloudflare GitHub org 畫面 →
         Keycloak 登入頁 → 點「Login with Cloudflare」後可能再跳一次 Cloudflare 確認畫面 → 落地在 whoami。印出的
-        <code>Authorization</code> header 解開來,<code>iss</code> 應該是 <code>https://dex.dough-ops.com</code>。</li>
-      <li>同一個分頁重新整理:應該完全不跳任何畫面,直接看到 whoami 頁。如果又跳出畫面,回頭查上面那張表,看是哪一層的
+        <code>Authorization</code> header 解開來，<code>iss</code> 應該是 <code>https://dex.dough-ops.com</code>。</li>
+      <li>同一個分頁重新整理：應該完全不跳任何畫面，直接看到 whoami 頁。如果又跳出畫面，回頭查上面那張表，看是哪一層的
         session 先過期了。</li>
     </ul>
 
     <div class="callout callout-warn">
-      <p><strong>已知現象:第一次(或很久沒登入之後)點下 Cloudflare 頁面上的 GitHub 按鈕,可能會卡 10-20 秒。</strong>
-        用瀏覽器 DevTools 的 Network 分頁實測過:卡住的是 <code>doughops.cloudflareaccess.com</code> 這個網域自己的
-        兩個請求(GitHub 授權碼的 callback、Access for SaaS 自己的 token 端點),各自要 2.8 秒左右,是 Cloudflare
-        Access 驗證 GitHub 身份、核發這個 SaaS Application token 的內部處理時間,不是 Keycloak、不是這裡的測試 app、
-        也不是網路品質問題——這幾層都在幾百毫秒內處理完。同一個瀏覽器再測一次(session 還在的情況下)通常會秒過。</p>
+      <p><strong>已知現象：第一次或很久沒登入之後，點下 Cloudflare 頁面上的 GitHub 按鈕，可能會卡 10-20 秒。</strong>
+        用瀏覽器 DevTools 的 Network 分頁實測過：卡住的是 <code>doughops.cloudflareaccess.com</code> 這個網域自己的
+        兩個請求（GitHub 授權碼的 callback、Access for SaaS 自己的 token 端點)，各自要 2.8 秒左右，是 Cloudflare
+        Access 驗證 GitHub 身份、核發這個 SaaS Application token 的內部處理時間，不是 Keycloak、不是這裡的測試 app、
+        也不是網路品質問題，這幾層都在幾百毫秒內處理完。同一個瀏覽器再測一次在 session 還在時通常會秒過。</p>
     </div>
 
-    <h3>另外兩個變體:少一層、再少一層</h3>
-    <p>同一條「App → … → Keycloak → Cloudflare Access」的鏈,還有兩個刻意拿掉中間層的版本,拿來對照每一層實際在
-      做什麼:</p>
+    <h3 id="variants">另外兩個變體</h3>
+    <p>同一條「App → … → Keycloak → Cloudflare Access」的鏈，還有兩個刻意拿掉中間層的版本，拿來對照每一層實際在
+      做什麼：</p>
     <div class="table-wrap">
       <table>
         <thead><tr><th>變體</th><th>網址</th><th>拿掉了什麼</th><th>id_token 的 iss</th></tr></thead>
         <tbody>
-          <tr><td>本頁講的 whoami</td><td class="mono">whoami.dough-ops.com</td><td>(基準版本)</td><td class="mono">https://dex.dough-ops.com</td></tr>
+          <tr><td>本頁講的 whoami</td><td class="mono">whoami.dough-ops.com</td><td>（基準版本）</td><td class="mono">https://dex.dough-ops.com</td></tr>
           <tr><td>oauth2-keycloak-demo</td><td class="mono">oauth2-keycloak-demo.dough-ops.com</td><td>拿掉 Dex——oauth2-proxy 直接對 Keycloak 做標準 OIDC discovery</td><td class="mono">https://keycloak.dough-ops.com/realms/doughops</td></tr>
-          <tr><td>keycloak-demo</td><td class="mono">keycloak-demo.dough-ops.com</td><td>連 oauth2-proxy 也拿掉——app 自己是一支純 Python 標準函式庫寫的 OIDC relying party,手刻 authorization code flow</td><td class="mono">https://keycloak.dough-ops.com/realms/doughops</td></tr>
+          <tr><td>keycloak-demo</td><td class="mono">keycloak-demo.dough-ops.com</td><td>連 oauth2-proxy 也拿掉——app 自己是一支純 Python 標準函式庫寫的 OIDC relying party，手刻 authorization code flow</td><td class="mono">https://keycloak.dough-ops.com/realms/doughops</td></tr>
         </tbody>
       </table>
     </div>
-    <p>細節分別見
-      <a href="https://github.com/khchiang1121/terraform-k8s/blob/main/docs/superpowers/specs/2026-08-07-keycloak-direct-oauth2-proxy-poc-design.md" target="_blank">oauth2-keycloak-demo 的設計文件</a>
-      跟
-      <a href="https://github.com/khchiang1121/terraform-k8s/blob/main/docs/superpowers/specs/2026-08-07-keycloak-native-oidc-app-poc-design.md" target="_blank">keycloak-demo 的設計文件</a>——
-      架構上都是本頁「整體架構」那張圖拿掉一到兩個節點,登入流程跟 session 行為完全比照上面幾節,不重複講一次。</p>
+    <p>兩個變體的登入流程與 session 行為，和本頁「整體架構」那張圖拿掉一到兩個節點之後完全相同，所以不重複說明。部署細節見 <a href="role-keycloak-dex.html">Role: keycloak / dex</a>。</p>
 
     <div class="page-nav">
-      <a class="prev" href="role-keycloak-dex.html"><span class="dir">上一頁</span><span class="ttl">← Role: keycloak / dex</span></a>
-      <a class="next" href="role-github-runner.html"><span class="dir">下一頁</span><span class="ttl">Role: github_runner →</span></a>
+      <a class="prev" href="role-keycloak-dex.html"><span class="dir">上一頁</span>
+        <span class="ttl">← Role: keycloak / dex</span></a>
+      <a class="next" href="role-github-runner.html"><span class="dir">下一頁</span>
+        <span class="ttl">Role: github_runner →</span></a>
     </div>
 
     <footer class="page-footer">
-      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
-      <span>最後更新:2026-08-07</span>
+      <span>文件站原始碼：<a href="https://github.com/DoughOps/terraform-k8s-docs" target="_blank" rel="noopener">DoughOps/terraform-k8s-docs</a></span>
+      <span>最後更新：2026-11-01（對應 commit e91424f）</span>
     </footer>
   </div>
 </div>

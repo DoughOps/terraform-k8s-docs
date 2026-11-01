@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>測試 / smoke-test — k8s + BGP Lab 技術詳解</title>
+<title>測試與 smoke-test — k8s + BGP Lab 技術文件</title>
 <link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
@@ -12,16 +12,17 @@
   <div class="sidebar-logo">
     <a class="sidebar-logo-link" href="index.html">
       <h1>🛰️ k8s + BGP Lab</h1>
-      <span>OpenStack Lab · 技術詳解 v15</span>
+      <span>OpenStack Lab 技術文件</span>
     </a>
   </div>
   <nav>
     <div class="nav-group">
-      <div class="nav-group-label">總覽</div>
+      <div class="nav-group-label">開始</div>
       <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
       <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
       <a class="nav-link" href="user-guide.html"><span class="icon">🧑‍💻</span> 叢集使用手冊</a>
       <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+      <a class="nav-link" href="glossary.html"><span class="icon">📖</span> 術語表</a>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">網路架構</div>
@@ -32,36 +33,39 @@
       <div class="nav-group-label">基礎設施</div>
       <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
       <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
-      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
     </div>
     <div class="nav-group">
-      <div class="nav-group-label">Ansible 自動化</div>
-      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <div class="nav-group-label">叢集元件</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> Ansible 框架設計</a>
       <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
       <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
       <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
       <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
       <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
       <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link active" href="testing.html"><span class="icon">✅</span> 測試與 smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">對外入口與身份驗證</div>
       <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
       <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">📋</span> Cloudflare 設定清單</a>
       <a class="nav-link" href="role-vault.html"><span class="icon">🔒</span> Role: vault</a>
       <a class="nav-link" href="role-keycloak-dex.html"><span class="icon">🪪</span> Role: keycloak / dex</a>
       <a class="nav-link" href="identity-federation-flow.html"><span class="icon">🧩</span> 身份聯邦登入流程</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">平台服務</div>
       <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
       <a class="nav-link" href="role-gitlab.html"><span class="icon">🦊</span> Role: gitlab</a>
       <a class="nav-link" href="role-argocd.html"><span class="icon">🐙</span> Role: argocd</a>
-      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
-      <a class="nav-link active" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
-    </div>
-    <div class="nav-group">
-      <div class="nav-group-label">Cloudflare 手動設定</div>
-      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具</a>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">專案紀錄</div>
       <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
-      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">🗒️</span> Changelog</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB 歷史</a>
     </div>
   </nav>
 </aside>
@@ -69,8 +73,9 @@
 <div class="main">
   <header class="topbar">
     <div class="topbar-left">
-      <button class="menu-btn" aria-label="Toggle menu">☰</button>
-      <span class="topbar-crumb">Lab Docs / <strong>測試 / smoke-test</strong></span>
+      <button class="menu-btn" aria-label="切換選單">☰</button>
+      <span class="topbar-crumb">叢集元件 /
+        <strong>測試與 smoke-test</strong></span>
     </div>
     <div class="topbar-right">
       <span class="topbar-badge">cloudnative.tw · AS 65000</span>
@@ -82,121 +87,103 @@
 
   <div class="content">
 
-    <h2><span class="eyebrow">Ansible 自動化</span>測試 / smoke-test</h2>
-    <p class="lede">整個專案的設計哲學是「證據優先」——每個結論都要有實測數字
-      支撐,不接受「理論上應該可以」。<code>playbooks/k8s/smoke-test.yml</code>
-      把整個建置過程反覆手動驗證的步驟,收斂成一個可以重複執行、自動判斷
-      成敗的 playbook,讓你自己也能隨時重新確認整個系統真的在動。</p>
+    <h2><span class="eyebrow">叢集元件</span>
+    測試與 smoke-test</h2>
 
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">怎麼跑</span></div>
-      <pre><span class="prompt">$</span> <span class="cmd">scripts/ansible.sh ansible-playbook playbooks/k8s/smoke-test.yml</span></pre>
-    </div>
+<p class="lede">這頁說明怎麼用 <code>playbooks/k8s/smoke-test.yml</code> 確認整個叢集真的在運作。它把建置過程中反覆手動驗證的步驟，收斂成一個可重複執行、自動判斷成敗的 playbook。</p>
 
-    <h3>四段驗證,由淺到深</h3>
+<h3 id="run">怎麼執行</h3>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">repo 根目錄</span></div>
+  <pre><span class="prompt">$</span> <span class="cmd">scripts/ansible.sh ansible-playbook playbooks/k8s/smoke-test.yml</span></pre>
+</div>
+<p><strong>預期結果</strong>：playbook 全部 task 成功。任何一段驗證失敗，ansible 都會直接報錯並停止。</p>
+<p>這個 playbook 可以隨時重跑。連續執行兩次都完全成功，第二次沒有受到殘留狀態干擾，所以懷疑系統壞掉時不需要先手動清理。</p>
 
-    <h4>1. 節點 / 系統 pod Ready</h4>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">最基本的健檢</span></div>
-      <pre><span class="out">kubectl wait --for=condition=Ready node --all --timeout=60s
+<h3 id="checks">現在的驗證內容</h3>
+<p>驗證分成四段，由淺到深。前三段確認狀態，第四段才實際發送流量。</p>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>段落</th><th>驗證什麼</th><th>通過條件</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>節點與系統 pod</td><td>全部 <code>Ready</code></td></tr>
+      <tr><td>2</td><td>tor 上的 apiserver haproxy</td><td>3 台 master 全部 <code>UP</code></td></tr>
+      <tr><td>3</td><td>tor 上的 BGP PodCIDR 路由</td><td><code>*&gt;i</code> 條目數等於 <code>groups['k8s_nodes'] | length</code>，目前是 8</td></tr>
+      <tr><td>4</td><td>跨節點 pod-to-pod 流量</td><td>A 用 <code>wget</code> 拿到 B 的預期回應</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h4 id="check-ready">1. 節點與系統 pod</h4>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">playbook 執行的檢查</span></div>
+  <pre><span class="out">kubectl wait --for=condition=Ready node --all --timeout=60s
 kubectl wait --for=condition=Ready pod --all -n kube-system --timeout=120s</span></pre>
-    </div>
-    <p>用 kubectl 內建的 <code>wait --for=condition=Ready</code>,不是
-      自己解析 <code>kubectl get nodes</code> 的輸出字串——這是最直接、
-      最不容易誤判的檢查方式:條件不滿足就會逾時失敗,ansible task
-      直接報錯,不需要額外寫判斷邏輯。</p>
+</div>
+<p>這裡用 kubectl 內建的 <code>wait --for=condition=Ready</code>，不自己解析 <code>kubectl get nodes</code> 的輸出。條件不滿足就會逾時失敗，ansible task 直接報錯，不需要額外寫判斷邏輯。</p>
 
-    <h4>2. apiserver haproxy backend 健康狀態</h4>
-    <p>讀 tor 上 haproxy 的 CSV 格式統計頁面,確認 3 台 master 全部
-      <code>UP</code>。這裡有個容易忽略的細節:haproxy CSV 的
-      <code>status</code> 欄位是第 18 欄,不是緊接在 server 名稱後面
-      ——中間還有 <code>qcur</code>/<code>qmax</code>/<code>scur</code>
-      等一堆欄位,不能直接對整行字串做 <code>contains</code> 比對,
-      要先用 <code>cut -d, -f1,2,18</code> 精確取出
-      <code>pxname,svname,status</code> 三個欄位再比對。</p>
+<h4 id="check-haproxy">2. apiserver haproxy backend</h4>
+<p>這段讀取 tor 上 haproxy 的 CSV 統計頁，確認 3 台 master 全部 <code>UP</code>。</p>
+<p>haproxy CSV 的 <code>status</code> 是第 18 欄，中間還隔著 <code>qcur</code>、<code>qmax</code>、<code>scur</code> 等欄位。所以要先用 <code>cut -d, -f1,2,18</code> 取出 <code>pxname,svname,status</code>，再比對內容。</p>
 
-    <h4>3. FRR/BGP PodCIDR 傳播數量</h4>
-    <p>在 tor 上數 <code>show ip bgp</code> 裡標記 <code>*&gt;i</code>
-      (valid + best + internal)的條目數量,確認剛好等於
-      <code>groups['k8s_nodes'] | length</code>(目前是 7)——每個
-      k8s 節點恰好一條 PodCIDR,不多不少。這一段只證明「路由存在」,
-      還不能證明「路由真的能用」,所以還需要第四段。</p>
+<h4 id="check-bgp">3. BGP PodCIDR 傳播數量</h4>
+<p>這段在 tor 上數 <code>show ip bgp</code> 裡標記 <code>*&gt;i</code>（valid、best、internal）的條目。每個 k8s 節點恰好一條 PodCIDR，所以數量要等於 <code>groups['k8s_nodes'] | length</code>。</p>
+<p>這段只證明路由存在，無法證明路由能用，所以還需要第四段。</p>
 
-    <h4>4. 跨節點 pod-to-pod 連線測試(最重要的一段)</h4>
-    <p>這是唯一一段會建立真實資源、實際發送流量的測試——在
-      <code>groups['masters'][0]</code>(<code>ms-0001</code>)跟
-      <code>groups['workers'][-1]</code>(<code>ap-0002</code>)上各建
-      一個 busybox pod,B 跑一個小型 <code>httpd</code>,A 用
-      <code>wget</code> 連 B 的 pod IP,斷言拿到預期的回應內容。</p>
+<h4 id="check-pod">4. 跨節點 pod-to-pod 連線</h4>
+<p>這是最重要的一段，也是唯一會建立真實資源、實際發送流量的測試。</p>
+<p>playbook 在 <code>groups['masters'][0]</code>（<code>ms-0001</code>）和 <code>groups['workers'][-1]</code>（<code>ap-0003</code>）各建一個 busybox pod。B 跑一個小型 <code>httpd</code>，A 用 <code>wget</code> 連 B 的 pod IP，並斷言回應內容。</p>
 
-    <div class="flow">
-      <div class="flow-step"><div class="flow-box">清掉舊測試 pod<br><small>ignore_errors 式保險</small></div></div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step"><div class="flow-box accent">建 pod A + pod B<br><small>各自釘在不同節點</small></div></div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step"><div class="flow-box purple">A wget B 的 pod IP<br><small>斷言回應內容</small></div></div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step"><div class="flow-box green">always: 清掉測試 pod<br><small>不管成功失敗都執行</small></div></div>
-    </div>
+<div class="flow">
+  <div class="flow-step"><div class="flow-box">清掉舊測試 pod<br><small>ignore_errors 式保險</small></div></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step"><div class="flow-box accent">建 pod A 與 pod B<br><small>各自釘在不同節點</small></div></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step"><div class="flow-box purple">A wget B 的 pod IP<br><small>斷言回應內容</small></div></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step"><div class="flow-box green">always：清掉測試 pod<br><small>不管成功失敗都執行</small></div></div>
+</div>
 
-    <p>整段包在 <code>block</code>/<code>always</code> 裡——不管中間哪一步
-      失敗,<code>always</code> 都會執行清掉測試 pod,不會在叢集裡留下垃圾。
-      這個測試不只是「有沒有連通」,而是直接對應
-      <a href="network-architecture.html">網路架構總覽</a>裡描述的
-      「情境二:Pod ↔ Pod 跨節點」——如果這段測試過,代表 Cilium
-      native routing + FRR fabric 的整條路徑<strong>真的</strong>在動,
-      不是只有設定看起來對。</p>
+<p>整段包在 <code>block</code>／<code>always</code> 裡。不管哪一步失敗，<code>always</code> 都會清掉測試 pod，不會在叢集留下垃圾。</p>
+<p>這段對應<a href="packet-flows.html">封包路徑實例</a>裡的跨節點 Pod 流量。測試通過，代表 Cilium native routing 和 FRR fabric 的整條路徑都在運作。</p>
 
-    <h3>寫這個 playbook 時撞到的兩個 ansible 陷阱</h3>
-    <div class="card-grid">
-      <div class="card">
-        <div class="card-icon">📊</div>
-        <h4>haproxy CSV 欄位位置</h4>
-        <p>第一版直接對整行字串找 <code>server,UP</code>,永遠比對不到
-          ——status 欄位在很後面,中間隔了十幾個欄位,必須先 <code>cut</code>
-          取出正確欄位才能比對。</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">🔤</div>
-        <h4>command 模組的 JSON 引號陷阱</h4>
-        <p><code>ansible.builtin.command</code> 給純字串時不走
-          shell,靠 shlex 解析——<code>--overrides={"spec":...}</code>
-          裡的雙引號會被當成 shell quoting 字元吃掉,變成不合法 JSON。
-          改用 <code>argv:</code> list 形式徹底避開這個解析問題。</p>
-      </div>
-    </div>
+<h3 id="limits">已知限制</h3>
+<ul>
+  <li>smoke test 只涵蓋節點、apiserver、BGP 和 pod 連線，沒有驗證 Istio、Cloudflare Tunnel 或內部工具。</li>
+  <li>第三段的條目數綁定目前的 BGP 表內容。有其他前綴也標記 <code>*&gt;i</code> 時，要同步調整預期數量。</li>
+</ul>
 
-    <h3>可重複執行性:實測驗證過</h3>
-    <p>這個 playbook 連續執行兩次,兩次都完全成功(第二次沒有任何
-      殘留狀態造成的干擾)——這也是它能被稱為「smoke test」而不只是
-      「一次性驗證腳本」的原因:任何時候懷疑系統壞了,直接重跑一次,
-      不需要事先手動清理什麼。</p>
+<h3 id="ansible-pitfalls">實測踩到的 ansible 陷阱</h3>
+<div class="card-grid">
+  <div class="card">
+    <div class="card-icon">📊</div>
+    <h4>haproxy CSV 欄位位置</h4>
+    <p>第一版直接對整行字串找 <code>server,UP</code>，永遠比對不到。<code>status</code> 欄位在很後面，要先用 <code>cut</code> 取出正確欄位。</p>
+  </div>
+  <div class="card">
+    <div class="card-icon">🔤</div>
+    <h4>command 模組的 JSON 引號</h4>
+    <p><code>ansible.builtin.command</code> 給純字串時不走 shell，而是靠 shlex 解析。<code>--overrides={"spec":...}</code> 裡的雙引號會被當成 quoting 字元吃掉，變成不合法的 JSON。改用 <code>argv:</code> list 形式就能避開。</p>
+  </div>
+</div>
 
-    <h3>Makefile:一個跟測試無關,但同樣是「讓你自己能動手」的小工具</h3>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">Makefile</span></div>
-      <pre><span class="prompt">$</span> <span class="cmd">make ssh</span>
-<span class="dim"># 讀 terraform output -raw bastion_floating_ip,直接 ssh 進 bastion
-# 不用每次手動查 IP、拼 ssh 指令</span></pre>
-    </div>
-    <p>跟 <code>scripts/ansible.sh</code> 用同一把私鑰(解密自
-      <code>ansible/inventory/group_vars/all/vault.yml</code> 的
-      <code>vault_ssh_private_key</code>,見
-      <a href="ansible-framework.html">Ansible 框架設計</a>的「私鑰處理」
-      一節),差別是 <code>make ssh</code> 給你一個真正互動式的 shell
-      (<code>scripts/ansible.sh</code> 只負責觸發 ansible 指令,不是
-      給你互動操作用的)。<code>make</code> 不帶參數會印出
-      <code>help</code>(<code>.DEFAULT_GOAL := help</code>),避免不小心
-      打錯指令直接觸發 SSH 連線。</p>
+<h3 id="next">相關頁面</h3>
+<ul>
+  <li>這個 playbook 在建置順序中的位置，見<a href="getting-started.html#bring-up-order">從零開始建置 § 建置順序</a>。</li>
+  <li><code>make ssh</code> 等常用指令，見 <a href="ansible-framework.html#makefile">Ansible 框架設計 § Makefile</a>。</li>
+</ul>
 
     <div class="page-nav">
-      <a class="prev" href="internal-tools.html"><span class="dir">上一頁</span><span class="ttl">← 內部工具(Dashboard/Hubble/監控)</span></a>
-      <a class="next" href="cloudflare-manual-setup.html"><span class="dir">下一頁</span><span class="ttl">Cloudflare 手動設定清單 →</span></a>
+      <a class="prev" href="role-istio.html"><span class="dir">上一頁</span>
+        <span class="ttl">← Role: istio</span></a>
+      <a class="next" href="role-cloudflare-tunnel.html"><span class="dir">下一頁</span>
+        <span class="ttl">Role: cloudflare_tunnel →</span></a>
     </div>
 
     <footer class="page-footer">
-      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
-      <span>最後更新:2026-07-27</span>
+      <span>文件站原始碼：<a href="https://github.com/DoughOps/terraform-k8s-docs" target="_blank" rel="noopener">DoughOps/terraform-k8s-docs</a></span>
+      <span>最後更新：2026-11-01（對應 commit e91424f）</span>
     </footer>
   </div>
 </div>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Role: crio — k8s + BGP Lab 技術詳解</title>
+<title>Role: crio — k8s + BGP Lab 技術文件</title>
 <link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
@@ -12,16 +12,17 @@
   <div class="sidebar-logo">
     <a class="sidebar-logo-link" href="index.html">
       <h1>🛰️ k8s + BGP Lab</h1>
-      <span>OpenStack Lab · 技術詳解 v15</span>
+      <span>OpenStack Lab 技術文件</span>
     </a>
   </div>
   <nav>
     <div class="nav-group">
-      <div class="nav-group-label">總覽</div>
+      <div class="nav-group-label">開始</div>
       <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
       <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
       <a class="nav-link" href="user-guide.html"><span class="icon">🧑‍💻</span> 叢集使用手冊</a>
       <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+      <a class="nav-link" href="glossary.html"><span class="icon">📖</span> 術語表</a>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">網路架構</div>
@@ -32,36 +33,39 @@
       <div class="nav-group-label">基礎設施</div>
       <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
       <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
-      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
     </div>
     <div class="nav-group">
-      <div class="nav-group-label">Ansible 自動化</div>
-      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <div class="nav-group-label">叢集元件</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> Ansible 框架設計</a>
       <a class="nav-link active" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
       <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
       <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
       <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
       <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
       <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試與 smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">對外入口與身份驗證</div>
       <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
       <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">📋</span> Cloudflare 設定清單</a>
       <a class="nav-link" href="role-vault.html"><span class="icon">🔒</span> Role: vault</a>
       <a class="nav-link" href="role-keycloak-dex.html"><span class="icon">🪪</span> Role: keycloak / dex</a>
       <a class="nav-link" href="identity-federation-flow.html"><span class="icon">🧩</span> 身份聯邦登入流程</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">平台服務</div>
       <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
       <a class="nav-link" href="role-gitlab.html"><span class="icon">🦊</span> Role: gitlab</a>
       <a class="nav-link" href="role-argocd.html"><span class="icon">🐙</span> Role: argocd</a>
-      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
-      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
-    </div>
-    <div class="nav-group">
-      <div class="nav-group-label">Cloudflare 手動設定</div>
-      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具</a>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">專案紀錄</div>
       <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
-      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">🗒️</span> Changelog</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB 歷史</a>
     </div>
   </nav>
 </aside>
@@ -69,8 +73,9 @@
 <div class="main">
   <header class="topbar">
     <div class="topbar-left">
-      <button class="menu-btn" aria-label="Toggle menu">☰</button>
-      <span class="topbar-crumb">Lab Docs / <strong>Role: crio</strong></span>
+      <button class="menu-btn" aria-label="切換選單">☰</button>
+      <span class="topbar-crumb">叢集元件 /
+        <strong>Role: crio</strong></span>
     </div>
     <div class="topbar-right">
       <span class="topbar-badge">cloudnative.tw · AS 65000</span>
@@ -82,174 +87,95 @@
 
   <div class="content">
 
-    <h2><span class="eyebrow">Ansible 自動化</span>Role: crio</h2>
-    <p class="lede">在 <code>k8s_nodes</code>(masters/lbs/workers)上安裝 CRI-O
-      當 container runtime。這個 role 的範圍刻意畫得很窄:只到「CRI-O 本身裝好、
-      設定對」,kubelet/kubeadm/crictl 是另一個 role 的責任(見
-      <a href="role-kubeadm.html">Role: kubeadm</a>)。playbook 是
-      <code>playbooks/k8s/crio.yml</code>,role 檔案在 <code>ansible/roles/crio/</code>。</p>
+    <h2><span class="eyebrow">叢集元件</span>
+    Role: crio</h2>
 
-    <h3>為什麼選 CRI-O,不是 containerd</h3>
-    <p>兩者都是符合 CRI(Container Runtime Interface)規範、kubeadm 官方支援的
-      runtime。這個專案選 CRI-O 是延續 Red Hat/Kubernetes 生態圈常見組合的選擇,
-      而且 CRI-O 的版本release 節奏直接對齊 Kubernetes minor version(每個
-      k8s minor 都有一個對應的 CRI-O minor),版本相容性判斷比較直覺
-      ——見下方版本對齊的設計。</p>
+<p class="lede">這個 role 在所有 <code>k8s_nodes</code> 上安裝 CRI-O，這包含 master、l4 和 ap，不含 tor 和 bastion，作為 container runtime。它是 <code>k8s.yml</code> 建置順序的第一步，不依賴其他 role，後面的 kubelet、kubeadm 都要等 CRI-O 起來才能跑。範圍只到「CRI-O 本身裝好、設定對」，kubeadm、kubelet 和 crictl 屬於 <a href="role-kubelet.html">Role: kubelet</a>。</p>
+<p>playbook 是 <code>playbooks/k8s/crio.yml</code>，role 在 <code>ansible/roles/crio/</code>。CRI-O 和 containerd 都符合 CRI 規範，也都被 kubeadm 支援。CRI 全名是 Container Runtime Interface。這裡選 CRI-O，因為它每個 minor 版本都對應一個 Kubernetes minor，版本相容性很好判斷。</p>
 
-    <h3>安裝前的兩組前提條件</h3>
+<h3 id="config">現在的設定</h3>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>項目</th><th>值</th><th>為什麼</th></tr></thead>
+    <tbody>
+      <tr><td>kernel module</td><td><code>overlay</code>、<code>br_netfilter</code>，並寫入 <code>/etc/modules-load.d/crio.conf</code></td><td><code>overlay</code> 是預設 storage driver 疊檔案系統層需要的。<code>br_netfilter</code> 讓經過 Linux bridge 的封包也會被 netfilter 規則檢查。寫進 <code>modules-load.d</code> 才能在重開機後自動載入</td></tr>
+      <tr><td>sysctl</td><td><code>net.bridge.bridge-nf-call-iptables = 1</code>、<code>net.bridge.bridge-nf-call-ip6tables = 1</code>、<code>net.ipv4.ip_forward = 1</code>，寫在 <code>/etc/sysctl.d/99-kubernetes-cri.conf</code></td><td>這是 Kubernetes 官方列出的 container runtime 共通前提。CRI-O 是第一個需要它們的元件，所以放在這個 role</td></tr>
+      <tr><td>apt repo</td><td><code>isv:/cri-o:/stable:/{version}/deb/</code>（<code>download.opensuse.org</code> 的 OBS 專案）</td><td>CRI-O 官方現在建議的安裝來源，取代舊的個人 repo</td></tr>
+      <tr><td><code>crio_version</code></td><td><code>{{ kubernetes_minor_version }}</code>，目前是 <code>v1.34</code></td><td>CRI-O、kubeadm、kubelet 共用同一個版本變數，改一次就同步，不會版本錯配</td></tr>
+      <tr><td>安裝 task</td><td><code>state: latest</code></td><td>repo URL 已經綁定 minor 版本，<code>latest</code> 只會抓同一個 minor 的最新 patch。用 <code>present</code> 的話，升級 <code>kubernetes_minor_version</code> 後已裝的套件不會被換掉</td></tr>
+      <tr><td>cgroup driver</td><td><code>cgroup_manager = "systemd"</code>，drop-in 檔 <code>/etc/crio/crio.conf.d/10-cgroup-manager.conf</code></td><td>必須和 kubelet 一致，詳見下一節</td></tr>
+      <tr><td>short-name-mode</td><td><code>short-name-mode = "permissive"</code>，drop-in 檔 <code>/etc/containers/registries.conf.d/10-short-name-mode.conf</code></td><td>CRI-O 1.34 預設 enforcing，會拒絕 <code>busybox:1.36</code> 這類未限定名稱，見 <a href="troubleshooting.html#bug-27">Bug #27</a></td></tr>
+    </tbody>
+  </table>
+</div>
 
-    <h4>Kernel module:<code>overlay</code>、<code>br_netfilter</code></h4>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/crio/tasks/main.yml</span></div>
-      <pre><span class="out">- community.general.modprobe:
-    name: "{{ item }}"
-    state: present
-  loop: [overlay, br_netfilter]</span></pre>
-    </div>
-    <p><code>overlay</code> 是 CRI-O 預設的 storage driver 需要的檔案系統模組
-      (容器的分層檔案系統靠它疊起來);<code>br_netfilter</code> 讓經過 Linux
-      bridge 的封包也會被 iptables/netfilter 規則檢查——沒有這個模組,
-      kube-proxy 之後裝的 iptables 規則對「橋接過去」的封包不會生效。
-      兩者都用 <code>copy</code> 額外寫進 <code>/etc/modules-load.d/crio.conf</code>,
-      確保重開機後這兩個模組還是會自動載入,不是只有這次執行當下 load 一次。</p>
+<h4 id="cgroup-driver">cgroup driver 要明確設定</h4>
+<p>kubelet 從 1.22 起，新叢集預設使用 <code>systemd</code> 作為 cgroup driver，這些節點本身也是 cgroup v2。但 CRI-O 不會偵測 kubelet 的選擇，它有自己的預設值。兩邊不一致時，<code>kubeadm init</code> 和 <code>kubeadm join</code> 會直接失敗。</p>
+<p>設定放在 <code>crio.conf.d</code> 的 drop-in，不直接改 <code>/etc/crio/crio.conf</code>，因為主設定檔在套件升級時有被覆蓋的風險。檔案變動會 notify 「重啟 crio」handler，讓設定真的生效。</p>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">節點上的 /etc/crio/crio.conf.d/10-cgroup-manager.conf</span></div>
+  <pre><span class="out">[crio.runtime]
+cgroup_manager = "systemd"</span></pre>
+</div>
 
-    <h4>sysctl:bridge 流量要過 iptables、開 ip forward</h4>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">/etc/sysctl.d/99-kubernetes-cri.conf</span></div>
-      <pre><span class="out">net.bridge.bridge-nf-call-iptables = 1
-net.bridge.bridge-nf-call-ip6tables = 1
-net.ipv4.ip_forward = 1</span></pre>
-    </div>
-    <p>這三行是 Kubernetes 官方文件明列的「任何 container runtime 的共通
-      前提條件」,不是 CRI-O 專屬——放在這個 role 裡是因為時序上 CRI-O
-      是第一個需要它們的元件(kube-proxy/kubelet 之後才裝)。
-      <code>net.ipv4.ip_forward</code> 這裡再設一次是保險:k8s-net 上
-      跑 FRR 的節點在 cloud-init 階段就已經開過(見
-      <a href="bgp-fabric.html">FRR / iBGP Fabric</a>),這裡用不同的
-      sysctl 檔案(<code>99-kubernetes-cri.conf</code> vs cloud-init 寫的
-      <code>/etc/sysctl.conf</code>)再宣告一次同樣的值,兩份設定不衝突,
-      只是來源不同層,刻意不去重複利用同一個檔案。</p>
+<h4 id="sysctl-ip-forward">ip_forward 設兩次</h4>
+<p><code>net.ipv4.ip_forward</code> 在跑 FRR 的節點上，cloud-init 階段已經開過（見 <a href="bgp-fabric.html">FRR / iBGP Fabric</a>）。這裡用另一個檔案 <code>99-kubernetes-cri.conf</code> 再宣告一次同樣的值，兩份設定不衝突，只是來源不同層。</p>
 
-    <h3>官方 apt repo:isv:/cri-o:/stable</h3>
-    <p>CRI-O 官方現在建議的安裝方式是 <code>download.opensuse.org</code>
-      底下的 OBS(Open Build Service)專案
-      <code>isv:/cri-o:/stable:/{version}/deb/</code>,取代舊版文件常見的
-      個人 repo。標準的三步驟:下載 GPG key、轉成 keyring 格式、
-      加入 apt source。</p>
-
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/crio/tasks/main.yml(精簡)</span></div>
-      <pre><span class="out">- shell: curl -fsSL {{ crio_repo_key_url }} | gpg --dearmor -o {{ crio_apt_keyring }}
-  args: { creates: "{{ crio_apt_keyring }}" }   </span><span class="dim"># 冪等:keyring 檔案存在就不重跑</span><span class="out">
-
+<h4 id="apt-repo">加入 apt repo</h4>
+<p>安裝流程是三步：下載 GPG key、轉成 keyring 格式、加入 apt source。</p>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/crio/tasks/main.yml（精簡）</span></div>
+  <pre><span class="out">- shell: curl -fsSL {{ crio_repo_key_url }} | gpg --dearmor -o {{ crio_apt_keyring }}
+  args: { creates: "{{ crio_apt_keyring }}" }   # 冪等：keyring 檔案存在就不重跑
 - apt_repository:
     repo: "deb [signed-by={{ crio_apt_keyring }}] {{ crio_repo_url }} /"
     filename: cri-o</span></pre>
-    </div>
+</div>
 
-    <div class="callout callout-warn">
-      <p><strong>為什麼用已經 deprecated 的 <code>apt_repository</code>,不是官方建議的
-      <code>deb822_repository</code></strong>:ansible-core 目前(2.19)
-      還支援 <code>apt_repository</code>,只是標成 deprecated、預計 2.25
-      移除。這個專案<strong>刻意先不換</strong>——<code>deb822_repository</code>
-      對這種「flat repo」格式(<code>isv:/cri-o:/stable</code> 的 URL
-      結尾是單一 <code>/</code>,不是傳統 <code>dists/&lt;suite&gt;/&lt;component&gt;</code>
-      結構)的參數對應還沒把握,而 <code>apt_repository</code> 已經照 CRI-O
-      官方文件驗證過可以正常動作。這是一個記錄下來的技術債,不是沒注意到
-      deprecation warning。</p>
-    </div>
+<h3 id="limits">已知限制與 workaround</h3>
+<h4 id="apt-repository-deprecated">apt_repository 已標示 deprecated</h4>
+<p>ansible-core 2.19 還支援 <code>apt_repository</code>，但它已標成 deprecated，預計 2.25 移除。官方建議改用 <code>deb822_repository</code>。</p>
+<p>目前沒有換。<code>isv:/cri-o:/stable</code> 是 flat repo，URL 結尾是單一 <code>/</code>，沒有 <code>dists/&lt;suite&gt;/&lt;component&gt;</code> 結構。<code>deb822_repository</code> 對這種格式的參數對應尚未驗證，而 <code>apt_repository</code> 已照 CRI-O 官方文件驗證過可以運作。<a href="role-kubelet.html">Role: kubelet</a> 的 Kubernetes apt repo 有同樣的取捨。ansible-core 要移除它之前，兩個 role 都要一起改。</p>
 
-    <h3>cgroup driver 對齊:CRI-O 這邊要明確設,不能靠猜</h3>
-    <p>Kubernetes 的 kubelet 從 1.22 起,新叢集預設用 <code>systemd</code>
-      當 cgroup driver(這台機器本身就是 cgroup v2,systemd 統一管理
-      cgroup 資源階層)。<strong>但 CRI-O 不會自動偵測、對齊 kubelet 的選擇
-      </strong>——它有自己的預設值,如果不明確設定,CRI-O 跟 kubelet
-      可能各自用不同的 cgroup driver 管理同一組容器資源,kubeadm
-      init/join 會直接因為這個不一致而失敗。</p>
-
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">/etc/crio/crio.conf.d/10-cgroup-manager.conf</span></div>
-      <pre><span class="out">[crio.runtime]
-cgroup_manager = "systemd"</span></pre>
-    </div>
-    <p>用 <code>crio.conf.d</code> 底下的 drop-in 檔案,不是直接改
-      <code>/etc/crio/crio.conf</code>——drop-in 目錄的設計本來就是給
-      「套件升級時不想被覆蓋掉的自訂設定」用,直接改主設定檔在套件升級時
-      有被蓋掉的風險。這個檔案改變時會觸發 <code>notify: 重啟 crio</code>
-      handler,確保設定真的生效,不是寫了檔案但 daemon 還在用舊設定跑。</p>
-
-    <h3>版本對齊:crio_version 從哪來</h3>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/crio/defaults/main.yml</span></div>
-      <pre><span class="out">crio_version: "{{ kubernetes_minor_version }}"   </span><span class="dim"># 不是寫死的字串</span></pre>
-    </div>
-    <p><code>crio_version</code> 直接引用
-      <code>group_vars/all/main.yml</code> 的 <code>kubernetes_minor_version</code>
-      (目前 <code>v1.34</code>),不是各自寫一份獨立的版本號。CRI-O
-      的版本節奏跟 Kubernetes minor version 對齊(每個 k8s 1.x 都有對應的
-      CRI-O 1.x),讓兩邊共用同一個變數來源,改一次
-      <code>kubernetes_minor_version</code> 就能同時決定 CRI-O 跟
-      kubeadm/kubelet 要裝哪個版本,不會有「改了 k8s 版本卻忘記同步改
-      CRI-O 版本」這種版本錯配的風險——這正是後面
-      <a href="role-cilium.html">Role: cilium</a> 頁面會提到、當初刻意
-      要避免的那類問題。</p>
-
-    <div class="callout callout-warn">
-      <p><strong>安裝 task 也是 <code>state: latest</code>,不是
-      <code>state: present</code></strong>——CRI-O 套件沒有像 kubelet
-      那樣被 <code>dpkg_selections</code> 鎖住,但 <code>state:
-      present</code> 一樣是「有裝就好」的語意,升級
-      <code>kubernetes_minor_version</code> 之後如果安裝 task 不改,
-      即使 <code>crio_version</code> 已經連動變成 v1.34、repo URL 也指向
-      v1.34,已經裝好的 v1.31 套件也不會被自動換掉。跟
-      <a href="role-kubelet.html">Role: kubelet</a> 的 kubeadm/kubelet/
-      kubectl 是同一個模式的 bug,修法也一樣:改成
-      <code>state: latest</code>,靠版本綁定的 repo URL 保證「latest」
-      不會跳出預期的 minor version。</p>
-    </div>
-
-    <h3>CRI-O 1.34 新增的坑:<code>short-name-mode</code> 預設拒絕未限定的 image 名稱</h3>
-    <p>升級到 CRI-O 1.34 之後,<code>k8s/smoke-test.yml</code>
-      (見 <a href="testing.html">測試 / smoke-test</a>)裡原本能跑的
-      跨節點 pod 測試開始失敗:</p>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">$ crictl pull busybox:1.36</span></div>
-      <pre><span class="bad">short name mode is enforcing, but image name busybox:1.36 returns
+<h3 id="bugs">實測踩到的 bug</h3>
+<section class="bug" id="bug-27">
+  <h4>#27 · 升級 CRI-O 1.34 後 crictl pull 短名稱失敗</h4>
+  <ul>
+    <li><strong>症狀</strong>：<code>k8s/smoke-test.yml</code> 的跨節點 pod 測試開始失敗。手動重現：
+      <div class="term">
+        <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">節點上</span></div>
+        <pre><span class="prompt">$</span> <span class="cmd">crictl pull busybox:1.36</span>
+<span class="out">short name mode is enforcing, but image name busybox:1.36 returns
 ambiguous list</span></pre>
-    </div>
-    <p>直覺的第一反應是「<code>unqualified-search-registries</code> 裡明明
-      只設了一個 <code>docker.io</code>,應該不會 ambiguous」——但 CRI-O
-      1.34(底層是 <code>containers/image</code> 這個 library)的
-      <code>short-name-mode</code> 這一版預設是 <strong><code>enforcing</code>
-      </strong>,即使搜尋清單裡只有一個 registry,也拒絕自動幫未限定名稱
-      (像 <code>busybox:1.36</code>,沒有寫完整的
-      <code>docker.io/library/busybox:1.36</code>)補上完整路徑——這是
-      containers/image 為了防止「同名映像檔在不同 registry 之間被劫持」
-      的安全機制,行為變嚴了,不是這個專案的設定寫錯。</p>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">/etc/containers/registries.conf.d/10-short-name-mode.conf</span></div>
-      <pre><span class="out">short-name-mode = "permissive"</span></pre>
-    </div>
-    <p>新增一個 drop-in 檔案,把 <code>short-name-mode</code> 明確設回
-      <code>permissive</code>(遇到 ambiguous 名稱時,直接用搜尋清單的
-      第一個 registry 補全,不拒絕)。修法先用 <code>crictl pull</code>
-      手動驗證過才寫進 role,<code>notify: 重啟 crio</code>確保 daemon
-      真的套用新設定。</p>
+      </div>
+    </li>
+    <li><strong>根因</strong>：CRI-O 1.34 底層的 containers/image 函式庫，把 <code>short-name-mode</code> 預設改為 enforcing。即使 <code>unqualified-search-registries</code> 只有 <code>docker.io</code> 一個 registry，它也不會替未限定名稱補全成 <code>docker.io/library/busybox:1.36</code>。這是防止同名映像檔在不同 registry 之間被劫持的安全機制，設定本身沒有寫錯。</li>
+    <li><strong>修法</strong>：在 <code>/etc/containers/registries.conf.d/10-short-name-mode.conf</code> 放一個 drop-in，明確設 <code>short-name-mode = "permissive"</code>，遇到 ambiguous 名稱時以搜尋清單的第一個 registry 補全。drop-in 放在獨立檔案，不動 CRI-O 套件自己安裝的 <code>crio.conf</code>，那個檔案是 <code>unqualified-search-registries</code> 的來源，套件升級時可能被覆蓋。修法先用 <code>crictl pull</code> 手動驗證過，才寫進 role，並 notify 重啟 crio。</li>
+    <li><strong>怎麼確認修好</strong>：在節點上重跑 <code>crictl pull busybox:1.36</code> 成功，或重跑 <a href="testing.html">smoke-test</a>。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-26">Bug #26</a> 同樣是升級 minor 版本才暴露，見 <a href="role-kubelet.html#bug-26">Role: kubelet</a>。</li>
+  </ul>
+</section>
 
-    <h3>驗證步驟</h3>
-    <p>role 的最後一步是 <code>crio version</code>(<code>changed_when: false</code>,
-      純驗證不算變更),確認 CRI-O daemon 真的有回應,不是只是套件裝了
-      但服務起不來。完整的驗證紀錄(單一節點先測、再全 <code>k8s_nodes</code>
-      滾出去、二次執行確認冪等)見 <a href="testing.html">測試 / smoke-test</a>。</p>
+<h3 id="verify">驗證方式</h3>
+<p>role 最後一步執行 <code>crio version</code>，並標記 <code>changed_when: false</code>，只當驗證，不算變更。這步能確認 CRI-O daemon 真的回應，而不只是套件裝好。</p>
+<p><strong>預期結果</strong>：task 成功，輸出 CRI-O 的版本資訊。版本號的 minor 和 <code>kubernetes_minor_version</code> 一致。完整的叢集層級驗證見<a href="testing.html">測試與 smoke-test</a>。驗證順序是先在單一節點測試，再套用到全部 <code>k8s_nodes</code>，最後二次執行確認冪等。</p>
+
+<h3 id="history">演進歷史</h3>
+<ul class="cl-list">
+  <li><span class="d">2026-07-26</span> <span class="k">feat</span> <span>新增 <code>roles/crio</code>，所有 k8s 節點安裝 CRI-O（<a href="changelog.html">Changelog</a>）</span></li>
+  <li><span class="d">2026-07-27</span> <span class="k">fix</span> <span>安裝 task 改 <code>state: latest</code>，並加入 <code>short-name-mode = "permissive"</code> drop-in（<a href="troubleshooting.html#bug-27">Bug #27</a>）</span></li>
+</ul>
 
     <div class="page-nav">
-      <a class="prev" href="ansible-framework.html"><span class="dir">上一頁</span><span class="ttl">← 框架設計</span></a>
-      <a class="next" href="role-kubelet.html"><span class="dir">下一頁</span><span class="ttl">Role: kubelet →</span></a>
+      <a class="prev" href="ansible-framework.html"><span class="dir">上一頁</span>
+        <span class="ttl">← Ansible 框架設計</span></a>
+      <a class="next" href="role-kubelet.html"><span class="dir">下一頁</span>
+        <span class="ttl">Role: kubelet →</span></a>
     </div>
 
     <footer class="page-footer">
-      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
-      <span>最後更新:2026-07-27</span>
+      <span>文件站原始碼：<a href="https://github.com/DoughOps/terraform-k8s-docs" target="_blank" rel="noopener">DoughOps/terraform-k8s-docs</a></span>
+      <span>最後更新：2026-11-01（對應 commit e91424f）</span>
     </footer>
   </div>
 </div>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>網路架構總覽 — k8s + BGP Lab 技術詳解</title>
+<title>網路架構總覽 — k8s + BGP Lab 技術文件</title>
 <link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
@@ -12,16 +12,17 @@
   <div class="sidebar-logo">
     <a class="sidebar-logo-link" href="index.html">
       <h1>🛰️ k8s + BGP Lab</h1>
-      <span>OpenStack Lab · 技術詳解 v15</span>
+      <span>OpenStack Lab 技術文件</span>
     </a>
   </div>
   <nav>
     <div class="nav-group">
-      <div class="nav-group-label">總覽</div>
+      <div class="nav-group-label">開始</div>
       <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
       <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
       <a class="nav-link" href="user-guide.html"><span class="icon">🧑‍💻</span> 叢集使用手冊</a>
       <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+      <a class="nav-link" href="glossary.html"><span class="icon">📖</span> 術語表</a>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">網路架構</div>
@@ -32,36 +33,39 @@
       <div class="nav-group-label">基礎設施</div>
       <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
       <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
-      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
     </div>
     <div class="nav-group">
-      <div class="nav-group-label">Ansible 自動化</div>
-      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <div class="nav-group-label">叢集元件</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> Ansible 框架設計</a>
       <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
       <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
       <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
       <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
       <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
       <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試與 smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">對外入口與身份驗證</div>
       <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
       <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">📋</span> Cloudflare 設定清單</a>
       <a class="nav-link" href="role-vault.html"><span class="icon">🔒</span> Role: vault</a>
       <a class="nav-link" href="role-keycloak-dex.html"><span class="icon">🪪</span> Role: keycloak / dex</a>
       <a class="nav-link" href="identity-federation-flow.html"><span class="icon">🧩</span> 身份聯邦登入流程</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">平台服務</div>
       <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
       <a class="nav-link" href="role-gitlab.html"><span class="icon">🦊</span> Role: gitlab</a>
       <a class="nav-link" href="role-argocd.html"><span class="icon">🐙</span> Role: argocd</a>
-      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
-      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
-    </div>
-    <div class="nav-group">
-      <div class="nav-group-label">Cloudflare 手動設定</div>
-      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具</a>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">專案紀錄</div>
       <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
-      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">🗒️</span> Changelog</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB 歷史</a>
     </div>
   </nav>
 </aside>
@@ -69,8 +73,9 @@
 <div class="main">
   <header class="topbar">
     <div class="topbar-left">
-      <button class="menu-btn" aria-label="Toggle menu">☰</button>
-      <span class="topbar-crumb">Lab Docs / <strong>網路架構總覽</strong></span>
+      <button class="menu-btn" aria-label="切換選單">☰</button>
+      <span class="topbar-crumb">網路架構 /
+        <strong>網路架構總覽</strong></span>
     </div>
     <div class="topbar-right">
       <span class="topbar-badge">cloudnative.tw · AS 65000</span>
@@ -82,331 +87,263 @@
 
   <div class="content">
 
-    <h2><span class="eyebrow">網路架構</span>整個 k8s 網路是怎麼拼起來的</h2>
-    <p class="lede">這頁的目標是把「為什麼整個系統長這樣」一次講完整,不是逐一介紹元件用途。
-      看完這頁,你應該能自己回答:任何一個 IP 屬於哪個網段、為什麼那個網段存在、
-      一個封包從 A 到 B 實際上會經過哪些決策點。逐步的封包路徑實例在
-      <a href="packet-flows.html">封包路徑實例</a> 頁面。</p>
+    <h2><span class="eyebrow">網路架構</span>
+    網路架構總覽</h2>
 
-    <h3>四個 IP 網段,四種完全不同的權責</h3>
-    <p>這個系統裡總共有 4 個不重疊的 IP 網段,分別由不同的層級擁有、管理、決定內容。
-      搞混這四個網段是最容易迷路的地方——尤其是 <code>k8s-net</code> 跟
-      <code>pod-cidr</code> 常常被誤以為是同一件事,但它們的權責層完全不同。</p>
+<p class="lede">這頁用一張圖加幾張表，把整個網路的形狀講完：五段互不重疊的位址空間、兩張網卡各管什麼、Pod 封包靠 iBGP 學到的路由直接送達，以及外部流量現在從哪裡進來。看完後，你應該能判斷任何一個 IP 屬於哪個網段、為什麼它存在，以及封包到每個決策點會發生什麼事。逐跳的封包實例在<a href="packet-flows.html">封包路徑實例</a>。</p>
 
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>網段</th><th>CIDR</th><th class="mono">擁有者</th><th>用途</th><th>誰知道這個網段的存在</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>k8s-net</strong></td>
-            <td class="mono">10.10.0.0/24</td>
-            <td class="mono">Terraform / Neutron</td>
-            <td>所有節點(含 tor、bastion)的「資料平面」身分位址,iBGP peering 全部發生在這個網段上</td>
-            <td>OpenStack(這是一個真實 subnet);每個節點的 <code>ens3</code></td>
-          </tr>
-          <tr>
-            <td><strong>mgmt-net</strong></td>
-            <td class="mono">192.168.200.0/24</td>
-            <td class="mono">Terraform / Neutron</td>
-            <td>Ansible/SSH 操作、對外(apt/helm/image pull)網路存取,唯一有 SNAT 出口的網段</td>
-            <td>OpenStack;每個節點的 <code>ens4</code></td>
-          </tr>
-          <tr>
-            <td><strong>pod-cidr</strong></td>
-            <td class="mono">172.16.0.0/16</td>
-            <td class="mono">cilium-operator</td>
-            <td>整個叢集的 Pod IP 位址空間,依節點切成 /24(<code>ipam.mode=cluster-pool</code>
-              的 <code>clusterPoolIPv4MaskSize=24</code>),每個節點拿到自己那一份,記錄在
-              <code>CiliumNode</code> 的 <code>.spec.ipam.podCIDRs</code>(不是
-              <code>Node.spec.podCIDR</code>——後者要靠 kube-controller-manager
-              的 node-ipam-controller,這裡刻意不用,見
-              <a href="role-cilium.html">Role: cilium</a>)</td>
-            <td>Kubernetes CRD 物件裡的欄位;<strong>OpenStack/Neutron 完全不知道這個網段存在</strong>
-              ——這是純軟體層(kernel 路由表 + FRR)在管的位址空間</td>
-          </tr>
-          <tr>
-            <td><strong>service-cidr</strong></td>
-            <td class="mono">172.18.0.0/16</td>
-            <td class="mono">kube-apiserver</td>
-            <td>ClusterIP 的位址空間,<code>kubeadm init --service-cidr</code> 設定</td>
-            <td>只存在於 iptables/ipvs 規則裡,<strong>從來不會真的出現在任何一條實體/虛擬網卡上</strong>
-              ——它是純粹靠 DNAT 兌現的「虛擬」位址</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+<h3 id="ip-plan">網段與 IP 規劃</h3>
+<p>叢集用到 4 個彼此不重疊的位址空間，各由不同層級擁有。最容易混淆的是 <code>k8s-net</code> 和 <code>pod-cidr</code>：前者是 OpenStack 管的真實 subnet，後者是 Cilium 管的軟體位址空間，OpenStack 完全不知道它存在。</p>
 
-    <div class="callout callout-info">
-      <p><strong>為什麼四個網段互不重疊是硬性要求,不是巧合</strong>:
-      如果 pod-cidr 或 service-cidr 剛好落在 k8s-net/mgmt-net 的範圍內,kernel
-      的路由表查詢會產生歧義——一個目的地位址到底該解讀成「這是某個真實節點的位址,
-      直接送到那個介面」還是「這是一個 Pod/Service 的虛擬位址,要先查
-      iptables/BGP」,kernel 沒有辦法區分。這個專案選
-      <code>10.10.0.0/24</code>、<code>192.168.200.0/24</code>、<code>172.16.0.0/16</code>、
-      <code>172.18.0.0/16</code> 四個彼此不重疊的 RFC1918 區塊,純粹是刻意避開這個歧義,
-      不是隨便挑的數字。</p>
-    </div>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>網段</th><th>CIDR</th><th class="mono">擁有者</th><th>用途</th><th>誰知道它存在</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>k8s-net</strong></td>
+        <td class="mono">10.10.0.0/24</td>
+        <td class="mono">Terraform / Neutron</td>
+        <td>所有節點（含 tor、bastion）的資料平面位址，iBGP peering 全部發生在這個網段</td>
+        <td>OpenStack（真實 subnet）；每個節點的 <code>ens3</code></td>
+      </tr>
+      <tr>
+        <td><strong>mgmt-net</strong></td>
+        <td class="mono">192.168.200.0/24</td>
+        <td class="mono">Terraform / Neutron</td>
+        <td>Ansible／SSH 操作，以及 apt、helm、image pull 等對外存取；唯一有 SNAT 出口的網段</td>
+        <td>OpenStack；每個節點的 <code>ens4</code></td>
+      </tr>
+      <tr>
+        <td><strong>pod-cidr</strong></td>
+        <td class="mono">172.16.0.0/16</td>
+        <td class="mono">cilium-operator</td>
+        <td>整個叢集的 Pod IP 空間，依節點切成 /24（<code>ipam.mode=cluster-pool</code>、<code>clusterPoolIPv4MaskSize=24</code>）。每個節點的那一份記錄在 <code>CiliumNode</code> 的 <code>.spec.ipam.podCIDRs</code></td>
+        <td>Kubernetes CRD 欄位、kernel 路由表與 FRR；<strong>OpenStack 不知道這個網段</strong></td>
+      </tr>
+      <tr>
+        <td><strong>service-cidr</strong></td>
+        <td class="mono">172.18.0.0/16</td>
+        <td class="mono">kube-apiserver</td>
+        <td>ClusterIP 的位址空間，由 <code>kubeadm init --service-cidr</code> 設定</td>
+        <td>只存在於 Cilium 的 eBPF Service 表；<strong>不會出現在任何網卡上</strong>，純靠位址轉換兌現</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
-    <h3>為什麼要有兩個實體網段(k8s-net / mgmt-net),不是一個就好</h3>
-    <p>這是整個基礎設施最早、也最根本的一個決定(詳細背景見
-      <a href="infrastructure.html">Terraform / OpenStack 頁面</a>),這裡只講網路架構
-      的角度:<strong>「資料平面」跟「操作平面」的信任邊界跟流量特性完全不一樣,
-      混在同一個網段會互相拖累。</strong></p>
+<p>Pod 的 CIDR 記在 <code>CiliumNode</code>，不是 <code>Node.spec.podCIDR</code>。後者要靠 kube-controller-manager 的 node-ipam-controller 配發，這個叢集改由 cilium-operator 配發，原因見 <a href="role-cilium.html">Role: cilium</a>。</p>
 
-    <div class="card-grid">
-      <div class="card">
-        <div class="card-icon">🔒</div>
-        <h4>k8s-net 沒有預設路由(no_gateway=true)</h4>
-        <p>資料平面的節點彼此之間不需要、也不應該有對外上網的能力——它們互相之間的
-          可達性完全靠 iBGP fabric 決定,不靠 Router。這個網段上的任何一個節點,
-          如果 FRR 掛了,它跟其他節點(除了直接相鄰、同一個 subnet 的那些)的連線
-          也應該跟著斷,這是刻意的:讓 BGP fabric 的健康狀態直接反映在實際連線能力上。</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">🌍</div>
-        <h4>mgmt-net 有 SNAT(enable_snat=true)</h4>
-        <p>Ansible 需要 apt/curl/helm/container image pull 這些對外網路存取,
-          這些流量完全不需要、也不應該經過刻意設計成「沒有預設路由」的 k8s-net。
-          把這兩種流量分開,表示之後要對 k8s-net 做任何實驗性的網路調整(例如
-          fib_multipath_hash_policy 這種會影響整個路由行為的 kernel 參數),
-          都不會不小心把 SSH/ansible 這條管理路徑也弄斷。</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">🔑</div>
-        <h4>Port Security 只在 mgmt-net 保留</h4>
-        <p>k8s-net 上所有 fabric port 都是 <code>port_security_enabled = false</code>
-          ——Neutron OVS 的 conntrack-based 防火牆跟 BGP 動態路由、DSR
-          非對稱路由天生衝突(見 <a href="l4lb-history.html">DSR 歷史頁面</a> 的完整
-          除錯過程)。這個決定只影響 k8s-net,mgmt-net 上的 port 維持預設安全機制,
-          兩個網段的風險面被完全隔開。</p>
-      </div>
-    </div>
+<h4 id="node-ips">各節點的 IP</h4>
+<p>mgmt-net 位址沿用 k8s-net 位址的最後一碼，只為了方便對照，兩個網段之間沒有路由關係。</p>
 
-    <h3>每一種節點角色的完整路由表</h3>
-    <p>下面是「穩態」(所有節點都正常運作、BGP session 都 established)時,
-      每一種節點角色實際會看到的路由表。這是理解整個系統最直接的方式——不用猜
-      「封包會怎麼走」,直接看 kernel 真的怎麼決定。</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>節點</th><th>k8s-net（<code>ens3</code>）</th><th>mgmt-net（<code>ens4</code>）</th><th>備註</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">tor</td><td class="mono">10.10.0.10</td><td class="mono">192.168.200.10</td><td>route reflector、apiserver haproxy</td></tr>
+      <tr><td class="mono">bastion</td><td class="mono">10.10.0.11</td><td class="mono">192.168.200.11</td><td>Floating IP 綁在這張 mgmt 網卡</td></tr>
+      <tr><td class="mono">ms-0001 ~ ms-0003</td><td class="mono">10.10.0.20 ~ 22</td><td class="mono">192.168.200.20 ~ 22</td><td>control plane</td></tr>
+      <tr><td class="mono">l4-0001 ~ l4-0002</td><td class="mono">10.10.0.30 ~ 31</td><td class="mono">192.168.200.30 ~ 31</td><td>一般 worker，帶 <code>l4lb</code> 標籤</td></tr>
+      <tr><td class="mono">ap-0001 ~ ap-0003</td><td class="mono">10.10.0.40 ~ 42</td><td class="mono">192.168.200.40 ~ 42</td><td>worker</td></tr>
+    </tbody>
+  </table>
+</div>
 
-    <h4>tor(route reflector,10.10.0.10)</h4>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">tor · ip route show</span></div>
-      <pre><span class="out">10.10.0.0/24 dev ens3 proto kernel scope link src 10.10.0.10        </span><span class="dim"># 直連 k8s-net</span>
+<div class="callout callout-info">
+  <p><strong>四個網段不重疊是硬性要求</strong>：如果 pod-cidr 或 service-cidr 落在 k8s-net 或 mgmt-net 的範圍內，kernel 查路由時就無法分辨。它分不出目的位址是某個真實節點，還是 Pod 或 Service 的虛擬位址。這個專案選 <code>10.10.0.0/24</code>、<code>192.168.200.0/24</code>、<code>172.16.0.0/16</code>、<code>172.18.0.0/16</code> 四個 RFC1918 區塊，就是為了避開這個歧義。</p>
+  <p>bastion 上 Docker 自建 network 用的位址池 <code>10.99.0.0/16</code> 也要遵守同一條規則。Docker 預設會依序配發 172.17、172.18⋯⋯，曾經與 service-cidr 撞在一起，詳見 <a href="troubleshooting.html#bug-45">Bug #45</a>。</p>
+</div>
+
+<h3 id="two-networks">雙網卡模型</h3>
+<p>每個節點都有兩張網卡。<code>ens3</code> 接 k8s-net，是資料平面；<code>ens4</code> 接 mgmt-net，是操作平面。兩者的信任邊界與流量特性不同，混在同一個網段會互相拖累。這個決定的 Terraform 實作見 <a href="infrastructure.html#networks">Terraform / OpenStack</a>。</p>
+
+<div class="card-grid">
+  <div class="card">
+    <div class="card-icon">🔒</div>
+    <h4>k8s-net 沒有預設路由</h4>
+    <p>subnet 設 <code>no_gateway=true</code>，沒有 Neutron Router，DHCP 也不發預設路由。節點之間的可達性完全靠 iBGP 學到的具體路由，FRR 掛了，連線能力就跟著降級，BGP 的健康狀態直接反映在實際連線上。</p>
+  </div>
+  <div class="card">
+    <div class="card-icon">🌍</div>
+    <h4>mgmt-net 負責對外</h4>
+    <p>mgmt-net 接 Neutron Router，Router 連到外部網路並做 SNAT，是整個架構唯一的 SNAT 出口。預設路由只在這張網卡上，apt、helm、image pull 全部走這裡。對 k8s-net 做任何網路實驗，都不會切斷 SSH 與 Ansible 這條管理路徑。</p>
+  </div>
+  <div class="card">
+    <div class="card-icon">🔑</div>
+    <h4>Port Security 只在 mgmt-net 保留</h4>
+    <p>k8s-net 的 fabric port 全部關閉 port security，因為 Neutron 的 conntrack 防火牆與動態路由、非對稱路由天生衝突。mgmt-net 的 port 維持預設防護，兩個網段的風險面互相隔開。決策與證據見 <a href="infrastructure.html#port-security">fabric port 關閉 port security</a>。</p>
+  </div>
+</div>
+
+<p>幾個直接的後果：</p>
+<ul>
+  <li>kubelet 用 <code>--node-ip</code> 指定 k8s-net 位址。沒指定時它會挑預設路由所在的網卡，也就是 mgmt-net。</li>
+  <li>Ansible 連線用 mgmt-net 位址（<code>ansible_host</code>）。需要引用「這台在資料平面上的位址」時，才用 <code>fabric_ip</code>。</li>
+  <li>兩個網段的實體 MTU 都是 1442，因為 Neutron 本身是一層 overlay。bastion 上的 Docker 也要把 MTU 設成 1442，見 <a href="troubleshooting.html#bug-10">Bug #10</a>。</li>
+</ul>
+
+<h3 id="route-tables">各角色的路由表</h3>
+<p>下面是穩態時，也就是 BGP session 全部 established 時，每種角色實際看到的路由表。直接看 kernel 怎麼決定，比推測封包怎麼走更可靠。</p>
+
+<h4 id="route-tor">tor（route reflector，10.10.0.10）</h4>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">tor · ip route show</span></div>
+  <pre><span class="out">10.10.0.0/24 dev ens3 proto kernel scope link src 10.10.0.10        </span><span class="dim"># 直連 k8s-net</span>
 <span class="out">192.168.200.0/24 dev ens4 proto kernel scope link src 192.168.200.10</span><span class="dim"># 直連 mgmt-net</span>
 <span class="out">default via 192.168.200.1 dev ens4                                  </span><span class="dim"># 預設路由只在 mgmt-net</span>
-<span class="out">172.16.0.0/24 via 10.10.0.40 dev ens3   </span><span class="dim"># BGP 學到:ap-0001 的 PodCIDR</span>
-<span class="out">172.16.1.0/24 via 10.10.0.21 dev ens3   </span><span class="dim"># BGP 學到:ms-0002 的 PodCIDR</span>
-<span class="out">172.16.2.0/24 via 10.10.0.30 dev ens3   </span><span class="dim"># BGP 學到:l4-0001 的 PodCIDR</span>
-<span class="dim"># ...其餘 4 個節點的 /24,總共 7 條(每個 k8s 節點各一條)</span></pre>
-    </div>
-    <p>tor 身兼 route reflector,所以它自己的 BGP table 裡看到的 next-hop 是
-      <strong>原始發起節點的真實位址</strong>(不是被改寫過的)——next-hop-self
-      只影響 tor <em>反射給其他 client 時</em>宣告出去的 next-hop,tor 自己的本地
-      RIB 裡保留原始資訊。haproxy 監聽在 <code>10.10.0.10:6443</code>,把
-      apiserver 流量轉給 3 台 master,細節見
-      <a href="role-apiserver-lb.html">Role: apiserver-lb</a>。</p>
+<span class="out">172.16.0.0/24 via 10.10.0.40 dev ens3   </span><span class="dim"># BGP 學到：ap-0001 的 PodCIDR</span>
+<span class="out">172.16.1.0/24 via 10.10.0.21 dev ens3   </span><span class="dim"># BGP 學到：ms-0002 的 PodCIDR</span>
+<span class="out">172.16.2.0/24 via 10.10.0.30 dev ens3   </span><span class="dim"># BGP 學到：l4-0001 的 PodCIDR</span>
+<span class="dim"># ...其餘節點的 /24，每個 k8s 節點各一條</span></pre>
+</div>
+<p>tor 自己的路由表保留<strong>原始發起節點的真實位址</strong>當 next-hop。<code>next-hop-self</code> 只改 tor 反射給其他 client 的宣告，不改 tor 本地的 RIB。haproxy 監聽 <code>10.10.0.10:6443</code>，把 apiserver 流量轉給 3 台 master，見 <a href="role-apiserver-lb.html">Role: apiserver-lb</a>。</p>
 
-    <h4>bastion(操作入口,10.10.0.11 + 192.168.200.11 + floating ip)</h4>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">bastion · ip route show</span></div>
-      <pre><span class="out">10.10.0.0/24 dev ens3 proto kernel scope link src 10.10.0.11        </span><span class="dim"># 直連 k8s-net</span>
+<h4 id="route-bastion">bastion（10.10.0.11、192.168.200.11）</h4>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">bastion · ip route show</span></div>
+  <pre><span class="out">10.10.0.0/24 dev ens3 proto kernel scope link src 10.10.0.11        </span><span class="dim"># 直連 k8s-net</span>
 <span class="out">192.168.200.0/24 dev ens4 proto kernel scope link src 192.168.200.11</span><span class="dim"># 直連 mgmt-net</span>
-<span class="out">default via 192.168.200.1 dev ens4                                  </span><span class="dim"># 預設路由(SNAT 對外 + floating ip 對內)</span>
-<span class="dim"># 沒有任何 172.16.0.0/16 的路由!</span></pre>
-    </div>
-    <div class="callout callout-warn">
-      <p><strong>刻意的限制:bastion 完全不裝 FRR</strong>(見
-      <code>templates/bastion-init.sh.tftpl</code> vs <code>templates/frr-init.sh.tftpl</code>
-      的分流邏輯)。這表示 bastion 可以直接連到任何節點的<strong>節點位址</strong>
-      (因為 k8s-net 是同一個 flat subnet,直連不需要路由),但完全連不到任何
-      <strong>Pod IP</strong>——bastion 上跑 <code>curl 172.16.x.x</code>
-      會直接失敗(no route to host)。這不是 bug,是因為 bastion 的定位是
-      「SSH + kubectl 操作入口」,它需要的是「能連到每個節點」跟「能連到
-      apiserver(透過 k8s-api.internal 這個節點位址,不是 pod 位址)」,
-      從來不需要直接戳 pod IP。</p>
-    </div>
+<span class="out">default via 192.168.200.1 dev ens4                                  </span><span class="dim"># 預設路由：SNAT 對外，Floating IP 對內</span>
+<span class="out">172.16.0.0/24 via 10.10.0.10 dev ens3 proto bgp                     </span><span class="dim"># BGP 學到：next-hop 是 tor</span>
+<span class="dim"># ...每個 k8s 節點的 PodCIDR 各一條，next-hop 都是 tor</span></pre>
+</div>
+<p>bastion 以通用的 <code>peer</code> 角色加入 iBGP：它跑 FRR、與 tor 建 session、學到所有 PodCIDR，但不宣告任何 prefix。所以 bastion 連得到節點位址，也連得到 Pod IP。在 bastion 上執行 <code>curl 172.16.x.x</code> 會依 BGP 路由經 tor 送達。它不需要被別人路由到，只需要能出去，這是它與 control plane 節點唯一的差別。</p>
 
-    <h4>Master / LB / Worker(k8s_nodes,以 ms-0001 · 10.10.0.20 為例)</h4>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">ms-0001 · ip route show</span></div>
-      <pre><span class="out">10.10.0.0/24 dev ens3 proto kernel scope link src 10.10.0.20        </span><span class="dim"># 直連 k8s-net</span>
+<h4 id="route-node">Master／LB／Worker（以 ms-0001 為例）</h4>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">ms-0001 · ip route show</span></div>
+  <pre><span class="out">10.10.0.0/24 dev ens3 proto kernel scope link src 10.10.0.20        </span><span class="dim"># 直連 k8s-net</span>
 <span class="out">192.168.200.0/24 dev ens4 proto kernel scope link src 192.168.200.20</span><span class="dim"># 直連 mgmt-net</span>
-<span class="out">default via 192.168.200.1 dev ens4                                  </span><span class="dim"># 預設路由只在 mgmt-net(image pull 用這條)</span>
-<span class="out">172.18.0.0/16 dev ens3 scope link                                  </span><span class="dim"># service-cidr,netplan 加的靜態路由(下面詳述)</span>
-<span class="out">172.16.4.0/24 via 10.244.X.1 dev cilium_host proto kernel          </span><span class="dim"># 自己的 PodCIDR,Cilium 建的 connected route</span>
-<span class="out">172.16.0.0/24 via 10.10.0.40 dev ens3   </span><span class="dim"># BGP 學到:ap-0001 的 PodCIDR</span>
-<span class="out">172.16.1.0/24 via 10.10.0.21 dev ens3   </span><span class="dim"># BGP 學到:ms-0002 的 PodCIDR</span>
-<span class="dim"># ...其餘節點的 /24,每個 k8s_nodes 成員各一條(除了自己那條是 connected)</span></pre>
-    </div>
-    <p>這張路由表是整個 native routing 設計的核心證據:<strong>要送到任何一個
-      Pod IP 的封包,不管目的地是哪個節點,查完路由表就直接知道下一步要送到
-      哪個節點的 <code>ens3</code>,完全不用查詢任何 overlay 的 VTEP mapping、
-      不用封裝 VXLAN header</strong>——因為這條路由本身就是靠 iBGP 動態學來的。
-      這也是為什麼「172.18.0.0/16 dev ens3 scope link」這條路由需要存在的原因,
-      下一段詳細解釋。</p>
+<span class="out">default via 192.168.200.1 dev ens4                                  </span><span class="dim"># 預設路由只在 mgmt-net（image pull 走這條）</span>
+<span class="out">172.18.0.0/16 dev ens3 scope link                                  </span><span class="dim"># service-cidr，netplan 加的靜態路由（見下一節）</span>
+<span class="out">172.16.4.0/24 via 172.16.4.X dev cilium_host proto kernel          </span><span class="dim"># 自己的 PodCIDR，Cilium 建的路由</span>
+<span class="out">172.16.0.0/24 via 10.10.0.10 dev ens3 proto bgp                    </span><span class="dim"># BGP 學到：ap-0001 的 PodCIDR，next-hop 是 tor</span>
+<span class="out">172.16.1.0/24 via 10.10.0.10 dev ens3 proto bgp                    </span><span class="dim"># BGP 學到：ms-0002 的 PodCIDR，next-hop 是 tor</span>
+<span class="dim"># ...其餘節點的 /24，每個 k8s 節點各一條（自己那條是 cilium_host）</span></pre>
+</div>
+<p>這張表是 native routing 的核心證據。要送到任何 Pod IP，查完路由表就知道下一步是 tor 的 <code>ens3</code>，tor 再依自己的 RIB 轉給目標節點。整條路徑沒有 VTEP mapping，也沒有 VXLAN header，路由本身是靠 iBGP 動態學來的。所有跨節點的 Pod 流量都先到 tor，原因見 <a href="bgp-fabric.html#next-hop-self">next-hop-self</a>。</p>
 
-    <h3>service-cidr 那條看起來多餘的靜態路由,到底在解決什麼</h3>
-    <p>這是整個 native routing 落地過程中<strong>唯一一個純網路(不是 k8s 也不是 Cilium)
-      層級的 bug</strong>,值得在架構層級講清楚(逐行除錯過程見
-      <a href="role-kubelet.html">Role: kubelet</a> 頁)。</p>
-    <p>Kubernetes 的 ClusterIP(<code>172.18.0.0/16</code>)從來不是一個「真的路由得到」
-      的位址——任何送往 ClusterIP 的封包,一定會先被 Service 轉譯機制改寫成某個真實
-      backend(例如某台 master 的 <code>10.10.0.20:6443</code>),才會真正離開這台
-      主機。<strong>這個 bug 是在叢集還沒移除 kube-proxy 時發現的</strong>(當時的轉譯
-      機制是 kube-proxy 裝的 iptables DNAT 規則,現在已經是
-      <a href="role-cilium.html">Cilium 的 eBPF kube-proxy replacement</a>),但根因是
-      更底層的問題:<strong>Linux 決定「這個連線要用哪個網卡/哪個來源 IP 送出去」的
-      時間點,是在轉譯生效之前</strong>——kernel 針對<em>原始</em>目的地
-      (<code>172.18.x.x</code>)做一次路由查詢來決定來源位址,這時候不管是 iptables
-      DNAT 還是 eBPF 的 socket-level 轉譯都還沒套用。這條路由的修法對兩種機制都成立,
-      移除 kube-proxy 之後不需要回頭改。</p>
+<h3 id="service-cidr">service-cidr 的靜態路由</h3>
+<p>每個 k8s 節點都有一條 <code>172.18.0.0/16 dev ens3 scope link</code>，它看起來多餘，因為任何送往 ClusterIP 的封包，都會先被轉換成真實 backend 位址才離開主機。這條路由不轉送任何封包，它只影響一件事：<strong>kernel 為連線挑選來源位址</strong>。</p>
 
-    <div class="flow">
-      <div class="flow-step">
-        <div class="flow-box danger">沒有這條路由<br><small>172.18.x.x 沒有任何專屬路由</small></div>
-      </div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step">
-        <div class="flow-box">路由查詢 fallback 到<br>mgmt-net 的預設路由</div>
-      </div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step">
-        <div class="flow-box danger">來源位址選成<br><code>192.168.200.x</code></div>
-      </div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step">
-        <div class="flow-box">DNAT 把目的地改成<br>真正的 master fabric_ip</div>
-      </div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step">
-        <div class="flow-box danger">封包帶著錯的來源位址<br>離開,對方原路回覆<br>回不到正確的連線狀態</div>
-      </div>
-    </div>
-    <p class="flow-caption">tcpdump 實測抓到的現象:SYN 封包的來源位址是
-      <code>192.168.200.30</code>(mgmt_ip),不是預期的 <code>10.10.0.30</code>
-      (fabric_ip)——即使目的地已經正確 DNAT 成某個 master 的 fabric_ip。</p>
+<p>Linux 決定「用哪張網卡、哪個來源 IP」的時間點，在位址轉換生效之前。kernel 拿<em>原始</em>目的地（<code>172.18.x.x</code>）查一次路由來選來源位址，這時不管是 iptables DNAT 還是 eBPF 的 socket 層轉換，都還沒套用。</p>
 
-    <p>修法是在每個 k8s 節點上,用 netplan 加一條
-      <code>172.18.0.0/16 dev ens3 scope link</code> 的靜態路由——這條路由
-      <strong>不會真的被拿去轉送任何封包</strong>(封包一定會先被 DNAT),它唯一的作用
-      是讓「決定來源位址」那次路由查詢,對 <code>172.18.0.0/16</code> 這個目的地
-      能查到一個落在 k8s-net 上的結果,連帶讓 kernel 選中 <code>10.10.0.x</code>
-      當來源位址。細節與 ansible 實作見
-      <a href="role-kubelet.html">Role: kubelet</a>。</p>
+<div class="flow">
+  <div class="flow-step">
+    <div class="flow-box danger">沒有這條路由<br><small>172.18.x.x 沒有專屬路由</small></div>
+  </div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step">
+    <div class="flow-box">路由查詢 fallback 到<br>mgmt-net 的預設路由</div>
+  </div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step">
+    <div class="flow-box danger">來源位址選成<br><code>192.168.200.x</code></div>
+  </div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step">
+    <div class="flow-box">DNAT 把目的地改成<br>真正的 master fabric_ip</div>
+  </div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step">
+    <div class="flow-box danger">封包帶著錯的來源位址離開<br>對方原路回覆<br>回不到正確的連線狀態</div>
+  </div>
+</div>
+<p class="flow-caption">tcpdump 實測：SYN 的來源位址是 <code>192.168.200.30</code>（mgmt_ip），不是預期的 <code>10.10.0.30</code>（fabric_ip），即使目的地已經正確轉換成某台 master 的 fabric_ip。</p>
 
-    <h3>為什麼選 native routing,不是 overlay(VXLAN/Geneve)</h3>
-    <p>Cilium(以及幾乎所有主流 CNI)預設或常見的做法是用 VXLAN/Geneve
-      把 pod 封包包一層再送出去——這樣不管底層網路長什麼樣子、節點是不是同一個
-      L2/L3 網段都無所謂,CNI 自己處理「怎麼把封包從一個節點送到另一個節點」。
-      這個 lab<strong>刻意不用這條路</strong>,原因分三層:</p>
+<p>修法是用 netplan 在每個 k8s 節點加一條 <code>172.18.0.0/16</code> 走 k8s-net 網卡的 <code>scope: link</code> 靜態路由，檔案是 <code>/etc/netplan/90-service-cidr-route.yaml</code>。有了它，選來源位址的那次查詢會落在 k8s-net 上，kernel 因此選 <code>10.10.0.x</code>。這個修法對 kube-proxy 的 iptables 與 Cilium 的 eBPF 轉換都成立，所以移除 kube-proxy 後不需要回頭改。Ansible 實作見 <a href="role-kubelet.html">Role: kubelet</a>，除錯過程見 <a href="troubleshooting.html#bug-18">Bug #18</a>。</p>
 
-    <div class="card-grid">
-      <div class="card">
-        <div class="card-icon">🎯</div>
-        <h4>已經有一個能用的 BGP fabric,不用等於浪費</h4>
-        <p>整個 Phase 1(見 <a href="l4lb-history.html">歷史頁面</a>)存在的目的
-          就是證明「這個 OpenStack tenant 上可以自己組出一個真的能動的 iBGP
-          fabric」。如果裝 CNI 的時候選 overlay,這個 fabric 對「pod 怎麼互相
-          連到對方」這件事完全沒有貢獻,整個 Phase 1 的投資就只剩下歷史意義。
-          native routing 讓 Phase 1 建的東西變成 Phase 3 真正依賴的基礎設施。</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">📉</div>
-        <h4>k8s-net 本身已經是 OpenStack 的 overlay(MTU 1442)</h4>
-        <p>k8s-net 底層其實是 OpenStack Neutron 自己的 VXLAN/Geneve overlay
-          (這也是為什麼所有介面 MTU 被 cloud-init 設成 1442,不是標準的 1500
-          ——已經扣掉 OpenStack 自己那層 overlay 的封裝開銷)。如果 Cilium
-          再疊一層 VXLAN,就是「overlay 疊 overlay」,每個 pod 封包要被封裝兩次,
-          有效 MTU 會再往下掉一截,每個節點的 CPU 也要多做一輪封裝/解封裝。
-          native routing 只有 OpenStack 那一層(躲不掉),不會再疊第二層。</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">🧩</div>
-        <h4>不想在同一批節點上跑兩個獨立的 BGP 實作</h4>
-        <p>Cilium 自己也有 BGP Control Plane 可以做類似的事(用 GoBGP)。
-          但那樣等於每個節點上同時有 FRR(既有 fabric)跟 Cilium 內建的 BGP
-          speaker(pod CIDR)各自維護一份跟 tor 的 BGP session,兩套獨立的
-          狀態機、兩套設定、兩套除錯路徑。這個 lab 選擇只維護<strong>一個</strong>
-          BGP 實作(FRR),把 Cilium 動態決定的 PodCIDR 動態餵回同一個 FRR
-          instance——用 <code>bgpControlPlane.enabled: false</code> 明確關掉
-          Cilium 自己的 BGP,細節見 <a href="role-cilium.html">Role: cilium</a>。</p>
-      </div>
-    </div>
+<h3 id="native-routing">選擇 native routing</h3>
+<p>Cilium 預設用 VXLAN 或 Geneve 把 Pod 封包再包一層。這個叢集改用 native routing：Pod 封包帶著真實 Pod IP，直接走 k8s-net。</p>
 
-    <h3>Cilium / FRR / Service 轉譯三者怎麼分工</h3>
-    <p>native routing 能動,靠的是這幾個獨立系統各司其職、彼此透過 kernel 路由表
-      溝通,沒有任何一個系統直接呼叫另一個系統的 API。下表是<strong>移除
-      kube-proxy 之前</strong>的分工——Service 轉譯那一列現在已經是 Cilium 的
-      eBPF 實作,不是 kube-proxy,完整原因見下方。</p>
+<div class="adr">
+  <p><strong>決策</strong>：Cilium 使用 <code>routingMode: native</code>，Pod CIDR 由 FRR 以 iBGP 散佈。Cilium 自己的 BGP 關閉，設定是 <code>bgpControlPlane.enabled: false</code>。</p>
+  <p><strong>理由</strong>：fabric 已經存在，native routing 讓它真正承載 Pod 流量，而不只是展示用途。k8s-net 本身已是 Neutron 的 overlay（MTU 1442）。Cilium 再疊一層就是 overlay 疊 overlay，每個封包封裝兩次，有效 MTU 繼續下降，節點 CPU 也要多做一輪封裝。只維護一個 BGP 實作（FRR）也讓狀態機、設定與除錯路徑各只有一套。</p>
+  <p><strong>考慮過的替代方案</strong>：Cilium VXLAN／Geneve overlay — 不依賴底層網路，但與上述理由衝突。Cilium BGP Control Plane（GoBGP）— 每個節點會同時有 FRR 與 GoBGP 兩個 speaker 各自與 tor 維持 session。</p>
+  <p><strong>代價</strong>：Pod CIDR 必須能被整個 fabric 路由，所以 FRR 要把 Cilium 動態配發的 PodCIDR 注入 BGP（見 <a href="bgp-fabric.html#pod-cidr-announce">PodCIDR 如何進入 BGP</a>）。同時，Pod 到「其他節點真實 IP」的流量要靠 masquerade workaround，見下方已知限制。</p>
+</div>
 
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>系統</th><th>負責什麼</th><th>怎麼跟其他系統溝通</th></tr></thead>
-        <tbody>
-          <tr>
-            <td><strong>Cilium(agent + operator)</strong></td>
-            <td>eBPF 資料平面:pod 網卡設定(veth)、<code>cilium_host</code>
-              介面、本節點 PodCIDR 的 connected route、NetworkPolicy 執行</td>
-            <td>operator 自己配發、寫進 <code>CiliumNode</code> 的
-              <code>.spec.ipam.podCIDRs</code>(<code>ipam.mode=cluster-pool</code>,
-              不依賴 kube-controller-manager);在 kernel 路由表留下一筆
-              connected route,<strong>被動地</strong>等 FRR 去讀取、宣告
-              ——Cilium 完全不知道 FRR 的存在</td>
-          </tr>
-          <tr>
-            <td><strong>FRR(每個節點的 iBGP peer)</strong></td>
-            <td>把 Cilium 留下的 connected route 廣播給整個 fabric(透過 tor
-              反射),並且把從其他節點學到的 PodCIDR 路由裝進本地 kernel 路由表</td>
-            <td>用 <code>vtysh</code> 由 ansible 動態注入 <code>network</code>
-              陳述式(見 <a href="role-cilium.html">Role: cilium</a> 的
-              <code>bgp_announce</code>);把學到的路由寫回 kernel(zebra
-              負責),讓一般的核心轉送邏輯就能正確送達</td>
-          </tr>
-          <tr>
-            <td><strong>kube-proxy(iptables 模式)——已移除,見下方</strong></td>
-            <td>Service ClusterIP → 真實 backend 的 DNAT 規則,跟 Pod-to-Pod
-              路由完全無關</td>
-            <td>讀 Kubernetes API 的 Service/Endpoints 物件;產生的 iptables
-              規則跟 Cilium/FRR 完全獨立運作,只有在「目的地是 ClusterIP」的
-              封包才會經過它</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+<h3 id="division">Cilium、FRR、Service 轉換的分工</h3>
+<p>native routing 能動，靠的是三個獨立系統各司其職、只透過 kernel 路由表溝通，沒有任何一個直接呼叫另一個的 API。</p>
 
-    <div class="callout callout-tip">
-      <p><strong>這個分工的好處</strong>:三個系統各自都可以獨立除錯、獨立重啟,
-      任何一個出問題都有清楚的邊界。Pod-to-Pod 連不通,先看 FRR 有沒有學到對方
-      的 PodCIDR(<code>vtysh -c "show ip bgp"</code>);Service 連不通,
-      先看 iptables 的 <code>KUBE-SVC-*</code> 規則;Pod 起不來卡在
-      <code>ContainerCreating</code>,先看 <code>/etc/cni/net.d</code>
-      有沒有 Cilium 寫的 conf。三條除錯路徑互不干擾。</p>
-    </div>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>系統</th><th>負責什麼</th><th>怎麼跟其他系統溝通</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Cilium（agent + operator）</strong></td>
+        <td>eBPF 資料平面：Pod 網卡（veth）、<code>cilium_host</code>、本節點 PodCIDR 的路由、NetworkPolicy</td>
+        <td>operator 把 PodCIDR 寫進 <code>CiliumNode</code>；在 kernel 路由表留下一筆路由，<strong>被動地</strong>等 FRR 讀取。Cilium 不知道 FRR 存在</td>
+      </tr>
+      <tr>
+        <td><strong>FRR（每個節點的 iBGP peer）</strong></td>
+        <td>把本節點的 PodCIDR 宣告給 fabric，並把學到的其他節點 PodCIDR 裝進本地 kernel 路由表</td>
+        <td>Ansible 用 <code>vtysh</code> 注入 <code>network</code> 陳述式（見 <a href="role-cilium.html">Role: cilium</a> 的 <code>bgp_announce</code>）；zebra 把學到的路由寫回 kernel</td>
+      </tr>
+      <tr>
+        <td><strong>Cilium eBPF Service 轉換</strong></td>
+        <td>ClusterIP 到真實 backend 的轉換，取代 kube-proxy，與 Pod 之間的路由無關</td>
+        <td>讀 Service／EndpointSlice 物件；只有目的地是 ClusterIP 的連線會經過它，見 <a href="role-cilium.html#kube-proxy-replacement">kube-proxy 取代</a></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
-    <h3>kube-proxy 後來被換掉了:兩階段的決定</h3>
-    <p>Cilium 導入之初,<code>kubeProxyReplacement</code> 是<strong>明確設成
-      <code>false</code></strong>——保留 kube-proxy,那一階段的目標範圍刻意畫得
-      很窄:只解決「CNI + 跟既有 BGP fabric 整合的 native routing」,kube-proxy
-      替換被視為一個獨立的、需要另外評估的決定,留待之後有需要再單獨討論。</p>
-    <p>後來使用者明確要求「移除 kube proxy, 改用 cilium ebpf」,這個決定才真的
-      執行:<code>kubeProxyReplacement: true</code>,<code>kubeadm init</code>
-      加上 <code>--skip-phases=addon/kube-proxy</code> 從一開始就不部署它。
-      拿掉 kube-proxy 之後,Cilium 在 bootstrap 期需要一個<strong>不依賴
-      kube-proxy 就能連到</strong>的 apiserver 入口(<code>k8sServiceHost</code>
-      /<code>k8sServicePort</code>)——這正是當初評估時提到的那個「涉及拿掉
-      apiserver 的 in-cluster service access 這種特殊處理」的複雜度,實際
-      執行時也確實在這裡撞到一個 TLS SAN 不匹配的 bug,完整過程見
-      <a href="role-cilium.html">Role: cilium</a>。</p>
+<div class="callout callout-tip">
+  <p><strong>三條獨立的除錯路徑</strong>：Pod 之間不通，先看 FRR 有沒有學到對方的 PodCIDR（<code>vtysh -c "show ip bgp"</code>）。Service 不通，先看 Cilium 的 Service 表。Pod 卡在 <code>ContainerCreating</code>，先看 <code>/etc/cni/net.d</code> 有沒有 Cilium 寫的設定。三個系統可以各自除錯、各自重啟。</p>
+</div>
+
+<h3 id="ingress-path">對外入口的現況路徑</h3>
+<p>外部流量走 Cloudflare Tunnel，完全不經過 Floating IP、tor 或任何負載平衡節點。Floating IP 只綁在 bastion，只供 SSH 與維運。</p>
+
+<div class="flow">
+  <div class="flow-step"><div class="flow-box">瀏覽器<br><small>*.dough-ops.com</small></div></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step"><div class="flow-box accent">Cloudflare 邊緣<br><small>Access 驗證身份</small></div></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step"><div class="flow-box purple">cloudflared<br><small>叢集內 Pod，主動連出</small></div></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step"><div class="flow-box green">istio-ingressgateway<br><small>ClusterIP Service</small></div></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step"><div class="flow-box">後端 Pod<br><small>Cilium native routing</small></div></div>
+</div>
+
+<ul>
+  <li><code>cloudflared</code> 跑在 <code>cloudflare</code> namespace，主動撥出到 Cloudflare 邊緣，叢集不需要任何對外開放的入站埠。Tunnel 的 ingress 規則把 <code>*.dough-ops.com</code> 導向 Istio ingress gateway，見 <a href="role-cloudflare-tunnel.html">Role: cloudflare_tunnel</a>。</li>
+  <li><code>istio-ingressgateway</code> 的 Service 類型是 <code>ClusterIP</code>。這個 OpenStack tenant 沒有 LBaaS，<code>LoadBalancer</code> 類型只會停在 <code>&lt;pending&gt;</code>，而 tunnel 本來就不需要 NodePort 或 LoadBalancer。見 <a href="role-istio.html">Role: istio</a>。</li>
+  <li>內部工具共用同一個萬用字元 Gateway，由 Cloudflare Access 擋在前面，規則見 <a href="cloudflare-manual-setup.html#access-rules">Cloudflare 設定清單</a>。</li>
+  <li>bastion 上另有第二條獨立的 tunnel（<code>bastion-ssh</code>），由 bastion 本機的 <code>cloudflared</code> 提供瀏覽器 SSH，也代理 bastion 上的 Vault、Keycloak 與 GitLab。它不經過叢集。</li>
+</ul>
+
+<p>邊界之後的流量是真實路由：cloudflared Pod 到 gateway Pod 再到後端 Pod，全部走 Cilium native routing，沒有額外的 NAT。整個架構的 NAT 只有 mgmt-router 的 SNAT，以及 Floating IP 對 bastion 的 1:1 NAT。逐跳實例見<a href="packet-flows.html#flow-external">封包路徑實例的情境五</a>。</p>
+
+<h3 id="limits">已知限制</h3>
+<ul>
+  <li><strong>Pod 到其他節點真實 IP 會被 masquerade</strong>。來源是 Pod CIDR 的封包，在 OpenStack underlay 中除了送往 tor 以外都會被靜默丟棄，來源是節點自己 IP 的封包則不受影響。Cilium 因此設定 <code>enable-remote-node-masquerade</code>，把這類流量的來源改成節點 IP。它只影響 Pod 到節點 IP，目前實際會踩到的是 Pod 連 <code>kubernetes</code> Service，它的 backend 是 3 台 master 的 6443。細節見 <a href="role-cilium.html#remote-node-masquerade">Role: cilium</a> 與 <a href="troubleshooting.html#bug-47">Bug #47</a>。</li>
+  <li><strong>tor 是單點</strong>。單一 route reflector 同時兼任 apiserver 的 haproxy。所有跨節點 Pod 流量的 next-hop 都是 tor，tor 掛掉時，跨節點 Pod 通訊與 apiserver 入口會一起中斷。</li>
+  <li><strong>k8s-net 是共用 L2</strong>。節點之間「只能經過 tor」靠協定層強制，做法是 <code>next-hop-self all</code> 加關閉 ICMP redirect。實體拓樸並沒有隔離，細節見 <a href="bgp-fabric.html">FRR / iBGP Fabric</a>。</li>
+</ul>
+
+<h3 id="history">演進歷史</h3>
+<h4 id="history-kube-proxy">kube-proxy 的兩階段移除</h4>
+<p>Cilium 導入之初，<code>kubeProxyReplacement</code> 明確設成 <code>false</code>，保留 kube-proxy。那一階段的範圍只有 CNI 與 native routing 整合，kube-proxy 取代被視為需要另外評估的獨立決定。</p>
+<p>後來決定移除 kube-proxy 改用 Cilium eBPF。設定是 <code>kubeProxyReplacement: true</code>，並讓 <code>kubeadm init</code> 帶 <code>--skip-phases=addon/kube-proxy</code>，一開始就不部署它。移除後，Cilium 在 bootstrap 期需要一個不依賴 kube-proxy 的 apiserver 入口，也就是 <code>k8sServiceHost</code> 與 <code>k8sServicePort</code>。實作時在這裡撞到 TLS SAN 不匹配的問題，完整過程見 <a href="role-cilium.html">Role: cilium</a>。</p>
+
+<h4 id="history-ingress">對外入口的演進</h4>
+<p>最初的設計把 Floating IP 綁在 tor，用本機 DNAT 把流量導向內部 Service VIP，再由 L4LB 節點以 ECMP 加 DSR 分流到 Pod。這條路徑在 OpenStack 上驗證可行，但從未接上實際服務，後來改走 Cloudflare Tunnel，原設計保留為休眠狀態。驗證過程與保留原因見 <a href="l4lb-history.html">DSR／L4LB 歷史</a>。</p>
 
     <div class="page-nav">
-      <a class="prev" href="teardown.html"><span class="dir">上一頁</span><span class="ttl">← 全部拆除</span></a>
-      <a class="next" href="packet-flows.html"><span class="dir">下一頁</span><span class="ttl">封包路徑實例 →</span></a>
+      <a class="prev" href="glossary.html"><span class="dir">上一頁</span>
+        <span class="ttl">← 術語表</span></a>
+      <a class="next" href="packet-flows.html"><span class="dir">下一頁</span>
+        <span class="ttl">封包路徑實例 →</span></a>
     </div>
 
     <footer class="page-footer">
-      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
-      <span>最後更新:2026-08-06</span>
+      <span>文件站原始碼：<a href="https://github.com/DoughOps/terraform-k8s-docs" target="_blank" rel="noopener">DoughOps/terraform-k8s-docs</a></span>
+      <span>最後更新：2026-11-01（對應 commit e91424f）</span>
     </footer>
   </div>
 </div>

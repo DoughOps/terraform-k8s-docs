@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Role: kubeadm — k8s + BGP Lab 技術詳解</title>
+<title>Role: kubeadm — k8s + BGP Lab 技術文件</title>
 <link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
@@ -12,16 +12,17 @@
   <div class="sidebar-logo">
     <a class="sidebar-logo-link" href="index.html">
       <h1>🛰️ k8s + BGP Lab</h1>
-      <span>OpenStack Lab · 技術詳解 v15</span>
+      <span>OpenStack Lab 技術文件</span>
     </a>
   </div>
   <nav>
     <div class="nav-group">
-      <div class="nav-group-label">總覽</div>
+      <div class="nav-group-label">開始</div>
       <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
       <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
       <a class="nav-link" href="user-guide.html"><span class="icon">🧑‍💻</span> 叢集使用手冊</a>
       <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+      <a class="nav-link" href="glossary.html"><span class="icon">📖</span> 術語表</a>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">網路架構</div>
@@ -32,36 +33,39 @@
       <div class="nav-group-label">基礎設施</div>
       <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
       <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
-      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
     </div>
     <div class="nav-group">
-      <div class="nav-group-label">Ansible 自動化</div>
-      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <div class="nav-group-label">叢集元件</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> Ansible 框架設計</a>
       <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
       <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
       <a class="nav-link active" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
       <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
       <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
       <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試與 smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">對外入口與身份驗證</div>
       <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
       <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">📋</span> Cloudflare 設定清單</a>
       <a class="nav-link" href="role-vault.html"><span class="icon">🔒</span> Role: vault</a>
       <a class="nav-link" href="role-keycloak-dex.html"><span class="icon">🪪</span> Role: keycloak / dex</a>
       <a class="nav-link" href="identity-federation-flow.html"><span class="icon">🧩</span> 身份聯邦登入流程</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">平台服務</div>
       <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
       <a class="nav-link" href="role-gitlab.html"><span class="icon">🦊</span> Role: gitlab</a>
       <a class="nav-link" href="role-argocd.html"><span class="icon">🐙</span> Role: argocd</a>
-      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
-      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
-    </div>
-    <div class="nav-group">
-      <div class="nav-group-label">Cloudflare 手動設定</div>
-      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具</a>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">專案紀錄</div>
       <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
-      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">🗒️</span> Changelog</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB 歷史</a>
     </div>
   </nav>
 </aside>
@@ -69,8 +73,9 @@
 <div class="main">
   <header class="topbar">
     <div class="topbar-left">
-      <button class="menu-btn" aria-label="Toggle menu">☰</button>
-      <span class="topbar-crumb">Lab Docs / <strong>Role: kubeadm</strong></span>
+      <button class="menu-btn" aria-label="切換選單">☰</button>
+      <span class="topbar-crumb">叢集元件 /
+        <strong>Role: kubeadm</strong></span>
     </div>
     <div class="topbar-right">
       <span class="topbar-badge">cloudnative.tw · AS 65000</span>
@@ -82,217 +87,162 @@
 
   <div class="content">
 
-    <h2><span class="eyebrow">Ansible 自動化</span>Role: kubeadm_init / kubeadm_join</h2>
-    <p class="lede">這兩個 role 加上 <code>playbooks/k8s/kubeadm.yml</code>、
-      <code>playbooks/kubeadm-reset.yml</code>,負責把 7 台空機器變成一個
-      3-master HA 的 Kubernetes 控制平面 + 4 台成員節點。</p>
+    <h2><span class="eyebrow">叢集元件</span>
+    Role: kubeadm</h2>
 
-    <h3>kubeadm_init:只在第一台 master 上跑一次</h3>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/kubeadm_init/tasks/main.yml</span></div>
-      <pre><span class="out">kubeadm init \
+<p class="lede">這組 role 負責把空機器變成 3 台 master 的 HA 控制平面，加上 4 台 worker 節點。<code>kubeadm_init</code> 只在第一台 master 執行一次，<code>kubeadm_join</code> 讓其餘 6 個節點加入。它們在 <code>playbooks/k8s/kubeadm.yml</code> 裡接在 <a href="role-kubelet.html">Role: kubelet</a> 之後，依賴 <a href="role-crio.html">CRI-O</a> 與 <a href="role-apiserver-lb.html">apiserver-lb</a> 先完成。</p>
+<p>最後一個 play 匯入 <code>playbooks/bastion/kubeconfig.yml</code>，把 admin kubeconfig 放到 bastion。裝 CNI 之前，<code>kubectl get nodes</code> 會全部顯示 <code>NotReady</code>，屬於預期，CNI 由 <a href="role-cilium.html">Role: cilium</a> 在下一步安裝。</p>
+
+<h3 id="init">kubeadm_init</h3>
+<p>role 先檢查 <code>/etc/kubernetes/admin.conf</code> 是否存在，已存在就跳過 init，所以可以重複執行。實際指令如下：</p>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">第一台 master（ms-0001）上，roles/kubeadm_init</span></div>
+  <pre><span class="out">kubeadm init \
   --control-plane-endpoint k8s-api.internal:6443 \
   --apiserver-advertise-address 10.10.0.20 \
   --service-cidr 172.18.0.0/16 \
   --skip-phases=addon/kube-proxy \
   --upload-certs</span></pre>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>參數</th><th>為什麼</th></tr></thead>
-        <tbody>
-          <tr>
-            <td class="mono">--control-plane-endpoint</td>
-            <td>指到 <code>k8s-api.internal</code>,這個名稱由
-              <a href="role-apiserver-lb.html">apiserver_dns role</a>
-              解析到 tor 的 fabric_ip,tor 的 haproxy 再轉發給三台 master。
-              寫進 kubeconfig 跟叢集內部設定的入口<strong>永遠是這個固定
-              名稱</strong>,不會綁死在某一台 master 的 IP 上——任何一台
-              master 掛掉都不影響其他人怎麼連進來。</td>
-          </tr>
-          <tr>
-            <td class="mono">--apiserver-advertise-address</td>
-            <td>用<strong>這台</strong>的 fabric_ip(k8s-net),不是
-              mgmt-net——apiserver 對外(其他 master 之間、etcd、worker)
-              服務走的是資料平面,跟 ansible 自己連線管理用的 mgmt-net
-              是兩個網路,詳見 <a href="network-architecture.html">網路架構
-              總覽</a>。</td>
-          </tr>
-          <tr>
-            <td class="mono">--service-cidr</td>
-            <td>設定 kube-apiserver 的 <code>--service-cluster-ip-range</code>
-              (<code>group_vars/all/main.yml</code> 的 <code>service_cidr</code>)
-              ——這個值一旦 init 之後就<strong>固定死</strong>,改不了,見下方
-              CIDR 變更的完整故事。</td>
-          </tr>
-          <tr>
-            <td class="mono">(沒有) --pod-network-cidr</td>
-            <td>刻意沒帶——podSubnet 留給裝 CNI 的時候(見
-              <a href="role-cilium.html">Role: cilium</a>)才決定,不在
-              這裡一次到位。裝 CNI 前 <code>kubectl get nodes</code>
-              全部都會是 <code>NotReady</code>,是預期行為,不是這個 role
-              沒做完。</td>
-          </tr>
-          <tr>
-            <td class="mono">--skip-phases=addon/kube-proxy</td>
-            <td>使用者明確要求移除 kube-proxy、改用 Cilium 的 eBPF
-              kube-proxy replacement(見
-              <a href="role-cilium.html">Role: cilium</a>)。這個 flag
-              讓 kubeadm 從一開始就不部署 kube-proxy 的 DaemonSet,不是
-              裝完再手動刪除——避免刪除時序踩到 kube-proxy 已經寫過
-              iptables 規則、需要額外清理的問題。</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+</div>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>參數</th><th>值</th><th>為什麼</th></tr></thead>
+    <tbody>
+      <tr><td><code>--control-plane-endpoint</code></td><td><code>apiserver_hostname:apiserver_port</code>，即 <code>k8s-api.internal:6443</code></td><td>名稱由 <a href="role-apiserver-lb.html">apiserver_dns</a> 解析到 tor 的 <code>fabric_ip</code>，tor 上的 haproxy 再轉給三台 master。kubeconfig 與叢集內部設定記錄的入口永遠是這個名稱，不綁死某台 master 的 IP，任一台 master 掛掉都不影響其他人連線</td></tr>
+      <tr><td><code>--apiserver-advertise-address</code></td><td>本機的 <code>fabric_ip</code></td><td>apiserver 對 master、etcd、worker 的服務走資料平面 <code>k8s-net</code>，不走維運用的 <code>mgmt-net</code>，見<a href="network-architecture.html#two-networks">雙網卡模型</a></td></tr>
+      <tr><td><code>--service-cidr</code></td><td><code>service_cidr</code>，即 <code>172.18.0.0/16</code></td><td>設定 kube-apiserver 的 <code>--service-cluster-ip-range</code>，init 之後無法更改，見<a href="#reset">重建叢集</a></td></tr>
+      <tr><td><code>--pod-network-cidr</code></td><td>不帶</td><td>Pod CIDR 完全交給 Cilium 的 <code>ipam.mode=cluster-pool</code> 配發，不需要 kubeadm 設定 <code>Node.spec.podCIDR</code>，見 <a href="role-cilium.html">Role: cilium</a></td></tr>
+      <tr><td><code>--skip-phases=addon/kube-proxy</code></td><td>跳過 kube-proxy</td><td>Service 負載平衡全部交給 Cilium 的 eBPF 資料平面（見 <a href="role-cilium.html#kube-proxy-replacement">kube-proxy 取代</a>）。從 init 就不部署 kube-proxy 的 DaemonSet，避免事後刪除時還要清理已寫入的 iptables 規則</td></tr>
+      <tr><td><code>--upload-certs</code></td><td>啟用</td><td>把控制平面憑證加密上傳為 <code>kubeadm-certs</code> Secret，供其他 master join</td></tr>
+    </tbody>
+  </table>
+</div>
+<p>init 之後，role 把 <code>admin.conf</code> 複製到 <code>/home/ubuntu/.kube/config</code>（<code>0600</code>），讓 <code>ubuntu</code> 使用者可直接用 kubectl。接著產生給其他 master 使用的 certificate key，做法見下一節。</p>
 
-    <h3>kubeadm_join:其他 6 個節點怎麼加入</h3>
-    <p>其他 6 個節點(2 個 master、2 個 lb、2 個 worker)分成兩種 join
-      方式,但用同一套邏輯處理:</p>
-
-    <div class="flow">
-      <div class="flow-step"><div class="flow-box">確認自己有沒有<br>join 過<br><small>stat /etc/kubernetes/kubelet.conf</small></div></div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step"><div class="flow-box accent">delegate_to 第一台 master<br>要一次性的 join 指令<br><small>kubeadm token create --print-join-command</small></div></div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step"><div class="flow-box purple">是 master 的話<br>再加 --control-plane<br>+ --certificate-key</div></div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step"><div class="flow-box green">kubeadm join</div></div>
-    </div>
-
-    <div class="callout callout-info">
-      <p><strong>整個流程可重複執行,不只是「第一次跑會成功」</strong>:
-      <code>kubeadm token create</code> 跟
-      <code>kubeadm init phase upload-certs --upload-certs</code>
-      兩個指令都可以重複呼叫,不是一次性的——所以這裡選擇「每次都即時跟
-      第一台 master 要一次新的」,而不是在 <code>kubeadm_init</code>
-      那一步就把輸出手動複製貼上到別的地方存起來。這代表以後要加新節點,
-      重跑一次同一個 playbook 就夠了,不需要另外準備一套「加節點專用」
-      的流程。</p>
-    </div>
-
-    <h3>實測到的 race condition:certificate-key 不能各要各的</h3>
-    <p>第一版實作讓每個要加入 control-plane 的 master,自己各自呼叫
-      <code>kubeadm init phase upload-certs --upload-certs</code>
-      拿 certificate-key。結果 <code>ms-0002</code> 跟 <code>ms-0003</code>
-      同時 join 時,<code>ms-0002</code> 直接失敗:</p>
-
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">ms-0002 · kubeadm join 失敗</span></div>
-      <pre><span class="bad">error execution phase control-plane-prepare/download-certs: error downloading certs: error decoding secret data with provided key: cipher: message authentication failed</span></pre>
-    </div>
-
-    <div class="callout callout-danger">
-      <p><strong>根因</strong>:<code>--upload-certs</code> 每次被呼叫,
-      都會用一把<strong>新的</strong> key 重新加密同一份
-      <code>kubeadm-certs</code> Secret。<code>ms-0002</code> 跟
-      <code>ms-0003</code> 幾乎同時各自呼叫了一次——<code>ms-0002</code>
-      先拿到 key A,但在它真正用 key A 去解密憑證之前,
-      <code>ms-0003</code> 的呼叫已經把整份 Secret 用新的 key B
-      重新加密了。<code>ms-0002</code> 手上的 key A 這時候已經對不上
-      Secret 裡實際的加密內容,解密直接失敗。</p>
-    </div>
-
-    <p>修法是把 <code>upload-certs</code> 這個呼叫<strong>只在
-      <code>kubeadm_init</code> 執行一次</strong>(見上方
-      <code>kubeadm_init</code> 的最後一步),結果存進
-      <code>certificate_key_out</code> 這個 registered 變數,其他 master
-      join 時用 <code>hostvars[groups['masters'][0]]['certificate_key_out']</code>
-      直接讀,不再自己呼叫。Ansible 的 hostvars 在整個 playbook 執行期間
-      (跨 play)都能互相讀取,不需要額外的變數傳遞機制。</p>
-
-    <h3>另一個 <code>upload-certs</code> 的坑:單獨呼叫時自己猜錯 advertise address</h3>
-    <p>把這一步從「完整 <code>kubeadm init</code> 的一部分」拆成
-      <strong>單獨呼叫</strong> <code>kubeadm init phase upload-certs
-      --upload-certs</code>(因為這裡只想拿 certificate-key,不想重跑
-      整個 init)之後,實測撞到另一個完全不同的問題:</p>
-
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">x509 SAN 不匹配</span></div>
-      <pre><span class="bad">certificate is valid for 172.18.0.1, 10.10.0.20, not 192.168.200.20</span></pre>
-    </div>
-
-    <div class="callout callout-danger">
-      <p><strong>根因</strong>:<code>kubeadm init phase upload-certs</code>
-      單獨執行時,<strong>沒有</strong>沿用同一次 <code>kubeadm init</code>
-      的上下文——它會從零重建一份自己的預設
-      <code>InitConfiguration</code>,而這份預設設定裡的
-      <code>localAPIEndpoint.advertiseAddress</code> 是靠「找預設路由
-      所在的介面」這種自動偵測邏輯決定的(<code>-v=5</code> 開 verbose
-      看得到 <code>Default route transits interface "ens4"</code>)。
-      這台機器的 k8s-net(<code>no_gateway=true</code>,沒有預設路由)
-      不會被選中,自動偵測落到<strong>有</strong>預設路由的 mgmt-net
-      ——選出跟原本 init 時完全不同的位址。</p>
-    </div>
-
-    <p>第一次嘗試用 <code>--apiserver-advertise-address</code> 這個 flag
-      修正,結果發現<strong><code>kubeadm init phase upload-certs</code>
-      根本沒有這個 flag</strong>(用 <code>--help</code> 確認過,不是猜
-      的)——這個 flag 只存在於完整的 <code>kubeadm init</code>,phase
-      層級的子指令沒有對應的參數。最終修法是給這個獨立呼叫帶一份最小的
-      <code>--config</code>:</p>
-
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">/tmp/upload-certs-config.yaml(渲染後)</span></div>
-      <pre><span class="out">apiVersion: kubeadm.k8s.io/v1beta4
+<h4 id="certificate-key">certificate key 只產生一次</h4>
+<p>role 在第一台 master 上執行一次 <code>kubeadm init phase upload-certs --config /tmp/upload-certs-config.yaml --upload-certs</code>，輸出存進 <code>certificate_key_out</code>。其他 master 用 <code>hostvars[groups['masters'][0]]['certificate_key_out']</code> 讀取，不再各自呼叫。</p>
+<p>這個設計來自兩個實測 bug，見<a href="#bugs">實測踩到的 bug</a>。<code>--config</code> 檔只含最小的 <code>InitConfiguration</code>：</p>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">/tmp/upload-certs-config.yaml（渲染後）</span></div>
+  <pre><span class="out">apiVersion: kubeadm.k8s.io/v1beta4
 kind: InitConfiguration
 localAPIEndpoint:
   advertiseAddress: 10.10.0.20
   bindPort: 6443</span></pre>
-    </div>
-    <p>對應的呼叫變成 <code>kubeadm init phase upload-certs --config
-      /tmp/upload-certs-config.yaml --upload-certs</code>——用一份明確
-      的 <code>InitConfiguration</code> 蓋掉自動偵測邏輯,強制它用正確的
-      fabric_ip。這個修法在寫進 role 之前,先用 ansible ad-hoc 手動跑過
-      一次確認有效,才更新進正式的 <code>roles/kubeadm_init</code>。</p>
+</div>
 
-    <h3>join 指令的 argv 陷阱</h3>
-    <p>組出實際要執行的 join 指令時,如果是 master 節點,要在
-      <code>kubeadm token create --print-join-command</code> 的輸出後面
-      再接上 <code>--control-plane --certificate-key ... --apiserver-advertise-address ...</code>
-      三個額外參數。這裡用 <code>set_fact</code> 先組好
-      <code>extra_join_args</code> 字串,再用
-      <code>"{{ join_cmd.stdout }} {{ extra_join_args | default('') }}"</code>
-      接起來——worker/lb 節點沒有觸發那個 <code>set_fact</code>(它的
-      <code>when</code> 限定只有 master 才跑),<code>extra_join_args</code>
-      對它們來說是 undefined,靠 <code>| default('')</code> 補一個空字串,
-      不會讓整條指令因為變數不存在而報錯。</p>
+<h3 id="join">kubeadm_join</h3>
+<p>其餘 6 個節點分兩種：2 台 master 加 <code>--control-plane</code>，2 台 l4 和 2 台 ap 做一般 join。兩者共用同一套流程：</p>
+<div class="flow">
+  <div class="flow-step"><div class="flow-box">確認是否 join 過<br><small>stat /etc/kubernetes/kubelet.conf</small></div></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step"><div class="flow-box accent">跟第一台 master 要 join 指令<br><small>delegate_to，kubeadm token create --print-join-command</small></div></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step"><div class="flow-box purple">master 再加三個參數<br><small>--control-plane、--certificate-key、--apiserver-advertise-address</small></div></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step"><div class="flow-box green">kubeadm join</div></div>
+</div>
+<p>token 和 certificate key 都即時向第一台 master 要，不在 init 時手動複製存放。<code>kubeadm token create</code> 可以重複呼叫，所以整個流程可以重跑，之後加新節點只要再跑一次同一個 playbook。已有 <code>kubelet.conf</code> 的節點會跳過。</p>
+<p>master 的額外參數由 <code>set_fact</code> 組成 <code>extra_join_args</code>，最後以 <code>"{{ join_cmd.stdout }} {{ extra_join_args | default('') }}"</code> 接起來。worker 和 l4 不會觸發那個 <code>set_fact</code>，變數是 undefined，靠 <code>| default('')</code> 補空字串，指令才不會因為變數不存在而報錯。</p>
 
-    <h3>CIDR 變更:為什麼不能只改變數重新 apply</h3>
-    <p>Pod CIDR 跟 Service CIDR 都屬於「叢集初始化時就固定死」的參數:
-      Service CIDR 直接寫進 kube-apiserver 的
-      <code>--service-cluster-ip-range</code>,而每個 Node 物件的
-      <code>.spec.podCIDR</code> 一旦被 kube-controller-manager 配發過,
-      就<strong>不可變</strong>。這代表要換成不同的 CIDR(這個專案曾經從
-      <code>10.244.0.0/16</code>/<code>10.96.0.0/12</code> 改成
-      <code>172.16.0.0/16</code>/<code>172.18.0.0/16</code>),沒有「改個
-      ansible 變數重新 apply」這條路,只能整個叢集重建。</p>
+<h3 id="reset">重建叢集</h3>
+<p>有些參數在叢集初始化時就固定，不能只改變數再 apply。Service CIDR 直接寫進 kube-apiserver 的 <code>--service-cluster-ip-range</code>，Kubernetes minor 版本也屬於這一類。Pod CIDR 由 Cilium 配發並對應到 FRR 的 BGP 宣告，同樣要整個叢集重建才能換。專案曾把 CIDR 從 <code>10.244.0.0/16</code>、<code>10.96.0.0/12</code> 改成 <code>172.16.0.0/16</code>、<code>172.18.0.0/16</code>，走的就是這條路。</p>
+<div class="callout callout-danger">
+  <p><code>playbooks/kubeadm-reset.yml</code> 會清空整個叢集狀態。它刻意不在 <code>k8s.yml</code> 的匯入鏈裡，避免一次「部署全部」的操作誤清掉運作中的叢集。只在確實需要改初始化參數時才執行。</p>
+</div>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">repo 根目錄，重建順序</span></div>
+  <pre><span class="prompt">$</span> <span class="cmd">scripts/ansible.sh ansible-playbook playbooks/kubeadm-reset.yml</span>
+<span class="prompt">$</span> <span class="cmd">scripts/ansible.sh ansible-playbook playbooks/k8s/kubeadm.yml</span>
+<span class="prompt">$</span> <span class="cmd">scripts/ansible.sh ansible-playbook playbooks/k8s/cilium.yml</span>
+<span class="prompt">$</span> <span class="cmd">scripts/ansible.sh ansible-playbook playbooks/k8s/smoke-test.yml</span></pre>
+</div>
+<p><strong>預期結果</strong>：新參數生效，smoke-test 全部通過。crio 和 apiserver-lb 不需要重做。</p>
 
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">playbooks/kubeadm-reset.yml</span></div>
-      <pre><span class="out">1. helm uninstall cilium(bastion)
-2. kubeadm reset -f(所有 k8s_nodes)
-3. 清掉 /etc/cni/net.d 的內容(只清內容,見下方)
-4. 刪掉 cilium_host / cilium_net / cilium_vxlan 介面殘留
-5. 清掉這個節點在 FRR 裡宣告的舊 PodCIDR(network 陳述式 + Null0 後盾路由)</span></pre>
-    </div>
+<h4 id="reset-steps">kubeadm-reset.yml 做了什麼</h4>
+<ol>
+  <li>在 bastion 執行 <code>helm uninstall cilium</code>。</li>
+  <li>在所有 <code>k8s_nodes</code> 執行 <code>kubeadm reset -f</code>。</li>
+  <li>清掉 <code>/etc/cni/net.d/</code> 的內容。只清內容，不刪目錄本身。</li>
+  <li>重啟 <code>crio</code>，讓它重新掃描 CNI 目錄。</li>
+  <li>刪除 <code>cilium_host</code>、<code>cilium_net</code>、<code>cilium_vxlan</code> 這幾個介面的殘留。</li>
+  <li>清掉該節點在 FRR 裡宣告的舊 PodCIDR，包含 <code>network</code> 陳述式和 <code>Null0</code> 後盾路由（見 <a href="bgp-fabric.html">FRR / iBGP Fabric</a>）。</li>
+</ol>
+<p>第 6 步先讀 FRR 目前實際的 <code>network</code> 陳述式再移除，不拿 <code>group_vars</code> 的新值反推，因為這個 playbook 本來就是在準備換成新 CIDR 時執行，新舊值不同。目錄不能刪掉重建的原因見 <a href="#bug-20">Bug #20</a>。<code>playbooks/decommission.yml</code> 會匯入這個 playbook，用於「清掉叢集狀態但保留 VM」的終態。</p>
 
-    <p>跑完 <code>kubeadm-reset.yml</code>,重新走一次
-      <code>k8s/kubeadm.yml</code> → <code>k8s/cilium.yml</code>,整個叢集就會用
-      新的 CIDR 重建。這個 playbook 也在過程中揪出一個 CRI-O 相關的 bug
-      ——完整經過見 <a href="troubleshooting.html">Bug 事後檢討</a>:
-      <strong>不能把 <code>/etc/cni/net.d</code> 整個目錄刪掉重建</strong>,
-      只能清內容、保留目錄本身,不然 CRI-O 對這個目錄的 inode 監看會失效,
-      Cilium 重新裝好之後寫的新設定檔永遠不會被發現。</p>
+<h3 id="limits">已知限制</h3>
+<ul>
+</ul>
+
+<h3 id="bugs">實測踩到的 bug</h3>
+<section class="bug" id="bug-16">
+  <h4>#16 · 第二台 master join 失敗，cipher: message authentication failed</h4>
+  <ul>
+    <li><strong>症狀</strong>：<code>ms-0002</code> 與 <code>ms-0003</code> 同時 join 時，<code>ms-0002</code> 失敗：
+      <div class="term">
+        <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">ms-0002 · kubeadm join</span></div>
+        <pre><span class="out">error execution phase control-plane-prepare/download-certs: error downloading certs: error decoding secret data with provided key: cipher: message authentication failed</span></pre>
+      </div>
+    </li>
+    <li><strong>根因</strong>：第一版讓每台要加入的 master 各自呼叫 <code>kubeadm init phase upload-certs --upload-certs</code>。這個指令每次都用新 key 重新加密同一份 <code>kubeadm-certs</code> Secret。<code>ms-0002</code> 拿到 key A，但還沒用它解密時，<code>ms-0003</code> 的呼叫已把整份 Secret 改用 key B 加密。key A 對不上，解密失敗。</li>
+    <li><strong>修法</strong>：<code>upload-certs</code> 只在 <code>kubeadm_init</code> 呼叫一次，結果存進 <code>certificate_key_out</code>，其他 master 用 <code>hostvars</code> 直接讀取。<code>hostvars</code> 在整個 playbook 執行期間可跨 play 互相讀取，不需要額外傳遞機制。</li>
+    <li><strong>怎麼確認修好</strong>：兩台 master 同時 join 都成功。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-16">Bug 事後檢討 #16</a>、<a href="#bug-23">Bug #23</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-23">
+  <h4>#23 · 單獨呼叫 upload-certs 時 x509 SAN 不匹配</h4>
+  <ul>
+    <li><strong>症狀</strong>：把 <code>upload-certs</code> 拆成單獨呼叫後，出現憑證錯誤：
+      <div class="term">
+        <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">x509 SAN 不匹配</span></div>
+        <pre><span class="out">certificate is valid for 172.18.0.1, 10.10.0.20, not 192.168.200.20</span></pre>
+      </div>
+    </li>
+    <li><strong>根因</strong>：單獨執行的 phase 指令沒有沿用完整 <code>kubeadm init</code> 的上下文，會從零建立一份預設的 <code>InitConfiguration</code>。其中 <code>localAPIEndpoint.advertiseAddress</code> 靠「找預設路由所在介面」自動偵測。<code>k8s-net</code> 沒有預設路由，偵測落到 <code>mgmt-net</code>，選出和 init 時不同的位址。用 <code>-v=5</code> 可看到 <code>Default route transits interface "ens4"</code>。</li>
+    <li><strong>修法</strong>：第一次嘗試加 <code>--apiserver-advertise-address</code>，但用 <code>--help</code> 確認這個 phase 子指令沒有該 flag，這個 flag 只存在於完整的 <code>kubeadm init</code>。最終改為帶最小的 <code>--config</code>，明確指定 <code>advertiseAddress</code>，見<a href="#certificate-key">上方設定檔</a>。寫進 role 之前，先用 ansible ad-hoc 手動執行確認有效。</li>
+    <li><strong>怎麼確認修好</strong>：<code>upload-certs</code> 不再出現 SAN 錯誤，其他 master 可以成功 join。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-23">Bug 事後檢討 #23</a>、<a href="#bug-16">Bug #16</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-20">
+  <h4>#20 · 改 CIDR 重建後 pod 卡在 ContainerCreating，no CNI configuration file</h4>
+  <ul>
+    <li><strong>症狀</strong>：改 CIDR 重建叢集後，pod 卡在 <code>ContainerCreating</code>，錯誤是 <code>no CNI configuration file</code>，但檔案明明存在。</li>
+    <li><strong>根因</strong>：reset 時把 <code>/etc/cni/net.d</code> 整個目錄刪掉，由 Cilium 重新建立。CRI-O 對這個目錄的監看綁在 inode 上，新目錄是新 inode，CRI-O 看不到，新寫入的 CNI 設定檔永遠不會被讀到。</li>
+    <li><strong>修法</strong>：只清目錄內容，保留目錄本身。同時在清理後加一步重啟 <code>crio</code>，重新掃描目錄。兩個保險都保留，因為實測唯一能讓已失效的監看恢復的方法就是重啟 crio。</li>
+    <li><strong>怎麼確認修好</strong>：重建後 pod 能正常建立 sandbox，不再出現 <code>no CNI configuration file</code>。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-20">Bug 事後檢討 #20</a>。</li>
+  </ul>
+</section>
+
+<h3 id="verify">驗證方式</h3>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">在 bastion 上</span></div>
+  <pre><span class="prompt">$</span> <span class="cmd">kubectl get nodes</span></pre>
+</div>
+<p><strong>預期結果</strong>：8 個節點全部出現，3 台 <code>control-plane</code>。裝 CNI 之前狀態都是 <code>NotReady</code>，Cilium 安裝後轉為 <code>Ready</code>。tor 上的 haproxy backend 在 apiserver 啟動後自動變成 <code>UP</code>。完整的叢集驗證見<a href="testing.html">測試與 smoke-test</a>。</p>
+
+<h3 id="history">演進歷史</h3>
+<ul class="cl-list">
+  <li><span class="d">2026-07-26</span> <span class="k">feat</span> <span>用 kubeadm 在 cgroup v2 上建立 HA 叢集（<a href="troubleshooting.html#bug-16">Bug #16</a>）</span></li>
+  <li><span class="d">2026-07-27</span> <span class="k">feat</span> <span>Pod CIDR 改 <code>172.16.0.0/16</code>、Service CIDR 改 <code>172.18.0.0/16</code>，以 <code>kubeadm-reset.yml</code> 重建叢集（<a href="troubleshooting.html#bug-20">Bug #20</a>）</span></li>
+  <li><span class="d">2026-07-27</span> <span class="k">feat</span> <span>init 加入 <code>--skip-phases=addon/kube-proxy</code>，Kubernetes 升到 1.34（<a href="troubleshooting.html#bug-23">Bug #23</a>）</span></li>
+  <li><span class="d">2026-08-13</span> <span class="k">feat</span> <span>新增 <code>decommission.yml</code>，重用 <code>kubeadm-reset.yml</code> 清理叢集狀態（<a href="changelog.html">Changelog</a>）</span></li>
+</ul>
 
     <div class="page-nav">
-      <a class="prev" href="role-kubelet.html"><span class="dir">上一頁</span><span class="ttl">← Role: kubelet</span></a>
-      <a class="next" href="role-apiserver-lb.html"><span class="dir">下一頁</span><span class="ttl">Role: apiserver-lb →</span></a>
+      <a class="prev" href="role-kubelet.html"><span class="dir">上一頁</span>
+        <span class="ttl">← Role: kubelet</span></a>
+      <a class="next" href="role-apiserver-lb.html"><span class="dir">下一頁</span>
+        <span class="ttl">Role: apiserver-lb →</span></a>
     </div>
 
     <footer class="page-footer">
-      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
-      <span>最後更新:2026-07-27</span>
+      <span>文件站原始碼：<a href="https://github.com/DoughOps/terraform-k8s-docs" target="_blank" rel="noopener">DoughOps/terraform-k8s-docs</a></span>
+      <span>最後更新：2026-11-01（對應 commit e91424f）</span>
     </footer>
   </div>
 </div>

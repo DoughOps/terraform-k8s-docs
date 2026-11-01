@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Bug 事後檢討 — k8s + BGP Lab 技術詳解</title>
+<title>Bug 事後檢討 — k8s + BGP Lab 技術文件</title>
 <link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
@@ -12,16 +12,17 @@
   <div class="sidebar-logo">
     <a class="sidebar-logo-link" href="index.html">
       <h1>🛰️ k8s + BGP Lab</h1>
-      <span>OpenStack Lab · 技術詳解 v15</span>
+      <span>OpenStack Lab 技術文件</span>
     </a>
   </div>
   <nav>
     <div class="nav-group">
-      <div class="nav-group-label">總覽</div>
+      <div class="nav-group-label">開始</div>
       <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
       <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
       <a class="nav-link" href="user-guide.html"><span class="icon">🧑‍💻</span> 叢集使用手冊</a>
       <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+      <a class="nav-link" href="glossary.html"><span class="icon">📖</span> 術語表</a>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">網路架構</div>
@@ -32,36 +33,39 @@
       <div class="nav-group-label">基礎設施</div>
       <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
       <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
-      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
     </div>
     <div class="nav-group">
-      <div class="nav-group-label">Ansible 自動化</div>
-      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <div class="nav-group-label">叢集元件</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> Ansible 框架設計</a>
       <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
       <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
       <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
       <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
       <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
       <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試與 smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">對外入口與身份驗證</div>
       <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
       <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">📋</span> Cloudflare 設定清單</a>
       <a class="nav-link" href="role-vault.html"><span class="icon">🔒</span> Role: vault</a>
       <a class="nav-link" href="role-keycloak-dex.html"><span class="icon">🪪</span> Role: keycloak / dex</a>
       <a class="nav-link" href="identity-federation-flow.html"><span class="icon">🧩</span> 身份聯邦登入流程</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">平台服務</div>
       <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
       <a class="nav-link" href="role-gitlab.html"><span class="icon">🦊</span> Role: gitlab</a>
       <a class="nav-link" href="role-argocd.html"><span class="icon">🐙</span> Role: argocd</a>
-      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
-      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
-    </div>
-    <div class="nav-group">
-      <div class="nav-group-label">Cloudflare 手動設定</div>
-      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具</a>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">專案紀錄</div>
       <a class="nav-link active" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
-      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">🗒️</span> Changelog</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB 歷史</a>
     </div>
   </nav>
 </aside>
@@ -69,8 +73,9 @@
 <div class="main">
   <header class="topbar">
     <div class="topbar-left">
-      <button class="menu-btn" aria-label="Toggle menu">☰</button>
-      <span class="topbar-crumb">Lab Docs / <strong>Bug 事後檢討</strong></span>
+      <button class="menu-btn" aria-label="切換選單">☰</button>
+      <span class="topbar-crumb">專案紀錄 /
+        <strong>Bug 事後檢討</strong></span>
     </div>
     <div class="topbar-right">
       <span class="topbar-badge">cloudnative.tw · AS 65000</span>
@@ -82,265 +87,1063 @@
 
   <div class="content">
 
-    <h2><span class="eyebrow">專案紀錄</span>Bug 事後檢討目錄</h2>
-    <p class="lede">整個專案實測到的所有 bug,按時間排序。這頁是給
-      「這個錯誤訊息我好像在哪見過」的情境用的快速查找目錄——每條都是
-      症狀 → 根因 → 修法的極簡版,完整脈絡在對應頁面連結裡。</p>
+    <h2><span class="eyebrow">專案紀錄</span>
+    Bug 事後檢討</h2>
 
-    <div class="stat-row">
-      <div class="stat"><div class="n">47</div><div class="l">記錄在案的 bug</div></div>
-      <div class="stat"><div class="n">8</div><div class="l">Phase 1(DSR/L4LB)</div></div>
-      <div class="stat"><div class="n">14</div><div class="l">Phase 3(k8s/Ansible)</div></div>
-      <div class="stat"><div class="n">5</div><div class="l">Phase 4(kube-proxy/Istio/Cloudflare)</div></div>
-      <div class="stat"><div class="n">3</div><div class="l">Phase 5(cert-manager/Access)</div></div>
-      <div class="stat"><div class="n">6</div><div class="l">Phase 6(bastion 持久化儲存)</div></div>
-    </div>
+<p class="lede">這頁登錄整個專案遇到的 74 個 bug，用來回答「這個錯誤訊息我好像在哪見過」。每筆都有症狀、根因、修法、怎麼確認修好和相關 bug，Role 頁有完整故事的會連過去。</p>
 
-    <h3>Phase 1 · iBGP + DSR L4LB 驗證階段</h3>
-    <p>完整脈絡見 <a href="l4lb-history.html">DSR / L4LB(歷史階段)</a>。</p>
+<h3 id="how-to-use">怎麼用這頁</h3>
+<p>在瀏覽器按 Ctrl+F（macOS 是 Cmd+F），直接搜尋你看到的錯誤訊息，例如 <code>Connection reset by peer</code>。每筆的「症狀」都保留了原始錯誤訊息。</p>
+<ol class="steps">
+  <li><div>用錯誤訊息搜尋。找不到就搜元件名稱，例如 <code>haproxy</code>、<code>Cilium</code>、<code>Keycloak</code>。</div></li>
+  <li><div>也可以先看下方目錄表，一行一個 bug，用編號跳到內文。</div></li>
+  <li><div>找到後依序讀「根因」「修法」「怎麼確認修好」。修完用最後一欄的指令或現象確認，不要只看錯誤訊息消失。</div></li>
+  <li><div>看「相關」欄。同類型的 bug 常有共同的根因，頁尾的<a href="#patterns">模式分析</a>整理了這些共同點。</div></li>
+</ol>
+<p>Phase 的定義見<a href="index.html#phases">總覽</a>。編號依登錄順序排列，不代表發生順序。每個 bug 依發生日期歸到對應的 Phase。</p>
 
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>#</th><th>症狀</th><th>根因</th><th>修法</th></tr></thead>
-        <tbody>
-          <tr><td class="mono">1</td><td>iBGP session 都 Established,但 leaf 節點互相收不到對方的路由</td><td>標準 iBGP split-horizon,RR 沒設 <code>route-reflector-client</code></td><td>tor 對每個 client neighbor 加 <code>route-reflector-client</code></td></tr>
-          <tr><td class="mono">2</td><td>路由學到了但 next-hop 不對,節點抄 L2 近路</td><td><code>next-hop-self</code> 沒加 <code>all</code>,RFC 4456 反射路由預設保留原始 next-hop</td><td><code>next-hop-self all</code>(FRR 存成 <code>force</code>),詳見 <a href="bgp-fabric.html">FRR / iBGP Fabric</a></td></tr>
-          <tr><td class="mono">3</td><td>BGP/next-hop 都對,但節點間 ping 100% 掉封包</td><td>Nova 隱式建立的 port 預設開 Neutron port security(anti-spoofing),擋掉「不是自己」的轉發流量</td><td>改用明確 <code>openstack_networking_port_v2</code> + <code>port_security_enabled = false</code></td></tr>
-          <tr><td class="mono">4</td><td>ping 通了,但 TOR 主動送 ICMP Redirect 誘導節點抄近路</td><td>Linux 轉發封包時,進出介面相同且同網段就自動送 redirect,這是一般路由器最佳化行為,但違反此架構前提</td><td>來源關 <code>send_redirects</code>,所有節點關 <code>accept_redirects</code>,不依賴 <code>secure_redirects</code> 的僥倖保護</td></tr>
-          <tr><td class="mono">5</td><td><code>rp_filter</code> 設了 <code>all/default=0</code>,但介面自己的值還是 2</td><td><code>conf.all/default.X</code> 只是「新介面」的預設值,對已存在的 <code>ens3</code> 不追溯生效——跟 #4 同一個模式</td><td>逐一遍歷 <code>/proc/sys/net/ipv4/conf/*/rp_filter</code></td></tr>
-          <tr><td class="mono">6</td><td>Pod-to-pod ping 正常,VIP curl 全部逾時(port security 改成 <code>allowed_address_pairs</code> 之後)</td><td>Neutron OVS 是 conntrack-based 狀態防火牆,l4lb 的 port 只看得到 DSR 的去程,永遠等不到 SYN-ACK 完成握手,後續封包被當 invalid state 丟棄</td><td>fabric port 恢復整段 <code>port_security_enabled = false</code>,這是最終結論不是 TODO</td></tr>
-          <tr><td class="mono">7</td><td>兩台 l4lb 加了 ECMP 路由,但流量 100% 固定走同一台</td><td><code>fib_multipath_hash_policy=0</code>,雜湊只看來源/目的 IP,單一 client 測試的雜湊輸入從頭到尾不變</td><td>tor 專屬設 <code>fib_multipath_hash_policy=1</code>(納入 L4 埠號)</td></tr>
-          <tr><td class="mono">8</td><td>只改 tor 專屬設定,<code>terraform plan</code> 卻顯示另外 3 台不相干的 VM 也要重建</td><td><code>%{ if role == "tor" }</code> 沒加 <code>~</code> trim 修飾詞,非 tor 分支的渲染結果多了一行空白,字串 diff 判定要重建</td><td>加 <code>~</code>,<code>terraform console</code> + <code>diff</code> 驗證非 tor 分支輸出逐字元相同</td></tr>
-        </tbody>
-      </table>
-    </div>
+<div class="stat-row">
+  <div class="stat"><div class="n">74</div><div class="l">記錄在案的 bug</div></div>
+  <div class="stat"><div class="n">8</div><div class="l">Phase 1（驗證 iBGP／DSR L4LB）</div></div>
+  <div class="stat"><div class="n">0</div><div class="l">Phase 2（真實拓樸）</div></div>
+  <div class="stat"><div class="n">14</div><div class="l">Phase 3（Ansible／kubeadm／Cilium）</div></div>
+  <div class="stat"><div class="n">6</div><div class="l">Phase 4（kube-proxy／Istio／Tunnel）</div></div>
+  <div class="stat"><div class="n">20</div><div class="l">Phase 5（加密／身份驗證／bastion 持久化）</div></div>
+  <div class="stat"><div class="n">9</div><div class="l">Phase 6（Dex／Keycloak 聯邦 PoC）</div></div>
+  <div class="stat"><div class="n">9</div><div class="l">Phase 7（GitLab 與 Runner）</div></div>
+  <div class="stat"><div class="n">8</div><div class="l">Phase 8（ArgoCD 串接 GitLab）</div></div>
+</div>
 
-    <h3>Phase 3 · Ansible / kubeadm / Cilium 階段</h3>
+<h3 id="index">目錄</h3>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>編號</th><th>症狀</th><th>Phase</th></tr></thead>
+    <tbody>
+      <tr><td class="mono"><a href="#bug-1">#1</a></td><td>iBGP 全部 Established，leaf 卻收不到彼此的路由</td><td>Phase 1</td></tr>
+      <tr><td class="mono"><a href="#bug-2">#2</a></td><td>路由學到了，next-hop 卻讓節點抄 L2 近路</td><td>Phase 1</td></tr>
+      <tr><td class="mono"><a href="#bug-3">#3</a></td><td>BGP 與 next-hop 都對，節點間 ping 卻 100% 掉封包</td><td>Phase 1</td></tr>
+      <tr><td class="mono"><a href="#bug-4">#4</a></td><td>TOR 送 ICMP Redirect，誘導節點抄近路</td><td>Phase 1</td></tr>
+      <tr><td class="mono"><a href="#bug-5">#5</a></td><td>rp_filter 設了 all/default=0，介面自己的值還是 2</td><td>Phase 1</td></tr>
+      <tr><td class="mono"><a href="#bug-6">#6</a></td><td>port security 改成 allowed_address_pairs 後，VIP curl 全部逾時</td><td>Phase 1</td></tr>
+      <tr><td class="mono"><a href="#bug-7">#7</a></td><td>兩台 l4lb 都加了 ECMP 路由，流量卻 100% 走同一台</td><td>Phase 1</td></tr>
+      <tr><td class="mono"><a href="#bug-8">#8</a></td><td>只改 tor 的設定，terraform plan 卻要重建另外 3 台 VM</td><td>Phase 1</td></tr>
+      <tr><td class="mono"><a href="#bug-9">#9</a></td><td>bastion 的 /etc/hosts 寫入失敗：Device or resource busy</td><td>Phase 3</td></tr>
+      <tr><td class="mono"><a href="#bug-10">#10</a></td><td>bastion 上 docker build 卡在 apt-get update</td><td>Phase 3</td></tr>
+      <tr><td class="mono"><a href="#bug-11">#11</a></td><td>stdout_callback = yaml 報錯，輸出格式壞掉</td><td>Phase 3</td></tr>
+      <tr><td class="mono"><a href="#bug-12">#12</a></td><td>ansible 警告 group and host with same name</td><td>Phase 3</td></tr>
+      <tr><td class="mono"><a href="#bug-13">#13</a></td><td>haproxy 設定驗證失敗：unknown keyword 'Ansible'</td><td>Phase 3</td></tr>
+      <tr><td class="mono"><a href="#bug-14">#14</a></td><td>haproxy stats 頁面打不開</td><td>Phase 3</td></tr>
+      <tr><td class="mono"><a href="#bug-15">#15</a></td><td>kubeadm init preflight 因 conntrack 缺失而 fatal</td><td>Phase 3</td></tr>
+      <tr><td class="mono"><a href="#bug-16">#16</a></td><td>第二台 master join 失敗：cipher: message authentication failed</td><td>Phase 3</td></tr>
+      <tr><td class="mono"><a href="#bug-17">#17</a></td><td>3 台 master 的 kube-controller-manager 同時消失</td><td>Phase 3</td></tr>
+      <tr><td class="mono"><a href="#bug-18">#18</a></td><td>Cilium init container 連 ClusterIP 逾時，SYN 來源位址錯誤</td><td>Phase 3</td></tr>
+      <tr><td class="mono"><a href="#bug-19">#19</a></td><td>FRR 的 network 陳述式一直是 invalid, not advertised</td><td>Phase 3</td></tr>
+      <tr><td class="mono"><a href="#bug-20">#20</a></td><td>改 CIDR 重建叢集後，pod 卡在 ContainerCreating：no CNI configuration file</td><td>Phase 3</td></tr>
+      <tr><td class="mono"><a href="#bug-21">#21</a></td><td>smoke-test 的 haproxy UP 判斷永遠失敗</td><td>Phase 3</td></tr>
+      <tr><td class="mono"><a href="#bug-22">#22</a></td><td>smoke-test 建測試 pod 失敗：Invalid JSON Patch</td><td>Phase 3</td></tr>
+      <tr><td class="mono"><a href="#bug-23">#23</a></td><td>單獨呼叫 upload-certs，x509 SAN 不匹配</td><td>Phase 4</td></tr>
+      <tr><td class="mono"><a href="#bug-24">#24</a></td><td>移除 kube-proxy 後 cilium pod Init:CrashLoopBackOff，TLS 驗證失敗</td><td>Phase 4</td></tr>
+      <tr><td class="mono"><a href="#bug-25">#25</a></td><td>cloudflare_tunnel_token is undefined，secrets.yml 明明存在</td><td>Phase 4</td></tr>
+      <tr><td class="mono"><a href="#bug-26">#26</a></td><td>升級 kubernetes_minor_version 後，套件版本沒跟著變</td><td>Phase 4</td></tr>
+      <tr><td class="mono"><a href="#bug-27">#27</a></td><td>CRI-O 1.34 的 crictl pull 失敗：short name mode is enforcing</td><td>Phase 4</td></tr>
+      <tr><td class="mono"><a href="#bug-28">#28</a></td><td>任何 *.dough-ops.com 子網域回 503，叢集內測試卻成功</td><td>Phase 5</td></tr>
+      <tr><td class="mono"><a href="#bug-29">#29</a></td><td>ssh.dough-ops.com 登入正常，瀏覽器卻沒有出現終端機</td><td>Phase 5</td></tr>
+      <tr><td class="mono"><a href="#bug-30">#30</a></td><td>登入時出現 Unable to find your Access organization</td><td>Phase 5</td></tr>
+      <tr><td class="mono"><a href="#bug-31">#31</a></td><td>bastion 加 Cinder 資料碟後 terraform apply 回 400</td><td>Phase 5</td></tr>
+      <tr><td class="mono"><a href="#bug-32">#32</a></td><td>修完 #31 後 provider 報 Neither a boot device, image ID, or image name</td><td>Phase 5</td></tr>
+      <tr><td class="mono"><a href="#bug-33">#33</a></td><td>volume-boot 之後 cloud-init 等不到 /dev/vdb，資料碟沒被格式化</td><td>Phase 5</td></tr>
+      <tr><td class="mono"><a href="#bug-34">#34</a></td><td>bastion 重建後 bastion.yml 連環報錯</td><td>Phase 5</td></tr>
+      <tr><td class="mono"><a href="#bug-35">#35</a></td><td>部署 csi-driver-nfs 後，驗證用的測試 pod 全卡在 Ready</td><td>Phase 5</td></tr>
+      <tr><td class="mono"><a href="#bug-36">#36</a></td><td>CiliumClusterwideNetworkPolicy 讓全叢集 DNS 失效約 10 小時</td><td>Phase 5</td></tr>
+      <tr><td class="mono"><a href="#bug-37">#37</a></td><td>全新環境單獨跑 bastion.yml 時 fetch admin.conf 失敗</td><td>Phase 5</td></tr>
+      <tr><td class="mono"><a href="#bug-38">#38</a></td><td>GitHub runner 的 git fetch 反覆 Connection reset by peer</td><td>Phase 7</td></tr>
+      <tr><td class="mono"><a href="#bug-39">#39</a></td><td>gitlab-rails runner 報 LoadError，檔案明明存在</td><td>Phase 7</td></tr>
+      <tr><td class="mono"><a href="#bug-40">#40</a></td><td>https external_url 可能觸發 Let's Encrypt 並卡住 reconfigure</td><td>Phase 7</td></tr>
+      <tr><td class="mono"><a href="#bug-41">#41</a></td><td>關掉 gitlab_signup_enabled 後 admin dashboard 仍警告</td><td>Phase 7</td></tr>
+      <tr><td class="mono"><a href="#bug-42">#42</a></td><td>docker login ghcr.io 成功，docker pull 私有 image 仍 denied</td><td>Phase 7</td></tr>
+      <tr><td class="mono"><a href="#bug-43">#43</a></td><td>ansible-playbook 找不到 /ansible-key/vault-password</td><td>Phase 7</td></tr>
+      <tr><td class="mono"><a href="#bug-44">#44</a></td><td>GitLab「Run pipeline」畫面沒有任何預設欄位或說明</td><td>Phase 7</td></tr>
+      <tr><td class="mono"><a href="#bug-45">#45</a></td><td>ArgoCD 驗證時，新建 pod 連 apiserver 全部 Connection timed out</td><td>Phase 8</td></tr>
+      <tr><td class="mono"><a href="#bug-46">#46</a></td><td>cilium-dbg 顯示 Host: Legacy、Masquerading: IPTables</td><td>Phase 8</td></tr>
+      <tr><td class="mono"><a href="#bug-47">#47</a></td><td>pod 連節點真實 IP 的新連線 100% 逾時（underlay 丟棄 pod-CIDR 來源）</td><td>Phase 8</td></tr>
+      <tr><td class="mono"><a href="#bug-48">#48</a></td><td>Keycloak 26 容器一直 unhealthy，/health/ready 回 404</td><td>Phase 6</td></tr>
+      <tr><td class="mono"><a href="#bug-49">#49</a></td><td>role 重跑後 Keycloak 的 Postgres 起不來</td><td>Phase 6</td></tr>
+      <tr><td class="mono"><a href="#bug-50">#50</a></td><td>Dex 連 Keycloak 被 Cloudflare Access 擋住，拿到 HTML 登入頁</td><td>Phase 6</td></tr>
+      <tr><td class="mono"><a href="#bug-51">#51</a></td><td>每次登入都要在 Dex 按一次 Grant Access</td><td>Phase 6</td></tr>
+      <tr><td class="mono"><a href="#bug-52">#52</a></td><td>oauth2-proxy 回 500：email in id_token isn't verified</td><td>Phase 6</td></tr>
+      <tr><td class="mono"><a href="#bug-53">#53</a></td><td>加 HashiCorp apt repo 後出現 NO_PUBKEY</td><td>Phase 5</td></tr>
+      <tr><td class="mono"><a href="#bug-54">#54</a></td><td>play 跑完 failed=0，Vault 卻是 sealed</td><td>Phase 5</td></tr>
+      <tr><td class="mono"><a href="#bug-55">#55</a></td><td>VSO 登入 Vault 回 403：namespace not authorized</td><td>Phase 5</td></tr>
+      <tr><td class="mono"><a href="#bug-56">#56</a></td><td>換掉 Tunnel token 後，cloudflared Pod 仍用舊 token</td><td>Phase 5</td></tr>
+      <tr><td class="mono"><a href="#bug-57">#57</a></td><td>換掉 Tunnel token 後，bastion 上的 cloudflared 沒套用新 token</td><td>Phase 5</td></tr>
+      <tr><td class="mono"><a href="#bug-58">#58</a></td><td>自訂 ClusterRole 用 wildcard，整個 Access org 都能讀 Secrets</td><td>Phase 5</td></tr>
+      <tr><td class="mono"><a href="#bug-59">#59</a></td><td>playbook 全綠燈，但 runner container 沒有建立</td><td>Phase 5</td></tr>
+      <tr><td class="mono"><a href="#bug-60">#60</a></td><td>openssl 讀不到掛載進 container 的 GitHub App private key</td><td>Phase 5</td></tr>
+      <tr><td class="mono"><a href="#bug-61">#61</a></td><td>全新節點上解除 hold 失敗：Failed to find package</td><td>Phase 5</td></tr>
+      <tr><td class="mono"><a href="#bug-62">#62</a></td><td>oidc_auth 呼叫 crictl 時找不到指令</td><td>Phase 5</td></tr>
+      <tr><td class="mono"><a href="#bug-63">#63</a></td><td>Keycloak 登入頁無 CSS，瀏覽器顯示 CORS 錯誤</td><td>Phase 6</td></tr>
+      <tr><td class="mono"><a href="#bug-64">#64</a></td><td>Keycloak 呼叫 Cloudflare Access token 端點偶發 SocketTimeoutException</td><td>Phase 6</td></tr>
+      <tr><td class="mono"><a href="#bug-65">#65</a></td><td>手動送 form 時密碼含 +，Keycloak 回 invalid_grant</td><td>Phase 6</td></tr>
+      <tr><td class="mono"><a href="#bug-66">#66</a></td><td>Keycloak client 查詢的回應含明碼 secret，被印進 ansible log</td><td>Phase 6</td></tr>
+      <tr><td class="mono"><a href="#bug-67">#67</a></td><td>ArgoCD 的 oidc.config 內換行變成字面的 \n</td><td>Phase 8</td></tr>
+      <tr><td class="mono"><a href="#bug-68">#68</a></td><td>ArgoCD 登入被 Cloudflare 拒絕：Invalid redirect URL</td><td>Phase 8</td></tr>
+      <tr><td class="mono"><a href="#bug-69">#69</a></td><td>ArgoCD 登入後每 5 分鐘被登出</td><td>Phase 8</td></tr>
+      <tr><td class="mono"><a href="#bug-70">#70</a></td><td>Dex 登入失敗：missing "name" claim</td><td>Phase 8</td></tr>
+      <tr><td class="mono"><a href="#bug-71">#71</a></td><td>Dex 登入失敗：missing "email_verified" claim</td><td>Phase 8</td></tr>
+      <tr><td class="mono"><a href="#bug-72">#72</a></td><td>新建 project 無法推送到 protected 的 main</td><td>Phase 7</td></tr>
+      <tr><td class="mono"><a href="#bug-73">#73</a></td><td>sync 腳本把明碼 token 附加到密文後面</td><td>Phase 7</td></tr>
+      <tr><td class="mono"><a href="#bug-74">#74</a></td><td>kubeadm-reset 卸載 Cilium 時用錯 namespace</td><td>Phase 4</td></tr>
+    </tbody>
+  </table>
+</div>
 
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>#</th><th>症狀</th><th>根因</th><th>修法</th></tr></thead>
-        <tbody>
-          <tr><td class="mono">9</td><td>bastion 的 <code>/etc/hosts</code> 寫入失敗,<code>[Errno 16] Device or resource busy</code></td><td><code>ansible_connection: local</code> 誤解——實際執行位置是 ansible-runner 容器自己的檔案系統,不是 bastion 本機;Docker 把 <code>/etc/hosts</code> bind-mount 成特殊檔案,擋掉 atomic rename</td><td>移除 <code>ansible_connection: local</code>,bastion 跟其他節點一樣走正常 SSH</td></tr>
-          <tr><td class="mono">10</td><td><code>docker build</code> 在 bastion 上跑到某個 <code>apt-get update</code> 就卡住,重試無限迴圈</td><td>k8s-net/mgmt-net MTU 是 1442(OpenStack VXLAN/Geneve overhead),Docker 預設 bridge MTU 1500,大封包被靜默黑洞掉</td><td><code>/etc/docker/daemon.json</code> 加 <code>{"mtu": 1442}</code> + 重啟 docker;<code>Acquire::ForceIPv4</code> 是誤判的旁支,沒解決真正問題但留著無害。這個 <code>"mtu"</code> 頂層設定只對 dockerd 自己建的 default bridge 生效,之後任何 <code>docker network create</code> 出來的自訂 network 都不會繼承——同一類 MTU 黑洞後來在 #38 又踩了一次</td></tr>
-          <tr><td class="mono">11</td><td><code>stdout_callback = yaml</code> 報錯,ansible-playbook 輸出格式壞掉</td><td><code>community.general.yaml</code> callback 在該 collection 12.0.0 被移除</td><td>改用內建 <code>default</code> callback + <code>result_format = yaml</code></td></tr>
-          <tr><td class="mono">12</td><td>ansible 警告 "group and host with same name"</td><td>YAML inventory 版本把 tor/bastion 各自開一個跟自己同名的 group</td><td>改成 INI 格式後,無 group 標頭前的 host 行自動算 ungrouped,不用這個繞路,詳見 <a href="ansible-framework.html">框架設計</a></td></tr>
-          <tr><td class="mono">13</td><td>haproxy 設定驗證失敗,<code>unknown keyword 'Ansible' out of section</code></td><td><code>{{ ansible_managed }}</code> 模板頭沒帶 <code>#</code> 註解字元,渲染出的第一行不是合法的 haproxy 語法</td><td>改成純文字 <code>#</code> 註解</td></tr>
-          <tr><td class="mono">14</td><td>haproxy stats 頁面打不開</td><td><code>listen stats</code> 沿用全域 <code>defaults</code> 的 <code>mode tcp</code>,但 stats 頁面本質是 HTTP 服務</td><td><code>listen stats</code> 區塊內明確蓋回 <code>mode http</code>,見 <a href="role-apiserver-lb.html">Role: apiserver-lb</a></td></tr>
-          <tr><td class="mono">15</td><td><code>kubeadm init</code> preflight 直接 fatal error</td><td><code>[ERROR FileExisting-conntrack]</code>,conntrack 套件沒裝</td><td>kubelet role 一次裝好 <code>conntrack</code>/<code>socat</code>/<code>ebtables</code>/<code>ethtool</code>,見 <a href="role-kubelet.html">Role: kubelet</a></td></tr>
-          <tr><td class="mono">16</td><td>第二台 master join 失敗,<code>cipher: message authentication failed</code></td><td>兩台 master 同時各自呼叫 <code>--upload-certs</code>,互相把對方的 certificate-key 蓋掉</td><td>只在 <code>kubeadm_init</code> 呼叫一次,結果透過 hostvars 給所有 join 的節點共用,見 <a href="role-kubeadm.html">Role: kubeadm</a></td></tr>
-          <tr><td class="mono">17</td><td>3 台 master 的 kube-controller-manager 同時消失</td><td><code>blockinfile</code> 用 YAML block 純量(<code>block: |</code>)寫多行,縮排被 YAML 自動砍成 0,插入 manifest 後語法錯誤</td><td>改用單行雙引號字串 + 手動 <code>\n</code>,見 <a href="role-cilium.html">Role: cilium</a></td></tr>
-          <tr><td class="mono">18</td><td>Cilium init container 連 ClusterIP 逾時,tcpdump 顯示 SYN 帶錯的來源位址送出</td><td>本機發起連線,kernel 用「原始(DNAT 前)目的地」做路由查詢決定來源位址,ClusterIP 網段在 k8s-net 上沒有專屬路由,fallback 到 mgmt-net</td><td>netplan 加 <code>scope link</code> 靜態路由佔住這個路由表項目,見 <a href="role-kubelet.html">Role: kubelet</a></td></tr>
-          <tr><td class="mono">19</td><td>FRR <code>network</code> 陳述式一直是 <code>invalid, not advertised</code></td><td>zebra 不吸收 Cilium 建的「<code>proto kernel</code> 但帶 <code>via</code> gateway」route,<code>redistribute kernel</code> 也沒用;第一次嘗試用 <code>distance 255</code> 的 Null0 backing route 仍然 invalid(255 是 FRR 保留值)</td><td><code>distance 200</code> 的 Null0 靜態路由,見 <a href="role-cilium.html">Role: cilium</a> 的完整推導過程</td></tr>
-          <tr><td class="mono">20</td><td>改 CIDR 重建叢集後,pod 卡在 <code>ContainerCreating</code>,<code>no CNI configuration file</code>,即使檔案明明存在</td><td>reset 時把 <code>/etc/cni/net.d</code> 整個目錄刪掉重建,CRI-O 對目錄 inode 的監看失效,認不出新目錄</td><td>改成只清目錄<strong>內容</strong>、保留目錄本身,加一道 crio 重啟確保萬全,見 <a href="role-kubeadm.html">Role: kubeadm</a></td></tr>
-          <tr><td class="mono">21</td><td>smoke-test 裡 haproxy UP 狀態判斷永遠失敗</td><td>對整行 CSV 字串找 <code>server,UP</code>,但 status 是第 18 欄,中間隔了十幾個欄位</td><td><code>cut -d, -f1,2,18</code> 先取出正確欄位,見 <a href="testing.html">測試 / smoke-test</a></td></tr>
-          <tr><td class="mono">22</td><td>smoke-test 建測試 pod 失敗,<code>Invalid JSON Patch</code></td><td><code>ansible.builtin.command</code> 給純字串時走 shlex 解析(不走 shell),<code>--overrides={"spec":...}</code> 的雙引號被當 shell quoting 字元吃掉</td><td>改用 <code>argv:</code> list 形式,見 <a href="testing.html">測試 / smoke-test</a></td></tr>
-        </tbody>
-      </table>
-    </div>
+<h3 id="phase-1">Phase 1</h3>
+<p><strong>Phase 1 · 驗證 iBGP、ECMP 與 DSR L4LB</strong>：本階段 8 筆。完整脈絡見 <a href="l4lb-history.html">DSR / L4LB 歷史</a>與 <a href="bgp-fabric.html">FRR / iBGP Fabric</a>。</p>
 
-    <h3>Phase 4 · kube-proxy 移除 / Cilium namespace / Istio / Cloudflare Tunnel 階段</h3>
+<section class="bug" id="bug-1">
+  <h4>#1 · iBGP 全部 Established，leaf 卻收不到彼此的路由</h4>
+  <ul>
+    <li><strong>症狀</strong>：iBGP session 全部是 Established，但 leaf 節點互相收不到對方的路由。</li>
+    <li><strong>根因</strong>：標準 iBGP 的 split-horizon 規則不會把從 iBGP peer 學到的路由再轉給其他 peer，而 route reflector 沒有設 <code>route-reflector-client</code>。</li>
+    <li><strong>修法</strong>：tor 對每個 client neighbor 加 <code>route-reflector-client</code>。</li>
+    <li><strong>怎麼確認修好</strong>：在 leaf 節點執行 <code>show ip bgp</code>，看得到其他節點宣告的 prefix，節點之間的流量可以轉發。</li>
+    <li><strong>相關</strong>：同一個設計的第二半是 <a href="troubleshooting.html#bug-2">#2</a>。設計理由見 <a href="bgp-fabric.html#next-hop-self">FRR / iBGP Fabric</a>。</li>
+  </ul>
+</section>
 
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>#</th><th>症狀</th><th>根因</th><th>修法</th></tr></thead>
-        <tbody>
-          <tr><td class="mono">23</td><td><code>kubeadm init phase upload-certs</code> 單獨呼叫時,x509 SAN 不匹配</td><td>單獨呼叫這個 phase 不會沿用完整 <code>kubeadm init</code> 的上下文,自己重建一份預設 <code>InitConfiguration</code>,靠「找預設路由的介面」自動偵測 advertise address,落到有預設路由的 mgmt-net</td><td>帶一份最小的 <code>--config</code>,明確指定 <code>localAPIEndpoint.advertiseAddress</code>,見 <a href="role-kubeadm.html">Role: kubeadm</a></td></tr>
-          <tr><td class="mono">24</td><td>移除 kube-proxy 後,所有 cilium pod 卡在 <code>Init:CrashLoopBackOff</code>,TLS 憑證驗證失敗</td><td><code>k8sServiceHost</code> 設成 tor 的 IP,但 apiserver 憑證 SAN 只認 <code>kubeadm init --control-plane-endpoint</code> 當時的字串跟三台 master 的 IP,tor 完全不在清單裡</td><td>改用 <code>apiserver_hostname</code>(<code>k8s-api.internal</code>)這個 hostname,不是任何 IP,見 <a href="role-cilium.html">Role: cilium</a></td></tr>
-          <tr><td class="mono">25</td><td><code>cloudflare_tunnel_token is undefined</code>,即使 <code>secrets.yml</code> 檔案確實存在</td><td><code>group_vars/secrets.yml</code> 是扁平檔案,檔名不對應任何真實存在的 inventory group,ansible 的自動載入機制完全不理它</td><td>改成 <code>group_vars/all/main.yml</code> + <code>group_vars/all/secrets.yml</code> 的目錄型寫法,見 <a href="ansible-framework.html">框架設計</a></td></tr>
-          <tr><td class="mono">26</td><td>升級 <code>kubernetes_minor_version</code> 後,kubeadm/kubelet/kubectl 套件版本沒有跟著變</td><td><code>dpkg_selections: hold</code> 鎖住套件,<code>state: present</code> 語意是「有裝就好」,兩者疊加讓已裝套件永遠不會被動到</td><td>安裝前先 unhold,安裝 task 改 <code>state: latest</code>(repo URL 本身版本綁定,latest 不會跳 minor version),見 <a href="role-kubelet.html">Role: kubelet</a></td></tr>
-          <tr><td class="mono">27</td><td>升級到 CRI-O 1.34 後,<code>crictl pull busybox:1.36</code> 失敗,<code>short name mode is enforcing</code></td><td>CRI-O 1.34 的 <code>short-name-mode</code> 預設 <code>enforcing</code>,即使 <code>unqualified-search-registries</code> 只有一個 entry 也拒絕自動補全未限定的 image 名稱</td><td>新增 <code>registries.conf.d</code> drop-in,明確設 <code>short-name-mode = "permissive"</code>,見 <a href="role-crio.html">Role: crio</a></td></tr>
-        </tbody>
-      </table>
-    </div>
+<section class="bug" id="bug-2">
+  <h4>#2 · 路由學到了，next-hop 卻讓節點抄 L2 近路</h4>
+  <ul>
+    <li><strong>症狀</strong>：路由學到了，但 next-hop 不是 tor，節點直接 ARP 對方並繞過 tor。</li>
+    <li><strong>根因</strong>：<code>next-hop-self</code> 沒有加 <code>all</code>。RFC 4456 規定反射路由預設保留原始 next-hop，單純的 <code>next-hop-self</code> 只改 tor 自己發起的路由。</li>
+    <li><strong>修法</strong>：改成 <code>next-hop-self all</code>。FRR 會把它存成 <code>force</code>，<code>show running-config</code> 顯示 <code>next-hop-self force</code>，語意相同。</li>
+    <li><strong>怎麼確認修好</strong>：在任一節點執行 <code>ip route show proto bgp</code>，其他節點的 PodCIDR 全部以 tor（<code>10.10.0.10</code>）為 next-hop。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-1">#1</a>、<a href="troubleshooting.html#bug-4">#4</a>。設計理由見 <a href="bgp-fabric.html#next-hop-self">FRR / iBGP Fabric</a>。</li>
+  </ul>
+</section>
 
-    <h3>Phase 5 · cert-manager / Cloudflare Access 階段</h3>
+<section class="bug" id="bug-3">
+  <h4>#3 · BGP 與 next-hop 都對，節點間 ping 卻 100% 掉封包</h4>
+  <ul>
+    <li><strong>症狀</strong>：BGP 路由與 next-hop 都正確，但節點之間 ping 100% 掉封包。</li>
+    <li><strong>根因</strong>：Nova 隱式建立的 port 預設開啟 Neutron port security（anti-spoofing），擋掉來源或目的不是自己的轉發流量。</li>
+    <li><strong>修法</strong>：改用明確宣告的 <code>openstack_networking_port_v2</code>，並設 <code>port_security_enabled = false</code>。</li>
+    <li><strong>怎麼確認修好</strong>：節點之間 ping 不再掉封包，流量可以經 tor 轉發。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-6">#6</a> 證明只用 <code>allowed_address_pairs</code> 放寬並不夠。設計決策見 <a href="infrastructure.html#port-security">Terraform / OpenStack</a>。</li>
+  </ul>
+</section>
 
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>#</th><th>症狀</th><th>根因</th><th>修法</th></tr></thead>
-        <tbody>
-          <tr><td class="mono">28</td><td>真實請求連任何 <code>*.dough-ops.com</code> 子網域(如 hubble)都 503,Cloudflare 品牌的錯誤頁;叢集內部直接測卻永遠成功</td><td>Cloudflare Tunnel 的 <code>originRequest.originServerName</code> 設成 zone apex(<code>dough-ops.com</code>,沒有子網域),但 Istio Gateway 443 listener 的 SNI 比對規則是 <code>*.dough-ops.com</code>(至少一段子網域 label)——apex 名稱不匹配任何 filter chain,TLS handshake 在 HTTP 層之前就被 Envoy 斷線,cloudflared 回報成 connection reset</td><td>把 <code>originServerName</code> 改成任何帶子網域的名字(不需要是真的服務,這裡用 <code>gateway.dough-ops.com</code>),見 <a href="role-cert-manager.html">Role: cert_manager</a></td></tr>
-          <tr><td class="mono">29</td><td>瀏覽器打開 <code>ssh.dough-ops.com</code>,Access 登入本身正常(curl 測試回應正確的 302),但沒有渲染出終端機介面</td><td>用了一般的 <code>self_hosted</code> Access Application(涵蓋整個 <code>*.dough-ops.com</code> 萬用字元的那個)——瀏覽器渲染 SSH/RDP/VNC 終端機需要專門的 <code>type: "ssh"/"rdp"/"vnc"</code> Application,不是 <code>self_hosted</code> 加個開關就有</td><td>另外建一個 <code>type: "ssh"</code>、精確匹配 <code>ssh.dough-ops.com</code> 的 Access Application(精確匹配優先於萬用字元),見 <a href="cloudflare-manual-setup.html">Cloudflare 手動設定清單</a></td></tr>
-          <tr><td class="mono">30</td><td>登入流程中出現「Unable to find your Access organization! ... enter a valid team name.」</td><td>Zero Trust 帳號的 team name 歷史上改過(<code>31lab</code> → <code>doughops</code>),<code>GET /accounts/{id}/access/organizations</code> 查出來 <code>auth_domain</code> 已經是新的,但 <code>name</code> 欄位還停在舊值——Cloudflare 社群論壇上同樣的案例都指向這個欄位不同步</td><td><code>PUT /accounts/{id}/access/organizations</code> 把 <code>name</code> 改成跟現在的 team 一致,見 <a href="cloudflare-manual-setup.html">Cloudflare 手動設定清單</a></td></tr>
-        </tbody>
-      </table>
-    </div>
+<section class="bug" id="bug-4">
+  <h4>#4 · TOR 送 ICMP Redirect，誘導節點抄近路</h4>
+  <ul>
+    <li><strong>症狀</strong>：ping 已經通了，但 tor 主動送 ICMP Redirect，誘導節點改走 L2 捷徑。</li>
+    <li><strong>根因</strong>：Linux 轉發封包時，只要進出介面相同且在同一網段，就會自動送 redirect。這是一般路由器的最佳化行為，但違反「tor 是唯一 L3 決策點」的前提。</li>
+    <li><strong>修法</strong>：來源（tor）關閉 <code>send_redirects</code>，所有節點關閉 <code>accept_redirects</code>。兩邊都關，不依賴 <code>secure_redirects</code> 提供的保護。</li>
+    <li><strong>怎麼確認修好</strong>：tor 的 <code>send_redirects</code> 與節點的 <code>accept_redirects</code> 都是 <code>0</code>，節點路由表裡沒有出現繞過 tor 的條目。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-5">#5</a> 是同一個陷阱的另一個 sysctl。sysctl 全貌見 <a href="bgp-fabric.html#sysctl">FRR / iBGP Fabric</a>。</li>
+  </ul>
+</section>
 
-    <h3>Phase 6 · bastion 持久化儲存 + rebuild 韌性</h3>
+<section class="bug" id="bug-5">
+  <h4>#5 · rp_filter 設了 all/default=0，介面自己的值還是 2</h4>
+  <ul>
+    <li><strong>症狀</strong>：<code>rp_filter</code> 的 <code>all</code> 與 <code>default</code> 都設成 <code>0</code>，但介面自己的值仍是 <code>2</code>。</li>
+    <li><strong>根因</strong>：<code>conf.all/default.X</code> 只影響新建的介面，對開機時已存在的 <code>ens3</code> 不會追溯生效。這和 #4 是同一個模式。</li>
+    <li><strong>修法</strong>：用迴圈逐一覆蓋 <code>/proc/sys/net/ipv4/conf/*/rp_filter</code>。</li>
+    <li><strong>怎麼確認修好</strong>：<code>cat /proc/sys/net/ipv4/conf/ens3/rp_filter</code> 回傳 <code>0</code>。只看 <code>sysctl -a</code> 的 <code>all</code> 欄位會誤以為設定已生效。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-4">#4</a>。模板寫法見 <a href="bgp-fabric.html#sysctl-rpfilter">FRR / iBGP Fabric</a>。</li>
+  </ul>
+</section>
 
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>#</th><th>症狀</th><th>根因</th><th>修法</th></tr></thead>
-        <tbody>
-          <tr><td class="mono">31</td><td>bastion 加額外 Cinder 資料碟後 <code>terraform apply</code> 直接 400,<code>Boot sequence for the instance and image/block device mapping combination is not valid</code></td><td>這朵雲的 Nova 不接受頂層 <code>image_name</code> 屬性(隱含 <code>ImageRef</code>)跟任何 <code>block_device_mapping_v2</code> 條目同時出現,即使那些條目全部是非開機用的資料碟(<code>boot_index=-1</code>)</td><td>有額外資料碟的 VM 改用明確 <code>block_device</code> 宣告開機碟、<code>image_name</code> 留空,見 <code>main.tf</code> 該段註解</td></tr>
-          <tr><td class="mono">32</td><td>修完 #31 後,provider 自己又報 <code>Neither a boot device, image ID, or image name were able to be determined</code></td><td>terraform-provider-openstack 的 <code>getImageIDFromConfig()</code> 一偵測到 <code>source_type="image"</code> + <code>destination_type="local"</code> 的開機 block_device,就會堅持要解析出 <code>image_id</code>/<code>image_name</code> 塞回 <code>ImageRef</code>——直接跟 #31 的修法互斥,又踩回同一個 400</td><td>開機 block_device 改用 <code>destination_type="volume"</code>(從 image 建一顆新 Cinder volume 來開機),provider 判斷不需要 image_id,<code>ImageRef</code> 留空,乾淨地只靠 block_device 開機</td></tr>
-          <tr><td class="mono">33</td><td>volume-boot 修好之後,cloud-init 在 <code>/dev/vdb</code> 前面死等 30 秒後失敗,兩顆資料碟完全沒被格式化</td><td>開機碟本身也改成從 image 建立的 Cinder volume(#32 的修法),連帶讓整台 instance 的磁碟走 SCSI bus,guest 裡的裝置命名全部變成 <code>sdX</code>,不再是 ephemeral image boot 慣用的 <code>vdX</code></td><td>cloud-init 腳本改用 <code>/dev/sdb</code>/<code>/dev/sdc</code>,見 <code>templates/bastion-init.sh.tftpl</code> 開頭註解</td></tr>
-          <tr><td class="mono">34</td><td>bastion 重建後跑 <code>playbooks/bastion.yml</code> 連環報錯:internal key <code>Permission denied (publickey)</code> → 修完換 <code>kubectl: No such file or directory</code> → 修完換 <code>k8s-api.internal</code> DNS 解析失敗</td><td>internal SSH key 的信任、kubectl 本身、admin kubeconfig、<code>k8s-api.internal</code> 這條 <code>/etc/hosts</code> 記錄,全部只存在 bastion 自己的 ephemeral 開機碟上——這些東西過去只在「全新環境第一次架設」時裝過一次,從沒設計成「bastion 單獨重建、叢集其他節點都還活著」這個情境也要能重跑</td><td>先跑一次 <code>BOOTSTRAP=1 ... internal-ssh-key.yml</code> 重新佈署信任;把 <code>kubeadm.yml</code> 最後裝 kubectl+抓 kubeconfig 那段、跟 <code>apiserver-lb.yml</code> 的 DNS 那個 play,各自抽成獨立的 <code>playbooks/bastion/kubeconfig.yml</code>、<code>playbooks/bastion/apiserver-dns.yml</code>,納入 <code>playbooks/bastion.yml</code> 這個一次性入口,見 <a href="ansible-framework.html">框架設計</a></td></tr>
-          <tr><td class="mono">35</td><td>部署 csi-driver-nfs 後,驗證用的三個測試 pod(<code>kubectl run</code> 建的裸 busybox)全部卡在 <code>kubectl wait --for=condition=Ready</code>,120 秒後 timeout——連完全沒掛 PVC 的「blocked」測試 pod 也一樣卡住</td><td><code>demo</code> namespace 開了 <code>istio-injection=enabled</code>(給 <code>demo-app.yml</code> 的展示用),所以每個在這個 namespace 建立的 pod 都會被自動注入一個 <code>istio-proxy</code> sidecar;這幾個裸 busybox 測試 pod 沒有走 Istio 的 pilot-agent 注入配套流程,注入進去的 <code>istio-proxy</code> 的 startup probe(打 <code>:15021/healthz/ready</code>)永遠連不上——<code>kubectl wait --for=condition=Ready</code> 是等「pod 裡所有 container 都 Ready」,不是只看主要那個 container,所以三個測試 pod(包括完全沒有掛 volume、跟 NFS 毫無關係的 blocked pod)全部被這個不相干的 sidecar 卡住</td><td>三個 <code>kubectl run --overrides</code> 都加一段 <code>"metadata":{"annotations":{"sidecar.istio.io/inject":"false"}}</code>,明確跳過這個 namespace 的自動注入,見 <code>playbooks/k8s/nfs-csi.yml</code> 開頭的說明註解</td></tr>
-          <tr><td class="mono">36</td><td><strong>(嚴重,實際造成約 10 小時的叢集 egress 中斷)</strong>部署 <code>CiliumClusterwideNetworkPolicy</code> 之後,叢集內幾乎所有 pod 的 DNS 解析全滅、<code>cloudflared</code> 進入 crash-loop(<code>lookup cfd-features.argotunnel.com: i/o timeout</code>)——bastion 上跑 ansible/kubectl 完全正常,沒有任何徵兆,問題撐了快 10 小時才在最終 code review 時被抓到</td><td>Cilium 的 <code>egressDeny</code>-only rule,只要沒有明講 <code>enableDefaultDeny: {egress: false}</code>,就會把「被這條 policy 選到的每個 endpoint」直接打成 egress 整個 default-deny——語意上跟寫一條 allow-list rule 幾乎一樣,不是文件字面上看起來的「單純疊加一條擋規則」。這條 policy 的 <code>endpointSelector</code> 用 <code>app NotIn [csi-nfs-node]</code>,幾乎選到全叢集每個 pod(沒有 <code>app</code> label 的 pod 也會被 <code>NotIn</code> 選到),又是叢集裡唯一一條 Cilium policy,完全沒有其他 allow rule 可以 fallback。hostNetwork pod(bastion 的 ansible/kubectl 存取)不受影響,才會完全看不出異狀——這個「hostNetwork pod 不受 per-pod policy 影響」正是 Bug #34 已經記錄過的同一個機制,這次反而變成掩蓋問題的原因</td><td>policy 補上 <code>enableDefaultDeny: {egress: false}</code>;驗證步驟加一個正面對照組——用同一個 pod 連 policy 完全沒提過的另一個 port,必須連得到,才能證明剛剛的「連不到」是精準擋下,不是整個 pod 斷網(原本的測試只有負面斷言,擋不住這類問題,細節見 <code>docs/superpowers/specs/2026-07-27-nfs-csi-driver-design.md</code> 的 Correction 段落跟 <code>playbooks/nfs-csi.yml</code> 的正面對照組任務)</td></tr>
-          <tr><td class="mono">37</td><td>不相信文件、直接照程式碼重新推演「從 0 建置」的真實順序時發現:在真正全新的環境(叢集從未 <code>kubeadm init</code> 過)單獨執行 <code>playbooks/bastion.yml</code> 會在第 4 步當場失敗,<code>ansible.builtin.fetch</code> 抓不到 masters[0] 上的 <code>/etc/kubernetes/admin.conf</code>,後面的 <code>apiserver-dns.yml</code>/<code>tools.yml</code>/<code>cloudflare-tunnel.yml</code>/<code>github-runner.yml</code> 全部不會執行到</td><td><code>playbooks/bastion/kubeconfig.yml</code>(Bug #34 的修法產物)只驗證過「bastion 單獨重建、叢集其他節點都還活著」這個情境,從沒測過「叢集本身也還沒建立」這個更早的情境——`ansible.builtin.fetch` 預設在來源檔案不存在時直接 fail 整個 play,不會靜默跳過。附帶發現:<code>bastion/cloudflare-tunnel.yml</code> 被放在 <code>bastion.yml</code> 的 import 鏈裡也是想當然爾的安排——它部署的 Deployment/Secret 活在叢集自己的 etcd、跑在一般 k8s 節點的 pod 上,根本不是 bastion 本機狀態,bastion 重建完全不影響它,放在 <code>bastion.yml</code> 裡只是多餘的重複匯入,還會被同一個「叢集不存在」問題拖累失敗</td><td><code>bastion/kubeconfig.yml</code> 抓檔案前先 <code>stat</code> 檢查 <code>admin.conf</code> 存不存在,不存在就跳過 fetch/copy(kubectl 本身照裝);<code>roles/cloudflare_tunnel</code> 比照辦理,檢查 bastion 上有沒有 kubeconfig,沒有就跳過 <code>kubectl apply</code>;<code>bastion/cloudflare-tunnel.yml</code> 從 <code>bastion.yml</code> 的 import 鏈移除,改成只在 <code>playbooks/k8s.yml</code>(<code>cert-manager.yml</code> 之後)匯入一次,那才是叢集第一次真的活著的時間點。完整稽核過程見 <a href="https://github.com/khchiang1121/terraform-k8s/blob/main/docs/bootstrap-order-audit.md">bootstrap-order-audit.md</a></td></tr>
-          <tr><td class="mono">38</td><td>GitHub Actions self-hosted runner(<code>github-runner</code> container,見 <a href="role-github-runner.html">Role: github-runner</a>)第一次跑 <code>run-playbook.yml</code>,<code>actions/checkout</code> 的 <code>git fetch</code> 反覆 <code>fatal: ... Recv failure: Connection reset by peer</code>,靠內建重試 3 次全部失敗;直接在 bastion host 上跑 <code>git clone</code>(同一個 repo)完全正常,一開始誤判是 GitHub 那端的暫時性網路問題</td><td>#10 的 MTU 修法只對 dockerd 自己建的 default bridge(<code>docker0</code>)生效——GitHub Actions runner 執行 <code>container:</code> job 時,是自己動態 <code>docker network create</code> 一個新的 <code>github_network_&lt;hash&gt;</code> network 給 job container 用(從 dockerd log 的 <code>net=github_network_...</code> 證實),這個網路完全沒有繼承 daemon.json 的 <code>"mtu": 1442</code>,落回 Docker 硬編碼預設值 1500,跟底層 <code>ens3</code>/<code>ens4</code> 實體網卡的 1442 不符,大封包(<code>git fetch</code> 拉 pack data 這種)在半路黑洞;既有的 <code>keycloak-net</code>(<code>roles/keycloak_server</code> 建的自訂 network)實測也踩了同一個坑,只是流量都是小封包沒被注意到。純 host 上的 <code>git clone</code> 完全繞過所有 Docker network,自然沒事,才會一開始誤判成別的原因</td><td><code>daemon.json</code> 加上 Docker 23.0+ 才支援的 <code>"default-network-opts": {"bridge": {"com.docker.network.driver.mtu": "1442"}}</code>,讓「以後所有」用 bridge driver 新建的 network(不只 default bridge)都繼承同一個 MTU,不用逐一幫每個自訂 network 補 <code>-o</code> 參數;已同步補進 <code>openstack/templates/bastion-init.sh.tftpl</code>,不然又會重演 #10/#34 那個「手動修的 fix 沒寫進 code」的坑</td></tr>
-        </tbody>
-      </table>
-    </div>
+<section class="bug" id="bug-6">
+  <h4>#6 · port security 改成 allowed_address_pairs 後，VIP curl 全部逾時</h4>
+  <ul>
+    <li><strong>症狀</strong>：pod-to-pod ping 正常，但改用 <code>allowed_address_pairs</code> 放寬 port security 之後，對 VIP 的 curl 全部逾時。</li>
+    <li><strong>根因</strong>：Neutron 的 OVS security group 是 conntrack-based 的狀態防火牆。DSR 的回程不經過 l4lb 的 port，l4lb 的 conntrack 永遠等不到 SYN-ACK，後續封包被當成 invalid state 丟棄。</li>
+    <li><strong>修法</strong>：fabric port 恢復成整段 <code>port_security_enabled = false</code>。<code>allowed_address_pairs</code> 只放寬來源位址檢查，改變不了 conntrack 狀態機。</li>
+    <li><strong>怎麼確認修好</strong>：對 VIP 的 curl 恢復正常，<code>ipvsadm --stats</code> 的 <code>OutPkts</code> 為 <code>0</code>，證明回程確實繞過 l4lb。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-3">#3</a>。完整脈絡見 <a href="l4lb-history.html">DSR / L4LB 歷史</a>，決策記錄見 <a href="infrastructure.html#port-security">Terraform / OpenStack</a>。</li>
+  </ul>
+</section>
 
-    <h3>Phase 7 · 自架 GitLab CE + Runner</h3>
+<section class="bug" id="bug-7">
+  <h4>#7 · 兩台 l4lb 都加了 ECMP 路由，流量卻 100% 走同一台</h4>
+  <ul>
+    <li><strong>症狀</strong>：tor 上兩台 l4lb 都有 ECMP 路由，但流量 100% 固定走同一台。</li>
+    <li><strong>根因</strong>：<code>fib_multipath_hash_policy=0</code> 的雜湊只看來源與目的 IP。單一 client 測試時雜湊輸入從頭到尾不變，永遠選到同一個 next-hop。</li>
+    <li><strong>修法</strong>：只在 tor 設 <code>fib_multipath_hash_policy=1</code>，把 L4 埠號納入雜湊。tor 是唯一做雜湊決策的節點。</li>
+    <li><strong>怎麼確認修好</strong>：同一個 client 開多條 TCP 連線，兩台 l4lb 都收到流量，分流數據記錄在 DSR / L4LB 歷史頁。</li>
+    <li><strong>相關</strong>：設定位置見 <a href="bgp-fabric.html#ecmp">FRR / iBGP Fabric</a>，驗證過程見 <a href="l4lb-history.html">DSR / L4LB 歷史</a>。</li>
+  </ul>
+</section>
 
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>#</th><th>症狀</th><th>根因</th><th>修法</th></tr></thead>
-        <tbody>
-          <tr><td class="mono">39</td><td>第一次對真實 bastion 跑 <code>roles/gitlab_server</code>,<code>gitlab-rails runner /etc/gitlab/bootstrap_pat.rb</code> 報 <code>cannot load such file -- /etc/gitlab/bootstrap_pat.rb (LoadError)</code>,但那個檔案用 <code>docker exec gitlab ls -la</code> 明明看得到、路徑也對</td><td><code>docker exec</code> 預設是 root 身份,但 <code>/opt/gitlab/bin/gitlab-rails</code> 這支官方 wrapper 內部用 <code>chpst -u git:git</code> 把權限從 root 降成 <code>git</code> 這個 unix 使用者才真的去跑 <code>bundle exec rails runner</code>——這份腳本原本用 <code>mode: "0600"</code>(root-only)寫出去,<code>git</code> 使用者讀不到,Ruby 的 <code>Kernel#load</code> 把「permission denied」誤報成「檔案不存在」,看起來像路徑錯了,實際上是權限問題</td><td>改成 <code>mode: "0644"</code>——這份腳本本來就是一次性的、執行完立刻刪除,世界可讀的時間窗很短,仍在 <code>/userap</code> 這個已信任的磁碟邊界內,見 <a href="role-gitlab.html">Role: gitlab</a></td></tr>
-          <tr><td class="mono">40</td><td>whole-branch review 抓到、尚未真的炸開就先修掉的地雷:<code>gitlab.rb</code> 的 <code>external_url</code> 是 <code>https</code>,但 bastion 沒有對外開放的 <code>:80</code> 可以應付 ACME <code>http-01</code> challenge</td><td>GitLab Omnibus 只要偵測到 <code>external_url</code> 是 <code>https</code> 又沒有另外設定憑證,預設會自動開 Let's Encrypt、每次 <code>reconfigure</code> 都嘗試續期——這個 lab 的 TLS 實際上是在 Cloudflare 邊緣終止(<code>nginx['listen_https'] = false</code>),憑證申請注定失敗,會拖垮甚至卡住 reconfigure</td><td>明確加上 <code>letsencrypt['enable'] = false</code>,不讓它自己嘗試</td></tr>
-          <tr><td class="mono">41</td><td><code>gitlab.rb</code> 設定 <code>gitlab_rails['gitlab_signup_enabled'] = false</code>、重跑 reconfigure,GitLab admin dashboard 卻還是持續顯示「Check your sign-up restrictions」的警告,帳密註冊表單實際上沒有真的關掉</td><td>這個設定只在 <code>ApplicationSettings</code> 這張表<strong>第一次被 seed 出來時</strong>生效(GitLab 官方 <code>db:seed_fu</code> 的行為),既有安裝重跑 <code>reconfigure</code> 不會回頭覆蓋已經存在的設定值——跟改 <code>gitlab.rb</code> 就能無條件生效的其他設定項不是同一類</td><td>額外加一個每次都執行的 <code>PUT /api/v4/application/settings</code>(<code>signup_enabled: false</code>)API upsert,不依賴 seed 時機,跟 <code>oidc_admin_emails</code> allowlist 那段是同一種「每次都對一次」的取捨</td></tr>
-          <tr><td class="mono">42</td><td>GitLab CD repo(<a href="role-gitlab.html#cd-repo">Role: gitlab</a> 的 CD Repo 那段)的 pipeline job 用 fine-grained GitHub PAT 當 <code>DOCKER_AUTH_CONFIG</code> 的憑證,<code>docker login ghcr.io</code> 成功,但緊接著 <code>docker pull</code> 私有 image 仍然回 <code>denied</code></td><td>fine-grained GitHub PAT 的 <code>Packages: Read-only</code> 權限目前只涵蓋 Packages REST API(列清單、看 metadata),<strong>實際 pull/push container image 目前只認 classic PAT 的 <code>read:packages</code> scope</strong>——這是 GitHub 目前的產品限制,不是這次設定錯誤,直接在 bastion 上手動 <code>docker login</code>+<code>docker pull</code> 重現同樣的「認證成功、授權失敗」現象才確認下來</td><td>把 <code>ghcr.io/doughops/terraform-k8s-ansible-runner</code>(這張 image 本身只有 ansible 執行環境,沒有程式碼或密鑰)設成 public,pipeline 拉取完全不需要認證,<code>DOCKER_AUTH_CONFIG</code> 這個 CI/CD 變數整個拿掉</td></tr>
-          <tr><td class="mono">43</td><td>GHCR image 問題修好之後,pipeline 前進到下一步,<code>ansible-playbook</code> 直接報 <code>The vault password file /ansible-key/vault-password was not found</code></td><td>剛從 GitHub clone 下來的 <code>src/ansible/ansible.cfg</code> 裡 <code>vault_password_file</code> 寫死指向 <code>/ansible-key/vault-password</code>——那個路徑只有 <code>scripts/ansible.sh</code> 自己 <code>docker run</code> 時才會掛出來,CD repo 的 job container 完全沒有這個掛載</td><td>比照 <code>.github/workflows/run-playbook.yml</code> 已經驗證過的做法:script 裡把 <code>ANSIBLE_VAULT_PASSWORD</code> 這個 CI/CD 變數的值寫成 <code>$CI_PROJECT_DIR/.vault-password</code>,用 <code>ANSIBLE_VAULT_PASSWORD_FILE</code> 環境變數蓋掉 <code>ansible.cfg</code> 寫死的路徑(環境變數優先權比 ansible.cfg 高)</td></tr>
-          <tr><td class="mono">44</td><td>使用者在 GitLab CD repo 按「Run pipeline」,畫面上完全沒有任何預設欄位或說明,不知道要填什麼</td><td><code>PLAYBOOK_PATH</code> 原本宣告在 <code>job.variables</code>(job 層級)——GitLab「Run pipeline」手動觸發畫面的變數輸入框,只會預先列出宣告在<strong>頂層</strong>(pipeline 層級)<code>variables</code> 的變數,且只有頂層支援 <code>{description, value}</code> 擴充物件寫法(畫面渲染成說明文字),job 層級的變數完全不會出現在這個表單裡</td><td>把 <code>PLAYBOOK_PATH</code> 搬到頂層 <code>variables</code>,加上 <code>description</code>;job 不用重複宣告,頂層變數本來就會自動傳給底下每個 job。同時新增 <code>GIT_REF</code>(預設 <code>main</code>)這個頂層變數,讓「Run pipeline」也能指定要 clone 的分支/tag(<code>git clone --branch "$GIT_REF"</code>),方便在合併回 <code>main</code> 之前先測 feature branch。用一次真的觸發的測試 pipeline(暫時放寬 <code>workflow.rules</code> 接受 <code>api</code> 來源)驗證過語法正確、<code>status: success</code>,見 <a href="role-gitlab.html#cd-repo">Role: gitlab</a></td></tr>
-        </tbody>
-      </table>
-    </div>
+<section class="bug" id="bug-8">
+  <h4>#8 · 只改 tor 的設定，terraform plan 卻要重建另外 3 台 VM</h4>
+  <ul>
+    <li><strong>症狀</strong>：只修改 tor 專屬設定，<code>terraform plan</code> 卻顯示另外 3 台不相干的 VM 也要重建。</li>
+    <li><strong>根因</strong>：模板的 <code>%{ if role == "tor" }</code> 沒加 <code>~</code> trim 修飾詞，非 tor 分支的渲染結果多出一行空白，字串 diff 判定 user_data 變了而重建 VM。</li>
+    <li><strong>修法</strong>：在指示詞加上 <code>~</code>。</li>
+    <li><strong>怎麼確認修好</strong>：用 <code>terraform console</code> 渲染非 tor 分支，再用 <code>diff</code> 比對修改前後，輸出逐字元相同，<code>terraform plan</code> 只剩 tor 的變更。</li>
+    <li><strong>相關</strong>：修改模板時的注意事項見 <a href="bgp-fabric.html#template-pitfalls">FRR / iBGP Fabric</a>。</li>
+  </ul>
+</section>
 
-    <h3>Phase 8 · ArgoCD ↔ GitLab GitOps 整合</h3>
+<h3 id="phase-2">Phase 2</h3>
+<p><strong>Phase 2 · 真實拓樸與雙網路</strong>：本階段 0 筆。這個階段把測試機器換成真實拓樸，網路拆成 <code>k8s-net</code> 與 <code>mgmt-net</code>，過程沒有留下需要登錄的 bug。雙網路的設計見<a href="network-architecture.html#two-networks">網路架構總覽</a>。</p>
 
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>#</th><th>症狀</th><th>根因</th><th>修法</th></tr></thead>
-        <tbody>
-          <tr><td class="mono">45</td><td>驗證 ArgoCD 對接自架 GitLab 時,叢集內幾乎所有 pod 對 apiserver(不管 ClusterIP <code>172.18.0.1:443</code> 還是三台 master 的 <code>6443</code>)一律 <code>Connection timed out</code>,但已經跑很久、沒重啟過的 pod(coredns、cilium-operator 等)完全正常</td><td>bastion 的 <code>keycloak-net</code> 這個 Docker 自訂 network,靠 Docker 預設「新 network 依序往上分配 <code>/16</code>」的規則(<code>172.17</code>、<code>172.18</code>、<code>172.19</code>……),剛好撞進 <code>172.18.0.0/16</code>——跟這個叢集的 Service ClusterIP CIDR 完全重疊。bastion 同時有 <code>ip_forward=1</code> 又實際參與 BGP fabric,任何目的地在 <code>172.18.0.0/16</code> 的封包只要行經 bastion,就會被導去本機的 <code>keycloak-net</code> bridge、到不了真正的 apiserver ClusterIP。三點同步 <code>tcpdump</code>(master/TOR/worker)才追出這個地址重疊</td><td>停用/移除 <code>keycloak-net</code> 跟相關 container(資料留在 <code>/userap</code> 沒動),<code>/etc/docker/daemon.json</code> 加 <code>"default-address-pools": [{"base": "10.99.0.0/16", "size": 24}]</code>,把以後所有新建的 Docker network 都切到一個跟 k8s-net/pod CIDR/Service CIDR/mgmt-net 都不重疊的範圍,重跑 <code>keycloak.yml</code> 用 IaC 乾淨重建;同步補進 <code>openstack/templates/bastion-init.sh.tftpl</code>,不然又是 #10/#34/#38 那個「手動修的 fix 沒寫進 code」的坑</td></tr>
-          <tr><td class="mono">46</td><td>追查上面那個逾時問題時發現,<code>cilium-dbg status --verbose</code> 顯示 <code>Routing: Host: Legacy</code>、<code>Masquerading: IPTables</code>——照理說這個叢集拿掉 kube-proxy、全交給 Cilium eBPF 資料平面,不應該還停在 legacy iptables masquerade 模式</td><td><code>kubeProxyReplacement: true</code> 只決定「Service 負載平衡用不用 eBPF」,不會連帶打開 <code>bpf.masquerade</code>——這是 chart 裡兩個獨立的開關,<code>cilium-values.yaml.j2</code> 從沒明確設過後者,預設值就是 <code>false</code>(legacy 模式),不是跑起來自動降級。kernel 6.8、Cilium 1.19.6 都遠超過 BPF host routing 官方要求的 5.10+,原本就具備條件</td><td><code>cilium-values.yaml.j2</code> 明確加 <code>bpf: {masquerade: true}</code>,重跑 <code>k8s/cilium.yml</code> + 重啟 daemonset,<code>cilium-dbg status --verbose</code> 確認變成 <code>Host: BPF</code>/<code>Masquerading: BPF</code>——這是真實存在的設定缺口,但驗證後<strong>跟 #45 一樣,都不是 #45 症狀（apiserver 連線逾時）的根因</strong>,修完之後同一個逾時問題原封不動</td></tr>
-          <tr><td class="mono">47</td><td>接續 #45/#46:排除掉那兩個之後,<code>pod → 節點真實 IP</code>(唯一會踩到的情境是 <code>kubernetes</code> service 直接指向三台 master <code>6443</code>)的新連線依然 100% 逾時,一路查到 OpenStack Neutron OVS / hypervisor underlay,tenant 身份查無可查</td><td><strong>不是這個 repo 管得到的層級</strong>:pod-CIDR(<code>172.16.0.0/16</code>)來源的封包,在 OpenStack fabric 裡被靜默丟棄——<strong>但只限「目的地不是 TOR」的情況</strong>;pod → TOR 本身、以及節點自己真實 IP 來源的封包(不管目的地是誰,包含 TOR/master/worker/L4LB)都 100% 暢通。用 <code>cilium-dbg monitor</code> 證實 Cilium 每次都乖乖把 SYN 送上 <code>ens3</code>(<code>action: allow</code>,沒有任何 drop event),問題不在 Cilium 的 policy/datapath;Neutron port 的 MAC/IP 也逐一查過沒有衝突。可疑的是同一個 project 下新增了 3 台不是這個 repo 管理的 VM(<code>hw-k8s-1/2/3</code>,跟既有節點的 port 設定明顯不同——它們是預設 <code>port_security_enabled: true</code> + 掛 security group,既有節點統一是 <code>false</code>),時間點吻合但因為租戶身份查不到 OVN Southbound DB / hypervisor OVS flow table,<strong>無法證明因果關係,只能證明相關性</strong></td><td><strong>繞過,不是修好底層問題</strong>:Cilium 官方本來就有專門對付這個情境的旗標 <code>enable-remote-node-masquerade</code>(文件明講「BPF masquerade 預設會跳過對 remote-node/kube-apiserver identity 的 SNAT,不受 <code>ipv4NativeRoutingCIDR</code> 控制」,完全對應觀察到的行為)——在 <code>cilium-values.yaml.j2</code> 用 <code>extraConfig</code> escape hatch 打開,把 pod → 節點真實 IP 這條流量的來源位址強制 SNAT 成節點自己的 IP,讓它在 fabric 眼裡跟「一直都暢通」的節點對節點流量沒有分別。<strong>這是這次唯一一個違背原始架構意圖(pod 內部一律帶真實 IP、NAT 只在 TOR 發生一次)的設定</strong>,細節與取捨見 <a href="role-cilium.html#remote-node-masquerade">Role: cilium</a> 跟 <code>CLAUDE.md</code>「Architecture notes」。有個容易漏掉的陷阱:改 <code>extraConfig</code> 只會更新 ConfigMap,<code>helm upgrade</code> 的 <code>kubectl rollout status</code> 會回報「成功」但其實<strong>沒有真的重啟任何 pod</strong>(DaemonSet 的 pod template 沒變),BPF 程式不會重新編譯載入——一定要手動 <code>kubectl -n cilium rollout restart daemonset/cilium</code> 才會生效</td></tr>
-        </tbody>
-      </table>
-    </div>
+<h3 id="phase-3">Phase 3</h3>
+<p><strong>Phase 3 · Ansible、kubeadm 與 Cilium native routing</strong>：本階段 14 筆。涵蓋 Ansible 框架、CRI-O、kubeadm HA 與 Cilium native routing。Role 頁見 <a href="ansible-framework.html">Ansible 框架設計</a>與 <a href="role-kubeadm.html">Role: kubeadm</a>。</p>
 
-    <div class="callout callout-tip">
-      <strong>✅ #47 已解決(繞過),但讀這段之前務必看清楚:這是 workaround,不是「原來根因就在這裡」</strong>
-      <p>#45、#46 都是真實存在、已修好的 bug,但修完之後 <code>argocd-application-controller</code>
-        這類需要對 apiserver 建立<strong>全新連線</strong>的 pod 仍然逾時,問題沒解決——這才發現
-        #45/#46 只是順路撞到的另外兩個坑,不是主因。用分層測試(pod↔pod 同節點/跨節點、
-        pod→一般 Service ClusterIP、pod→apiserver ClusterIP/直接後端 IP)精準收斂出唯一會壞的
-        路徑是「pod 發起、目的地是節點真實 IP(k8s-net host IP,不是 pod IP)」——<code>kubernetes</code>
-        這個 service 沒有 selector,Endpoints 直接指向三台 master 的 <code>6443</code>,剛好命中這條路徑。</p>
-      <p>用 <code>cilium-dbg monitor</code> + 三點同步 <code>tcpdump</code>(來源 pod 所在節點 / 收到連線的
-        master / TOR)定位:SYN 從 pod 以 <code>orig-ip 0.0.0.0</code>(未 masquerade,native routing
-        模式下這是設計上正確的行為)直接從節點的 <code>ens3</code> 送出,master 準時收到、立刻回
-        SYN-ACK 且依標準 TCP 行為重傳 4 次;master 的路由(<code>via TOR dev ens3</code>)跟 ARP
-        (跟 TOR 自己回報的 MAC 完全吻合,非快取過期)都正確——但 TOR 那端同步抓包,對這個目的地
-        <strong>完全零封包</strong>。tcpdump 抓包點在 kernel 網路層最前端,比 routing/iptables/rp_filter
-        都早,0 封包代表這個 SYN-ACK 沒有從 master 的虛擬網卡送到 TOR 的虛擬網卡之間的這段線上,
-        不是任何一台 VM 內部的規則擋掉的。</p>
-      <p>已經排除的可能:Cilium 的 masquerade/routing 設定(#46,行為符合設計)、bastion 的 Docker
-        CIDR 衝突(#45)、Cilium daemonset 本身狀態、ARP 快取過期、Terraform 宣告的 Neutron port
-        security(<code>openstack/main.tf</code> 的 <code>openstack_networking_port_v2.fabric</code>
-        對<strong>所有節點</strong>——不只 TOR/L4LB/worker——都是 <code>port_security_enabled = false</code>,
-        master 沒有被漏掉)、Neutron port 的 MAC/IP 衝突(逐一查過 <code>k8s-net</code> 上所有 port,沒有
-        重複)、跨租戶網路洩漏(<code>k8s-net</code> 沒有標成 shared,新增的 3 台 VM 屬於同一個
-        project,不是別人接進來的)。也解釋了為什麼「舊的 pod 都沒事」:coredns、cilium-operator 這類
-        已經跑了好幾天沒重啟過的 pod,對 apiserver 的長連線是在這個問題出現之前就建立好的,連線只要沒斷
-        就不需要重新握手,唯一會踩到這條路徑的是任何需要對 apiserver 建全新連線的 pod。</p>
-      <p><strong>真正的根因沒有解開,只是繞過了</strong>——它在 OpenStack Neutron OVS / hypervisor
-        underlay 這一層,VM 內部(包含這個 repo 管得到的所有 Ansible/Terraform 設定)已經無法再往下查:
-        master 跟 TOR 是否在同一台 compute host 上、對應 <code>br-int</code> 的 OVS flow table
-        (<code>ovs-ofctl dump-flows</code>)、OVN Southbound DB 裡每個 logical port 的 chassis
-        binding、compute host 上有沒有 Neutron security group 以外的其他防火牆機制(ebtables/nftables)
-        ——這些都需要 hypervisor / OpenStack 管理層權限,這個共享雲(<code>openstack.cloudnative.tw</code>)
-        目前只有一般 project 身份,查不到。#47 的 <code>enable-remote-node-masquerade</code> 這個修法
-        解決的是「pod → apiserver 連不上」這個<strong>症狀</strong>,不是解決「pod-CIDR 來源的封包在
-        fabric 裡被吃掉」這個<strong>根因</strong>——如果之後這朵雲的維運方查出真正原因並修好底層
-        fabric,這個 <code>extraConfig</code> 設定理論上可以拿掉,讓 pod 對 apiserver 的連線恢復帶著
-        真實 pod IP(目前的代價是 apiserver 的 audit log / 連線來源全部只看到節點 IP,看不到是哪個 pod
-        發起的)。</p>
-    </div>
+<section class="bug" id="bug-9">
+  <h4>#9 · bastion 的 /etc/hosts 寫入失敗：Device or resource busy</h4>
+  <ul>
+    <li><strong>症狀</strong>：寫 bastion 的 <code>/etc/hosts</code> 失敗，錯誤是 <code>[Errno 16] Device or resource busy</code>。</li>
+    <li><strong>根因</strong>：<code>ansible_connection: local</code> 的前提錯了。實際執行位置是 ansible-runner 容器自己的檔案系統，不是 bastion 本機。Docker 把容器內的 <code>/etc/hosts</code> bind-mount 成特殊檔案，擋掉 atomic rename。</li>
+    <li><strong>修法</strong>：移除 <code>ansible_connection: local</code>，bastion 和其他節點一樣走正常 SSH。</li>
+    <li><strong>怎麼確認修好</strong>：重跑 playbook，bastion 的 <code>/etc/hosts</code> 寫入成功，不再出現 Errno 16。</li>
+    <li><strong>相關</strong>：<a href="ansible-framework.html#execution-model">Ansible 框架設計</a>。</li>
+  </ul>
+</section>
 
-    <h3>看得出來的模式</h3>
-    <div class="card-grid">
-      <div class="card">
-        <div class="card-icon">🔁</div>
-        <h4>「conf.all/default 不追溯」出現兩次(#4、#5)</h4>
-        <p>同一個 kernel 網路設定的陷阱,在不同時間點被不同的 sysctl
-          參數各撞了一次——第一次修完之後應該要意識到這是一個通用模式,
-          但實際上是各自獨立發現的。</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">🧩</div>
-        <h4>ansible 字串處理陷阱出現三次(#13、#17、#22)</h4>
-        <p>模板頭沒帶註解字元、YAML block 純量縮排、command 模組
-          shlex 解析——都是「以為模板/字串照抄就會照預期渲染」結果不是
-          的案例,值得養成「渲染完先看實際輸出」的習慣。</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">🔬</div>
-        <h4>所有根因都靠實測工具找到,不是讀文件猜到</h4>
-        <p><code>tcpdump -e</code> 三點同時抓包(#6)、<code>terraform
-          console</code> + <code>diff</code>(#8)、<code>ip route get</code>
-          (#18)、<code>vtysh show ip route</code>(#19)——每一個
-          「懷疑」都有對應的實測驗證步驟,不是改完就假設好了。</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">🔐</div>
-        <h4>「憑證 SAN 綁的是特定字串/IP,中間節點不能頂替」出現三次(#16、#23、#24)</h4>
-        <p>certificate-key 加密 key 的一次性語意(#16)、
-          <code>upload-certs</code> 單獨呼叫時猜錯 advertise
-          address(#23)、Cilium 直連 tor 的 IP 而不是
-          <code>control-plane-endpoint</code> 的 hostname(#24)——三次
-          都是同一類「以為某個中間位址可以拿來頂替真正的權威來源」的
-          假設,分別在不同時間點、不同元件上各自撞了一次才發現。</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">👻</div>
-        <h4>手動修的 fix 沒寫進 code,bastion 一重建就會再犯一次(#10、#34、#38)</h4>
-        <p>Docker MTU(#10)第一次是手動改 <code>/etc/docker/daemon.json</code>
-          修好的,從沒補進 cloud-init;kubectl/kubeconfig/<code>k8s-api.internal</code>
-          DNS 記錄(#34)也是同樣的性質——bastion 過去被當成「裝一次就不會再
-          重建」的節點,直到真的因為要加持久化資料碟而重建一次,才發現這些
-          「只存在於某台機器記憶裡」的手動修復全部得重來一遍。現在 #10 的
-          修法已經補回 <code>bastion-init.sh.tftpl</code>,#34 也拆成獨立
-          playbook 收進 <code>playbooks/bastion.yml</code>——但這提醒了一個
-          通用原則:任何「手動 SSH 上去改一行設定」的修法,沒有回寫進
-          Terraform/Ansible,就等於沒修過,只是還沒遇到下一次重建而已。
-          #38 是同一個教訓的第三次:#10 當初只把 <code>daemon.json</code>
-          改到「default bridge 的 MTU 對了」,沒想到 Docker 之後新建的每個
-          自訂 network(GitHub runner 的 <code>github_network_*</code>、
-          <code>keycloak-net</code>)都不會繼承這個設定——不是「忘記寫回
-          code」,而是當初的修法本身涵蓋範圍就不夠廣,現場多活了一段時間
-          才在新的 network 上第二次撞到同一顆地雷。</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">🌱</div>
-        <h4>只在「重建」情境下驗證過的 playbook,沒人測過「從 0」情境(#34、#37)</h4>
-        <p>#34 把 kubeconfig/DNS 修好,前提是叢集本來就活著(bastion 單獨重建);
-          #37 才發現同一份 playbook 在「叢集從未建立過」這個更早的情境下會直接
-          硬失敗——兩個情境共用同一段程式碼,卻只有其中一個真的被跑過驗證。
-          修法是讓程式碼自己偵測「叢集存不存在」並各自安全跳過,不要求操作者
-          記得兩種情境該用哪個順序。</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">🕳️</div>
-        <h4>負面斷言沒有正面對照組,擋不住「整個壞掉」偽裝成「精準擋下」(#36)</h4>
-        <p>驗證 network policy 時只測了「應該被擋的連線真的失敗」,沒有
-          同時測「不該被擋的連線真的成功」——結果 <code>egressDeny</code>
-          少了 <code>enableDefaultDeny: {egress: false}</code>,把幾乎全
-          叢集的 pod egress 打成 default-deny,而不是精準擋下一個 port。
-          兩種情況下,「應該被擋的連線」都會失敗,測試都顯示通過——
-          唯一能分辨的方法是額外測一個「不該被擋的連線」有沒有跟著死掉。
-          這次還疊加了 #34 已經記錄過的同一個盲點:hostNetwork pod
-          (bastion 自己的 ansible/kubectl 存取)不受影響,完全看不出
-          叢集其他地方已經斷線,問題撐了快 10 小時才在 code review 時
-          被抓到,不是靠監控或使用者回報。通用原則:任何「擋住 X」的
-          驗證,都要配一個「X 以外的東西還能通」的正面對照組,不然沒辦法
-          分辨「精準擋下」跟「整個壞掉,剛好包含 X」。</p>
-      </div>
-    </div>
+<section class="bug" id="bug-10">
+  <h4>#10 · bastion 上 docker build 卡在 apt-get update</h4>
+  <ul>
+    <li><strong>症狀</strong>：bastion 上的 <code>docker build</code> 跑到某個 <code>apt-get update</code> 就卡住，重試無限迴圈。</li>
+    <li><strong>根因</strong>：k8s-net 與 mgmt-net 的 MTU 都是 1442（OpenStack overlay 的額外標頭），Docker 預設 bridge 的 MTU 是 1500，大封包被靜默黑洞掉。</li>
+    <li><strong>修法</strong>：<code>/etc/docker/daemon.json</code> 加 <code>{"mtu": 1442}</code> 並重啟 docker。<code>Acquire::ForceIPv4</code> 是排查時誤判的旁支，沒有解決問題，保留無害。頂層 <code>mtu</code> 只對 dockerd 自己建的 default bridge 生效，自訂 network 不會繼承，同一類黑洞後來在 #38 又出現一次。</li>
+    <li><strong>怎麼確認修好</strong>：bastion 上的 <code>docker build</code> 跑得完，<code>apt-get update</code> 不再卡住。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-38">#38</a>、<a href="troubleshooting.html#bug-45">#45</a> 是 Docker network 預設值的同類問題。設定位置見 <a href="infrastructure.html#docker-daemon">Terraform / OpenStack</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-11">
+  <h4>#11 · stdout_callback = yaml 報錯，輸出格式壞掉</h4>
+  <ul>
+    <li><strong>症狀</strong>：<code>stdout_callback = yaml</code> 報錯，ansible-playbook 的輸出格式壞掉。</li>
+    <li><strong>根因</strong>：<code>community.general.yaml</code> callback 在該 collection 12.0.0 被移除。</li>
+    <li><strong>修法</strong>：改用內建的 <code>default</code> callback，搭配 <code>result_format = yaml</code>。</li>
+    <li><strong>怎麼確認修好</strong>：ansible-playbook 恢復正常的 YAML 格式輸出，沒有 callback 錯誤。</li>
+    <li><strong>相關</strong>：設定位置見 <a href="ansible-framework.html">Ansible 框架設計</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-12">
+  <h4>#12 · ansible 警告 group and host with same name</h4>
+  <ul>
+    <li><strong>症狀</strong>：ansible 印出「group and host with same name」警告。</li>
+    <li><strong>根因</strong>：YAML 版本的 inventory 為 tor 與 bastion 各開了一個和自己同名的 group。</li>
+    <li><strong>修法</strong>：inventory 改成 INI 格式。沒有 group 標頭的 host 行自動歸為 ungrouped，不需要這個繞路。</li>
+    <li><strong>怎麼確認修好</strong>：重新產生 inventory 後執行 <code>ansible all -m ping</code>，沒有再出現該警告。</li>
+    <li><strong>相關</strong>：inventory 設計見 <a href="ansible-framework.html#inventory">Ansible 框架設計</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-13">
+  <h4>#13 · haproxy 設定驗證失敗：unknown keyword 'Ansible'</h4>
+  <ul>
+    <li><strong>症狀</strong>：haproxy 設定驗證失敗，錯誤是 <code>unknown keyword 'Ansible' out of section</code>。</li>
+    <li><strong>根因</strong>：<code>{{ ansible_managed }}</code> 模板頭沒有帶 <code>#</code> 註解字元，渲染出來的第一行不是合法的 haproxy 語法。</li>
+    <li><strong>修法</strong>：改成純文字的 <code>#</code> 註解。</li>
+    <li><strong>怎麼確認修好</strong>：<code>validate: "haproxy -c -f %s"</code> 通過，haproxy 正常重啟。</li>
+    <li><strong>相關</strong>：與 <a href="troubleshooting.html#bug-17">#17</a>、<a href="troubleshooting.html#bug-22">#22</a> 同屬模板與字串處理陷阱。細節見 <a href="role-apiserver-lb.html#bug-13">Role: apiserver-lb</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-14">
+  <h4>#14 · haproxy stats 頁面打不開</h4>
+  <ul>
+    <li><strong>症狀</strong>：haproxy 的 stats 頁面打不開。</li>
+    <li><strong>根因</strong>：<code>listen stats</code> 沿用全域 <code>defaults</code> 的 <code>mode tcp</code>，但 stats 頁面本質是 HTTP 服務。</li>
+    <li><strong>修法</strong>：在 <code>listen stats</code> 區塊內明確設回 <code>mode http</code>。</li>
+    <li><strong>怎麼確認修好</strong>：對 stats 端點發 HTTP 請求，能取得頁面和 CSV。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-21">#21</a> 是 smoke-test 讀這份 CSV 時的欄位問題。細節見 <a href="role-apiserver-lb.html#bug-14">Role: apiserver-lb</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-15">
+  <h4>#15 · kubeadm init preflight 因 conntrack 缺失而 fatal</h4>
+  <ul>
+    <li><strong>症狀</strong>：<code>kubeadm init</code> 的 preflight 直接 fatal，錯誤是 <code>[ERROR FileExisting-conntrack]</code>。</li>
+    <li><strong>根因</strong>：節點沒有安裝 conntrack 套件。</li>
+    <li><strong>修法</strong>：kubelet role 一次裝齊 <code>conntrack</code>、<code>socat</code>、<code>ebtables</code>、<code>ethtool</code>，避免每個 preflight 錯誤各修一次。</li>
+    <li><strong>怎麼確認修好</strong>：<code>kubeadm init</code> 的 preflight 階段通過。</li>
+    <li><strong>相關</strong>：細節見 <a href="role-kubelet.html#bug-15">Role: kubelet</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-16">
+  <h4>#16 · 第二台 master join 失敗：cipher: message authentication failed</h4>
+  <ul>
+    <li><strong>症狀</strong>：第二台 master join 失敗，錯誤是 <code>cipher: message authentication failed</code>。</li>
+    <li><strong>根因</strong>：兩台 master 同時各自呼叫 <code>--upload-certs</code>，互相覆蓋對方的 certificate-key。</li>
+    <li><strong>修法</strong>：只在 <code>kubeadm_init</code> 呼叫一次，結果透過 hostvars 共用給所有 join 的節點。</li>
+    <li><strong>怎麼確認修好</strong>：兩台 master 同時 join 都成功。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-23">#23</a>、<a href="troubleshooting.html#bug-24">#24</a> 同屬憑證綁定特定字串的問題。細節見 <a href="role-kubeadm.html#bug-16">Role: kubeadm</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-17">
+  <h4>#17 · 3 台 master 的 kube-controller-manager 同時消失</h4>
+  <ul>
+    <li><strong>症狀</strong>：3 台 master 的 kube-controller-manager 同時消失。</li>
+    <li><strong>根因</strong>：<code>blockinfile</code> 用 YAML block 純量（<code>block: |</code>）寫多行內容，縮排被 YAML 吃成 0，插進 manifest 後語法錯誤。</li>
+    <li><strong>修法</strong>：改用單行雙引號字串，手動帶 <code>\n</code>。</li>
+    <li><strong>怎麼確認修好</strong>：3 台 master 的 kube-controller-manager 都恢復運作。</li>
+    <li><strong>相關</strong>：與 <a href="troubleshooting.html#bug-13">#13</a>、<a href="troubleshooting.html#bug-22">#22</a> 同屬字串處理陷阱。細節見 <a href="role-cilium.html#bug-17">Role: cilium</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-18">
+  <h4>#18 · Cilium init container 連 ClusterIP 逾時，SYN 來源位址錯誤</h4>
+  <ul>
+    <li><strong>症狀</strong>：Cilium 的 init container 連 ClusterIP 逾時，tcpdump 顯示 SYN 帶著錯的來源位址送出。</li>
+    <li><strong>根因</strong>：本機發起連線時，kernel 用 DNAT 之前的目的地做路由查詢來決定來源位址。ClusterIP 網段在 k8s-net 上沒有專屬路由，查詢落到有預設路由的 mgmt-net。</li>
+    <li><strong>修法</strong>：用 netplan 加一條 <code>scope link</code> 的 service CIDR 靜態路由，讓查詢落在 k8s-net 上。</li>
+    <li><strong>怎麼確認修好</strong>：<code>ip route get</code> 對 service CIDR 內的位址回報走 k8s-net 的介面，來源位址是 <code>10.10.0.x</code>，Cilium 正常啟動。</li>
+    <li><strong>相關</strong>：概念見 <a href="network-architecture.html#service-cidr">網路架構總覽</a>，實作見 <a href="role-kubelet.html#bug-18">Role: kubelet</a>，排查見 <a href="role-cilium.html#bug-18">Role: cilium</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-19">
+  <h4>#19 · FRR 的 network 陳述式一直是 invalid, not advertised</h4>
+  <ul>
+    <li><strong>症狀</strong>：FRR 的 <code>network</code> 陳述式一直停在 <code>invalid, not advertised</code>。</li>
+    <li><strong>根因</strong>：zebra 不吸收 Cilium 建的「<code>proto kernel</code> 但帶 <code>via</code> gateway」路由，<code>redistribute kernel</code> 也沒用。第一次嘗試用 <code>distance 255</code> 的 Null0 backing route 仍然 invalid，因為 255 在 FRR 代表永遠不會被選上。</li>
+    <li><strong>修法</strong>：改用 <code>distance 200</code> 的 Null0 靜態路由，只當作 BGP 的存在憑證。</li>
+    <li><strong>怎麼確認修好</strong>：<code>show ip bgp</code> 顯示 <code>valid, sourced, local, best</code>，且 <code>ip route get</code> 仍選中 <code>cilium_host</code>。</li>
+    <li><strong>相關</strong>：完整推導見 <a href="role-cilium.html#bug-19">Role: cilium</a>，機制說明見 <a href="bgp-fabric.html#pod-cidr-announce">FRR / iBGP Fabric</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-20">
+  <h4>#20 · 改 CIDR 重建叢集後，pod 卡在 ContainerCreating：no CNI configuration file</h4>
+  <ul>
+    <li><strong>症狀</strong>：改 CIDR 重建叢集後，pod 卡在 <code>ContainerCreating</code>，報 <code>no CNI configuration file</code>，但檔案明明存在。</li>
+    <li><strong>根因</strong>：reset 時把 <code>/etc/cni/net.d</code> 整個目錄刪除再重建，CRI-O 對目錄 inode 的監看失效，認不出新目錄。</li>
+    <li><strong>修法</strong>：只清目錄內容、保留目錄本身，另外加一次 crio 重啟作為保險。</li>
+    <li><strong>怎麼確認修好</strong>：重建後 pod 能正常建立 sandbox，不再出現 <code>no CNI configuration file</code>。</li>
+    <li><strong>相關</strong>：細節見 <a href="role-kubeadm.html#bug-20">Role: kubeadm</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-21">
+  <h4>#21 · smoke-test 的 haproxy UP 判斷永遠失敗</h4>
+  <ul>
+    <li><strong>症狀</strong>：smoke-test 裡 haproxy backend 的 UP 判斷永遠失敗。</li>
+    <li><strong>根因</strong>：判斷式對整行 CSV 字串找 <code>server,UP</code>，但 status 是第 18 欄，中間隔了十幾個欄位。</li>
+    <li><strong>修法</strong>：先用 <code>cut -d, -f1,2,18</code> 取出 <code>pxname,svname,status</code> 再比對。</li>
+    <li><strong>怎麼確認修好</strong>：smoke-test 的 haproxy 段落通過，3 台 master 判定為 <code>UP</code>。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-14">#14</a>。細節見 <a href="testing.html#check-haproxy">測試與 smoke-test</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-22">
+  <h4>#22 · smoke-test 建測試 pod 失敗：Invalid JSON Patch</h4>
+  <ul>
+    <li><strong>症狀</strong>：smoke-test 建測試 pod 失敗，錯誤是 <code>Invalid JSON Patch</code>。</li>
+    <li><strong>根因</strong>：<code>ansible.builtin.command</code> 收到純字串時用 shlex 解析（不經 shell），<code>--overrides={"spec":...}</code> 裡的雙引號被當成 quoting 字元吃掉。</li>
+    <li><strong>修法</strong>：改用 <code>argv:</code> list 形式傳參數。</li>
+    <li><strong>怎麼確認修好</strong>：smoke-test 能建出兩個測試 pod，跨節點連線段落執行完畢並清掉 pod。</li>
+    <li><strong>相關</strong>：與 <a href="troubleshooting.html#bug-13">#13</a>、<a href="troubleshooting.html#bug-17">#17</a> 同屬字串處理陷阱。細節見 <a href="testing.html#ansible-pitfalls">測試與 smoke-test</a>。</li>
+  </ul>
+</section>
+
+<h3 id="phase-4">Phase 4</h3>
+<p><strong>Phase 4 · 取代 kube-proxy、Istio 與 Cloudflare Tunnel</strong>：本階段 6 筆。涵蓋 kube-proxy 移除、叢集升到 Kubernetes 1.34、Istio 與 Cloudflare Tunnel。</p>
+
+<section class="bug" id="bug-23">
+  <h4>#23 · 單獨呼叫 upload-certs，x509 SAN 不匹配</h4>
+  <ul>
+    <li><strong>症狀</strong>：單獨呼叫 <code>kubeadm init phase upload-certs</code> 時，出現 x509 SAN 不匹配。</li>
+    <li><strong>根因</strong>：單獨執行這個 phase 不會沿用完整 <code>kubeadm init</code> 的上下文，而是自己建一份預設 <code>InitConfiguration</code>，靠「找預設路由的介面」偵測 advertise address，結果落到有預設路由的 mgmt-net。</li>
+    <li><strong>修法</strong>：帶一份最小的 <code>--config</code>，明確指定 <code>localAPIEndpoint.advertiseAddress</code>。</li>
+    <li><strong>怎麼確認修好</strong>：<code>upload-certs</code> 不再出現 SAN 錯誤，其他 master 可以成功 join。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-16">#16</a>、<a href="troubleshooting.html#bug-24">#24</a>。細節見 <a href="role-kubeadm.html#bug-23">Role: kubeadm</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-24">
+  <h4>#24 · 移除 kube-proxy 後 cilium pod Init:CrashLoopBackOff，TLS 驗證失敗</h4>
+  <ul>
+    <li><strong>症狀</strong>：移除 kube-proxy 後，所有 cilium pod 卡在 <code>Init:CrashLoopBackOff</code>，TLS 憑證驗證失敗。</li>
+    <li><strong>根因</strong>：<code>k8sServiceHost</code> 設成 tor 的 IP，但 apiserver 憑證的 SAN 只包含 <code>kubeadm init --control-plane-endpoint</code> 當時的字串與三台 master 的 IP，tor 不在清單裡。</li>
+    <li><strong>修法</strong>：改用 <code>apiserver_hostname</code>（<code>k8s-api.internal</code>）這個 hostname，不使用任何 IP。</li>
+    <li><strong>怎麼確認修好</strong>：所有 cilium pod 從 <code>Init:CrashLoopBackOff</code> 變成 <code>1/1 Running</code>。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-16">#16</a>、<a href="troubleshooting.html#bug-23">#23</a>。細節見 <a href="role-cilium.html#bug-24">Role: cilium</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-25">
+  <h4>#25 · cloudflare_tunnel_token is undefined，secrets.yml 明明存在</h4>
+  <ul>
+    <li><strong>症狀</strong>：出現 <code>cloudflare_tunnel_token is undefined</code>，但 <code>secrets.yml</code> 檔案確實存在。</li>
+    <li><strong>根因</strong>：<code>group_vars/secrets.yml</code> 是扁平檔案，檔名不對應任何真實存在的 inventory group，ansible 的自動載入機制完全忽略它。</li>
+    <li><strong>修法</strong>：改成目錄型寫法：<code>group_vars/all/main.yml</code> 與 <code>group_vars/all/secrets.yml</code>。</li>
+    <li><strong>怎麼確認修好</strong>：重跑 playbook，<code>cloudflare_tunnel_token</code> 有值，assert 通過。</li>
+    <li><strong>相關</strong>：目錄結構見 <a href="ansible-framework.html#group-vars-dir">Ansible 框架設計</a>，細節見 <a href="role-cloudflare-tunnel.html#bug-25">Role: cloudflare_tunnel</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-26">
+  <h4>#26 · 升級 kubernetes_minor_version 後，套件版本沒跟著變</h4>
+  <ul>
+    <li><strong>症狀</strong>：升級 <code>kubernetes_minor_version</code> 後，kubeadm、kubelet、kubectl 的套件版本沒有跟著變。</li>
+    <li><strong>根因</strong>：<code>dpkg_selections: hold</code> 鎖住套件，而 <code>state: present</code> 的語意只是「有裝就好」，兩者疊加讓已安裝的套件永遠不會被動到。</li>
+    <li><strong>修法</strong>：安裝前先解除 hold，安裝 task 改成 <code>state: latest</code>。repo URL 已綁定 minor 版本，<code>latest</code> 不會跳 minor。</li>
+    <li><strong>怎麼確認修好</strong>：升級 <code>kubernetes_minor_version</code> 後重跑 playbook，<code>kubelet --version</code> 顯示新的 minor。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-27">#27</a>、<a href="troubleshooting.html#bug-61">#61</a>。細節見 <a href="role-kubelet.html#bug-26">Role: kubelet</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-27">
+  <h4>#27 · CRI-O 1.34 的 crictl pull 失敗：short name mode is enforcing</h4>
+  <ul>
+    <li><strong>症狀</strong>：升級到 CRI-O 1.34 後，<code>crictl pull busybox:1.36</code> 失敗，錯誤是 <code>short name mode is enforcing</code>。</li>
+    <li><strong>根因</strong>：CRI-O 1.34 的 <code>short-name-mode</code> 預設是 <code>enforcing</code>。即使 <code>unqualified-search-registries</code> 只有一個項目，也拒絕自動補全未限定的 image 名稱。</li>
+    <li><strong>修法</strong>：新增 <code>registries.conf.d</code> drop-in，明確設 <code>short-name-mode = "permissive"</code>。</li>
+    <li><strong>怎麼確認修好</strong>：在節點上重跑 <code>crictl pull busybox:1.36</code> 成功，或重跑 smoke-test。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-26">#26</a> 同樣是升級 minor 版本才暴露。細節見 <a href="role-crio.html#bug-27">Role: crio</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-74">
+  <h4>#74 · kubeadm-reset 卸載 Cilium 時用錯 namespace</h4>
+  <ul>
+    <li><strong>症狀</strong>：沒有錯誤訊息。<code>kubeadm-reset.yml</code> 的 <code>helm uninstall cilium</code> 其實沒有移除 release。</li>
+    <li><strong>根因</strong>：Cilium 搬到專屬的 <code>cilium</code> namespace 後，這一步仍寫 <code>helm -n kube-system uninstall cilium</code>。task 帶 <code>failed_when: false</code>，所以找不到 release 時靜默略過。</li>
+    <li><strong>修法</strong>：改用 <code>{{ cilium_namespace }}</code>，並在該 play 以 <code>vars_files</code> 載入 <code>roles/cilium/defaults/main.yml</code>。</li>
+    <li><strong>怎麼確認修好</strong>：尚未實際執行。下次跑 <code>kubeadm-reset.yml</code> 時，確認 <code>helm -n cilium list</code> 已看不到 <code>cilium</code>。</li>
+    <li><strong>相關</strong>：<code>failed_when: false</code> 會把真正的失敗一起藏起來，見<a href="#patterns">模式分析</a>。</li>
+  </ul>
+</section>
+
+<h3 id="phase-5">Phase 5</h3>
+<p><strong>Phase 5 · 加密、身份驗證、內部工具與 bastion 持久化</strong>：本階段 20 筆。涵蓋 cert-manager、Cloudflare Access、內部工具與 SSO，以及 bastion 的資料碟、Vault 與重建韌性。bastion 持久化在總覽裡屬於這個階段，所以那一批 bug 放在小分類裡。</p>
+
+<h4 id="phase-5-access">Cloudflare Access 與對外入口</h4>
+
+<section class="bug" id="bug-28">
+  <h4>#28 · 任何 *.dough-ops.com 子網域回 503，叢集內測試卻成功</h4>
+  <ul>
+    <li><strong>症狀</strong>：真實請求連任何 <code>*.dough-ops.com</code> 子網域（例如 hubble）都回 503 的 Cloudflare 錯誤頁，但在叢集內部直接測試永遠成功。</li>
+    <li><strong>根因</strong>：Cloudflare Tunnel 的 <code>originRequest.originServerName</code> 設成 zone apex（<code>dough-ops.com</code>），而 Istio Gateway 443 listener 的 SNI 比對規則是 <code>*.dough-ops.com</code>，至少要有一段子網域。apex 名稱對不上任何 filter chain，TLS handshake 在 HTTP 層之前就被 Envoy 斷線，cloudflared 回報 connection reset。</li>
+    <li><strong>修法</strong>：把 <code>originServerName</code> 改成任何帶子網域的名字。它不需要對應真實服務，這裡用 <code>gateway.dough-ops.com</code>。</li>
+    <li><strong>怎麼確認修好</strong>：用臨時 curl pod 讓 SNI 與 Host header 故意不一致，重現出和 cloudflared 相同的失敗。修好後 <code>test</code>、<code>hubble</code>、<code>dashboard</code>、<code>grafana</code>、<code>prometheus</code>、<code>alertmanager</code> 六個子網域全部重新驗證，cloudflared 的錯誤日誌不再出現。</li>
+    <li><strong>相關</strong>：細節見 <a href="role-cert-manager.html#bug-28">Role: cert_manager</a> 與 <a href="internal-tools.html#hubble-bug-28">內部工具</a>。影響範圍是所有掛在同一條 wildcard ingress 規則下的服務。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-29">
+  <h4>#29 · ssh.dough-ops.com 登入正常，瀏覽器卻沒有出現終端機</h4>
+  <ul>
+    <li><strong>症狀</strong>：瀏覽器開 <code>ssh.dough-ops.com</code>，Access 登入本身正常（curl 測試回應正確的 302），但沒有渲染出終端機介面。</li>
+    <li><strong>根因</strong>：使用了一般的 <code>self_hosted</code> Access Application，也就是涵蓋整個 <code>*.dough-ops.com</code> 的那個。瀏覽器渲染 SSH、RDP、VNC 終端機，需要專門的 <code>type: "ssh"/"rdp"/"vnc"</code> Application。</li>
+    <li><strong>修法</strong>：另建一個 <code>type: "ssh"</code>、精確匹配 <code>ssh.dough-ops.com</code> 的 Access Application。精確匹配的優先權高於萬用字元。</li>
+    <li><strong>怎麼確認修好</strong>：瀏覽器登入後出現終端機介面。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-30">#30</a>。細節見 <a href="cloudflare-manual-setup.html#bug-29">Cloudflare 設定清單</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-30">
+  <h4>#30 · 登入時出現 Unable to find your Access organization</h4>
+  <ul>
+    <li><strong>症狀</strong>：登入流程出現「Unable to find your Access organization! ... enter a valid team name.」。</li>
+    <li><strong>根因</strong>：Zero Trust 帳號的 team name 曾經從 <code>31lab</code> 改成 <code>doughops</code>。<code>GET /accounts/{id}/access/organizations</code> 回傳的 <code>auth_domain</code> 已是新值，但 <code>name</code> 欄位還停在舊值。Cloudflare 社群論壇上同樣的案例都指向這個欄位不同步。</li>
+    <li><strong>修法</strong>：用 <code>PUT /accounts/{id}/access/organizations</code> 把 <code>name</code> 改成與現在的 team 一致。</li>
+    <li><strong>怎麼確認修好</strong>：重新登入不再出現該錯誤。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-29">#29</a>。細節見 <a href="cloudflare-manual-setup.html#bug-30">Cloudflare 設定清單</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-56">
+  <h4>#56 · 換掉 Tunnel token 後，cloudflared Pod 仍用舊 token</h4>
+  <ul>
+    <li><strong>症狀</strong>：Terraform 重建 Tunnel、<code>secrets.yml</code> 更新 token 並重跑 playbook 後，叢集內的 cloudflared 仍然連不上邊緣。</li>
+    <li><strong>根因</strong>：<code>TUNNEL_TOKEN</code> 是 <code>env.valueFrom.secretKeyRef</code>，環境變數只在 Pod 啟動時讀一次。Secret 內容更新後，執行中的 Pod 拿不到新值。</li>
+    <li><strong>修法</strong>：role 在 <code>kubectl apply</code> 之後檢查輸出，只有看到 <code>secret/cloudflare-tunnel-token configured</code>（不是 <code>unchanged</code>）時，才執行 <code>kubectl -n cloudflare rollout restart deployment/cloudflared-deployment</code>。</li>
+    <li><strong>怎麼確認修好</strong>：輪替 token 後重跑 playbook，cloudflared 的 Deployment 重新 rollout，Pod 連上邊緣，最後一個 task 等到 <code>cloudflared-deployment</code> 完全 ready。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-57">#57</a> 是 bastion 上 cloudflared 的對應問題。細節見 <a href="role-cloudflare-tunnel.html#rotation-k8s">Role: cloudflare_tunnel</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-57">
+  <h4>#57 · 換掉 Tunnel token 後，bastion 上的 cloudflared 沒套用新 token</h4>
+  <ul>
+    <li><strong>症狀</strong>：token 換新後重跑 playbook，bastion 上的 cloudflared 仍使用舊 token，安裝 task 被整段跳過。</li>
+    <li><strong>根因</strong>：<code>cloudflared service install &lt;token&gt;</code> 不是冪等指令，systemd unit 已存在時會報 <code>cloudflared service is already installed at ...</code> 並拒絕重跑。role 用 unit 檔存在與否當守衛，所以 token 換新後安裝 task 永遠不會再執行。</li>
+    <li><strong>修法</strong>：另外用 <code>ansible.builtin.copy</code> 把 token 寫進 <code>/etc/cloudflared/token</code>。這個 task 每次都跑，靠內容 diff 判斷有無變化，變了才透過 handler 重啟 <code>cloudflared</code> service。</li>
+    <li><strong>怎麼確認修好</strong>：換 token 後重跑 playbook，<code>/etc/cloudflared/token</code> 內容更新且 service 重啟，Tunnel 恢復連線。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-56">#56</a>。細節見 <a href="role-cloudflare-tunnel.html#rotation-bastion">Role: cloudflare_tunnel</a>。</li>
+  </ul>
+</section>
+
+<h4 id="phase-5-rbac">內部工具與 RBAC</h4>
+
+<section class="bug" id="bug-58">
+  <h4>#58 · 自訂 ClusterRole 用 wildcard，整個 Access org 都能讀 Secrets</h4>
+  <ul>
+    <li><strong>症狀</strong>：部署前檢查發現，自訂 ClusterRole 的唯讀規則寫成 <code>apiGroups: ["*"]</code>、<code>resources: ["*"]</code>。</li>
+    <li><strong>根因</strong>：原意是用一個 wildcard 角色完全取代 <code>view</code>，因為 <code>view</code> 涵蓋不到 <code>nodes</code> 這類 cluster-scope 資源。但 RBAC 沒有排除語法，wildcard 連 <code>secrets</code> 一起放行。任何通過 Cloudflare Access 的人都能 <code>kubectl get secret -o yaml</code>。範圍是整個 GitHub org，不限 <code>oidc_admin_emails</code> 名單。可讀到的內容包括 Grafana admin 密碼、TLS 私鑰與 Cloudflare tunnel token。內建 <code>view</code> 刻意排除 <code>secrets</code> 就是為了避免這件事。</li>
+    <li><strong>修法</strong>：改成兩個 ClusterRoleBinding 疊加。繼續綁內建 <code>view</code>，沿用官方已審查、排除 secrets 的範圍。自訂角色只明確列舉要補上的 cluster-scope 資源與三個寫入 verb，完全不用 wildcard。</li>
+    <li><strong>怎麼確認修好</strong>：部署後用 <code>kubectl auth can-i ... --as=system:authenticated</code> 逐項驗證。<code>get pods</code>、<code>delete pods</code>、<code>get nodes</code>、<code>patch configmaps</code> 為 yes，<code>get secrets</code>、<code>delete configmaps</code>、<code>update deployments</code> 為 no。</li>
+    <li><strong>相關</strong>：細節見 <a href="internal-tools.html#bug-58">內部工具</a>。權限矩陣見 <a href="user-guide.html#permissions">叢集使用手冊</a>。</li>
+  </ul>
+</section>
+
+<h4 id="phase-5-bastion">bastion 持久化與重建韌性</h4>
+
+<section class="bug" id="bug-31">
+  <h4>#31 · bastion 加 Cinder 資料碟後 terraform apply 回 400</h4>
+  <ul>
+    <li><strong>症狀</strong>：bastion 加上額外的 Cinder 資料碟後，<code>terraform apply</code> 回 400，錯誤是 <code>Boot sequence for the instance and image/block device mapping combination is not valid</code>。</li>
+    <li><strong>根因</strong>：這朵雲的 Nova 不接受頂層 <code>image_name</code>（隱含 <code>ImageRef</code>）和任何 <code>block_device_mapping_v2</code> 條目並存，即使那些條目全是 <code>boot_index=-1</code> 的非開機資料碟。</li>
+    <li><strong>修法</strong>：有額外資料碟的 VM 改用明確的 <code>block_device</code> 宣告開機碟，<code>image_name</code> 留空。</li>
+    <li><strong>怎麼確認修好</strong>：bastion 連同兩顆資料碟建立成功，<code>terraform apply</code> 不再回 400。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-32">#32</a>、<a href="troubleshooting.html#bug-33">#33</a> 是修這一題時連鎖出現的問題。設計見 <a href="infrastructure.html#boot">Terraform / OpenStack</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-32">
+  <h4>#32 · 修完 #31 後 provider 報 Neither a boot device, image ID, or image name</h4>
+  <ul>
+    <li><strong>症狀</strong>：修完 #31 後，provider 自己又報 <code>Neither a boot device, image ID, or image name were able to be determined</code>。</li>
+    <li><strong>根因</strong>：terraform-provider-openstack 的 <code>getImageIDFromConfig()</code> 一偵測到 <code>source_type="image"</code> 加 <code>destination_type="local"</code> 的開機 block_device，就會堅持解析出 <code>image_id</code> 或 <code>image_name</code> 填回 <code>ImageRef</code>。這與 #31 的修法互斥，又觸發同一個 400。</li>
+    <li><strong>修法</strong>：開機 block_device 改用 <code>destination_type="volume"</code>，從 image 建一顆新的 Cinder volume 來開機。provider 判斷不需要 image_id，<code>ImageRef</code> 留空，只靠 block_device 開機。</li>
+    <li><strong>怎麼確認修好</strong>：<code>terraform apply</code> 通過，bastion 從 Cinder volume 開機。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-31">#31</a>、<a href="troubleshooting.html#bug-33">#33</a>。設計見 <a href="infrastructure.html#boot">Terraform / OpenStack</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-33">
+  <h4>#33 · volume-boot 之後 cloud-init 等不到 /dev/vdb，資料碟沒被格式化</h4>
+  <ul>
+    <li><strong>症狀</strong>：改成 volume-boot 之後，cloud-init 在 <code>/dev/vdb</code> 前面死等 30 秒後失敗，兩顆資料碟都沒被格式化。</li>
+    <li><strong>根因</strong>：開機碟也變成從 image 建立的 Cinder volume（#32 的修法），整台 instance 的磁碟因此走 SCSI bus，guest 內的裝置命名從 <code>vdX</code> 變成 <code>sdX</code>。</li>
+    <li><strong>修法</strong>：cloud-init 腳本改用 <code>/dev/sdb</code> 與 <code>/dev/sdc</code>，位置在 <code>templates/bastion-init.sh.tftpl</code> 開頭。</li>
+    <li><strong>怎麼確認修好</strong>：bastion 開機後兩顆資料碟已格式化並掛載，cloud-init 不再逾時。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-32">#32</a>。裝置命名見 <a href="infrastructure.html#data-volumes">Terraform / OpenStack</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-34">
+  <h4>#34 · bastion 重建後 bastion.yml 連環報錯</h4>
+  <ul>
+    <li><strong>症狀</strong>：bastion 重建後跑 <code>playbooks/bastion.yml</code>，連環報錯：先是 internal key 的 <code>Permission denied (publickey)</code>，修完換成 <code>kubectl: No such file or directory</code>，再修完換成 <code>k8s-api.internal</code> 解析失敗。</li>
+    <li><strong>根因</strong>：internal SSH key 的信任、kubectl、admin kubeconfig、<code>k8s-api.internal</code> 的 <code>/etc/hosts</code> 記錄，全都只存在 bastion 自己的 ephemeral 開機碟上。這些東西只在全新環境第一次建置時裝過，從沒設計成「bastion 單獨重建、其餘節點都還活著」也能重跑。</li>
+    <li><strong>修法</strong>：先跑一次 <code>BOOTSTRAP=1 ... internal-ssh-key.yml</code> 重新佈署信任。再把 <code>kubeadm.yml</code> 最後裝 kubectl 與抓 kubeconfig 的部分獨立成 <code>playbooks/bastion/kubeconfig.yml</code>，並把 <code>apiserver-lb.yml</code> 的 DNS play 改成只對 bastion 執行的 <code>apiserver_dns</code> play。兩者都納入 <code>playbooks/bastion.yml</code> 這個一次性入口。後者直接寫在 <code>playbooks/bastion.yml</code> 內，沒有獨立的 playbook 檔。</li>
+    <li><strong>怎麼確認修好</strong>：bastion 單獨重建後跑 <code>playbooks/bastion.yml</code>，可一路執行完畢。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-37">#37</a> 是同一份 playbook 在更早情境的缺口。重建情境見 <a href="ansible-framework.html#rebuild-bastion">Ansible 框架設計</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-35">
+  <h4>#35 · 部署 csi-driver-nfs 後，驗證用的測試 pod 全卡在 Ready</h4>
+  <ul>
+    <li><strong>症狀</strong>：部署 csi-driver-nfs 後，驗證用的三個 busybox 測試 pod 在 <code>kubectl wait --for=condition=Ready</code> 等 120 秒後逾時，連沒掛任何 PVC 的 blocked pod 也一樣。</li>
+    <li><strong>根因</strong>：<code>demo</code> namespace 開了 <code>istio-injection=enabled</code>，每個新 pod 都被注入 <code>istio-proxy</code> sidecar。裸 busybox 測試 pod 沒有走 pilot-agent 的配套流程，sidecar 的 startup probe（打 <code>:15021/healthz/ready</code>）永遠連不上。<code>kubectl wait</code> 等的是所有 container 都 Ready，所以與 NFS 無關的 blocked pod 也被卡住。</li>
+    <li><strong>修法</strong>：三個 <code>kubectl run --overrides</code> 都加上 <code>"metadata":{"annotations":{"sidecar.istio.io/inject":"false"}}</code>，跳過這個 namespace 的自動注入。說明寫在 <code>playbooks/k8s/nfs-csi.yml</code> 開頭。</li>
+    <li><strong>怎麼確認修好</strong>：三個測試 pod 在逾時內變成 Ready，<code>nfs-csi.yml</code> 的驗證段落通過。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-36">#36</a> 是同一次部署的另一個問題。注入行為見 <a href="role-istio.html#injection">Role: istio</a>，NFS CSI 見 <a href="internal-tools.html#monitoring-storage">內部工具</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-36">
+  <h4>#36 · CiliumClusterwideNetworkPolicy 讓全叢集 DNS 失效約 10 小時</h4>
+  <ul>
+    <li><strong>症狀</strong>：部署 <code>CiliumClusterwideNetworkPolicy</code> 後，叢集內幾乎所有 pod 的 DNS 解析失敗，<code>cloudflared</code> 進入 crash-loop，錯誤是 <code>lookup cfd-features.argotunnel.com: i/o timeout</code>。bastion 上的 ansible 與 kubectl 完全正常，沒有任何徵兆，問題持續約 10 小時，到最後的 code review 才被抓到。</li>
+    <li><strong>根因</strong>：Cilium 的 <code>egressDeny</code>-only rule，只要沒有明講 <code>enableDefaultDeny: {egress: false}</code>，被選到的每個 endpoint 都會被打成 egress 整個 default-deny。語意近似一條 allow-list，不是單純疊加一條擋規則。這條 policy 的 <code>endpointSelector</code> 是 <code>app NotIn [csi-nfs-node]</code>，幾乎選到全叢集的 pod，連沒有 <code>app</code> label 的也算，而且它是叢集裡唯一一條 Cilium policy，沒有其他 allow rule 可以 fallback。這些語意是 code review 時讀 Cilium v1.19 的 <code>pkg/policy/api/rule_validation.go</code> 與 <code>pkg/policy/repository.go</code> 才確認的。hostNetwork pod 不受 per-pod policy 影響，bastion 上的存取因此完全正常，看不出異狀。#34 已記錄過同一個機制，這次它反而掩蓋了問題。</li>
+    <li><strong>修法</strong>：policy 補上 <code>enableDefaultDeny: {egress: false}</code>。驗證步驟加一個正面對照組：用同一個 pod 連 policy 沒提過的另一個 port，必須連得到，才能證明「連不到」是精準擋下，不是整個 pod 斷網。這個任務寫在 <code>playbooks/k8s/nfs-csi.yml</code>。原本的測試只有負面斷言，擋不住這類問題。</li>
+    <li><strong>怎麼確認修好</strong>：被擋的 NFS port 連不到，同一個 pod 連另一個 port 連得到（正向對照組用 bastion 的 22 port）。叢集內 DNS 恢復，<code>cloudflared</code> 不再 crash-loop。</li>
+    <li><strong>排查證據</strong>：<code>cilium-dbg endpoint list</code> 的 POLICY (egress) ENFORCEMENT 欄顯示大多數 endpoint 是 Enabled，pod 內查 DNS 逾時，<code>cloudflared</code> 重啟了 165 次。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-34">#34</a>、<a href="troubleshooting.html#bug-35">#35</a>。policy 的完整說明見 <a href="internal-tools.html#monitoring-storage">內部工具</a>，這類測試盲點見頁尾的模式分析。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-37">
+  <h4>#37 · 全新環境單獨跑 bastion.yml 時 fetch admin.conf 失敗</h4>
+  <ul>
+    <li><strong>症狀</strong>：在真正全新的環境（叢集從未 <code>kubeadm init</code>）單獨執行 <code>playbooks/bastion.yml</code>，第 4 步失敗：<code>ansible.builtin.fetch</code> 抓不到 masters[0] 上的 <code>/etc/kubernetes/admin.conf</code>，後面的 <code>apiserver_dns</code>、<code>bastion_tools</code>、<code>cloudflare-tunnel.yml</code>、<code>github_runner</code> 全都沒有執行。</li>
+    <li><strong>根因</strong>：#34 產出的 <code>playbooks/bastion/kubeconfig.yml</code> 只驗證過「bastion 單獨重建、叢集還活著」，沒測過「叢集也還沒建立」。<code>ansible.builtin.fetch</code> 在來源檔案不存在時預設會讓整個 play 失敗。另外 <code>bastion/cloudflare-tunnel.yml</code> 放在 <code>bastion.yml</code> 的 import 鏈裡也是多餘的。它部署的 Deployment 與 Secret 存在叢集自己的 etcd，不是 bastion 的本機狀態，bastion 重建完全不影響它。放在這裡只會被同一個「叢集不存在」問題拖累。</li>
+    <li><strong>修法</strong>：<code>bastion/kubeconfig.yml</code> 抓檔案前先 <code>stat</code> 檢查 <code>admin.conf</code>，不存在就跳過 fetch 與 copy，kubectl 照裝。<code>roles/cloudflare_tunnel</code> 比照辦理，bastion 上沒有 kubeconfig 就跳過 <code>kubectl apply</code>。<code>bastion/cloudflare-tunnel.yml</code> 從 <code>bastion.yml</code> 移除，改成只在 <code>playbooks/k8s.yml</code> 的 <code>cert-manager.yml</code> 之後匯入一次，那是叢集第一次真正活著的時間點。</li>
+    <li><strong>怎麼確認修好</strong>：全新環境單獨執行 <code>bastion.yml</code> 可以跑完，kubeconfig 相關步驟印出提示後跳過。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-34">#34</a>。建置順序見 <a href="getting-started.html#bring-up-order">從零開始建置</a>，Tunnel 的處理見 <a href="role-cloudflare-tunnel.html">Role: cloudflare_tunnel</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-53">
+  <h4>#53 · 加 HashiCorp apt repo 後出現 NO_PUBKEY</h4>
+  <ul>
+    <li><strong>症狀</strong>：安裝 <code>vault</code> 套件時，<code>apt-get update</code> 報 <code>NO_PUBKEY</code> 與 <code>the repository is not signed</code>。</li>
+    <li><strong>根因</strong>：第一版把 <code>curl .../gpg</code> 的輸出直接存成 <code>.gpg</code> 檔。HashiCorp 的 <code>/gpg</code> 端點回傳 ASCII-armored 公鑰，開頭是 <code>-----BEGIN PGP PUBLIC KEY BLOCK-----</code>。它不是 dearmor 過的二進位 keyring，apt 的 <code>signed-by=</code> 讀不出有效的 key。</li>
+    <li><strong>修法</strong>：先 pipe 給 <code>gpg --dearmor</code> 再存檔，與 <code>roles/kubectl_cli</code> 裝 Kubernetes apt repo 的寫法一致。</li>
+    <li><strong>怎麼確認修好</strong>：<code>apt-get update</code> 不再報簽章錯誤，<code>vault</code> 套件可以安裝。</li>
+    <li><strong>相關</strong>：完整故事見 <a href="role-vault.html#bug-53">Role: vault</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-54">
+  <h4>#54 · play 跑完 failed=0，Vault 卻是 sealed</h4>
+  <ul>
+    <li><strong>症狀</strong>：整個 play 成功，<code>failed=0</code>，但 <code>vault status</code> 顯示 <code>sealed: true</code>，unseal 明明成功過。</li>
+    <li><strong>根因</strong>：Ansible 的 handler 預設等整個 play 跑完才執行。第一次執行時設定檔不存在，必定觸發「重啟 vault」handler。順序變成：寫設定檔並排入 handler，init 與 unseal 成功，開 KV v2，最後 handler 才執行，重啟讓 Vault 回到 sealed。</li>
+    <li><strong>修法</strong>：寫完設定檔後立刻用 <code>meta: flush_handlers</code> 強制執行 handler。「設定檔有沒有換」永遠先處理完，才判斷 init 與 unseal。</li>
+    <li><strong>怎麼確認修好</strong>：全新環境跑完 role 後，<code>vault status</code> 顯示 <code>sealed: false</code>。</li>
+    <li><strong>相關</strong>：與 <a href="troubleshooting.html#bug-49">#49</a>、<a href="troubleshooting.html#bug-56">#56</a> 同屬重跑才暴露的 Ansible 行為。<a href="role-gitlab.html">Role: gitlab</a> 沿用同樣處理。完整故事見 <a href="role-vault.html#bug-54">Role: vault</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-55">
+  <h4>#55 · VSO 登入 Vault 回 403：namespace not authorized</h4>
+  <ul>
+    <li><strong>症狀</strong>：VSO controller log 出現 <code>Failed to get NewClientWithLogin ... auth/kubernetes/login</code>，<code>Code: 403. Errors: * namespace not authorized</code>。</li>
+    <li><strong>根因</strong>：第一版假設 <code>defaultAuthMethod.kubernetes.serviceAccount: default</code> 指的是 <code>vault-secrets-operator</code> namespace 的 <code>default</code>，所以把 Vault 端 role 的 <code>bound_service_account_namespaces</code> 寫死成該 namespace。實際行為是 VSO 在消費該 VaultAuth 的資源（例如 <code>VaultStaticSecret</code>）所在的 namespace 找同名 ServiceAccount，每個 namespace 都用自己的 <code>default</code> 登入。上游說明見 hashicorp/vault-secrets-operator#827。</li>
+    <li><strong>修法</strong>：Vault 端 role 改放行萬用字元 namespace。這會讓任何 namespace 的 <code>default</code> ServiceAccount 都能讀共用 policy，風險寫在 Role: vault 的已知限制。</li>
+    <li><strong>怎麼確認修好</strong>：在全新建立的 namespace 建 <code>VaultStaticSecret</code>，一個 reconcile 週期內同步出內容正確的 k8s <code>Secret</code>，狀態為 <code>SecretSynced: True</code>。</li>
+    <li><strong>相關</strong>：完整故事見 <a href="role-vault.html#bug-55">Role: vault</a>，風險見 <a href="role-vault.html#limits">已知限制</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-59">
+  <h4>#59 · playbook 全綠燈，但 runner container 沒有建立</h4>
+  <ul>
+    <li><strong>症狀</strong>：playbook 所有 task 都是 <code>ok</code> 或 <code>changed</code>，沒有失敗，但「起 github-runner container」被跳過，runner 從未建立或註冊。</li>
+    <li><strong>根因</strong>：判斷 container 是否存在的 task 用 <code>docker inspect github-runner</code>，沒帶 <code>--type</code>。<code>docker inspect</code> 預設搜尋 container、image、volume、network 所有種類。上一步 <code>docker build -t github-runner</code> 剛好建出同名 image，檢查從 build 完成後一路命中那個 image，永遠回報「已存在」，<code>docker run</code> 因 <code>when</code> 條件被擋掉。</li>
+    <li><strong>修法</strong>：加上 <code>--type container</code>，把搜尋範圍限定在 container。</li>
+    <li><strong>怎麼確認修好</strong>：重跑 playbook 後 <code>docker ps</code> 看得到 <code>github-runner</code>，log 出現 <code>√ Runner successfully added</code>。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-60">#60</a>。<code>roles/gitlab_runner</code> 的同類檢查也帶 <code>--type container</code>。細節見 <a href="role-github-runner.html#bug-59">Role: github-runner</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-60">
+  <h4>#60 · openssl 讀不到掛載進 container 的 GitHub App private key</h4>
+  <ul>
+    <li><strong>症狀</strong>：openssl 回報 <code>Permission denied</code>，讀不到掛載進去的 GitHub App private key。</li>
+    <li><strong>根因</strong>：<code>Dockerfile</code> 原本用 <code>useradd -m runner</code> 建使用者，但 <code>ubuntu:24.04</code> base image 已內建 UID 1000 的 <code>ubuntu</code>，新使用者被擠到 UID 1001。key 檔案以 <code>-v /home/ubuntu/.github-app-key.pem:...:ro</code> 從主機 bind mount 進來，屬於主機 <code>ubuntu</code>（UID 1000）、mode <code>0600</code>。bind mount 的權限檢查比對的是 UID 數字，不是使用者名稱，UID 1001 讀不到。</li>
+    <li><strong>修法</strong>：不放寬檔案權限，也不自己建使用者，直接沿用 base image 內建、UID 與主機一致的 <code>ubuntu</code>。</li>
+    <li><strong>怎麼確認修好</strong>：container 內 <code>mint_registration_token.py</code> 能簽出 JWT，runner 成功註冊。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-59">#59</a> 與本題同屬 bind mount 與 container 內外差異。細節見 <a href="role-github-runner.html#bug-60">Role: github-runner</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-61">
+  <h4>#61 · 全新節點上解除 hold 失敗：Failed to find package</h4>
+  <ul>
+    <li><strong>症狀</strong>：在全新節點執行 kubelet role，<code>dpkg_selections</code> 報 <code>Failed to find package 'X' to perform selection</code>。</li>
+    <li><strong>根因</strong>：role 每次都先對套件做 <code>selection: install</code> 解除 hold。全新節點的 dpkg 選擇資料庫沒有這些套件，對不存在的套件設定 selection 就會報錯。</li>
+    <li><strong>修法</strong>：先用 <code>package_facts</code> 判斷節點是否已安裝，只對 <code>ansible_facts.packages</code> 內已有的套件解除 hold。</li>
+    <li><strong>怎麼確認修好</strong>：全新節點第一次執行 kubelet role 可以跑完，kubeadm、kubelet、kubectl 正常安裝並 hold。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-26">#26</a> 是同一段 hold 邏輯的另一個問題，<a href="troubleshooting.html#bug-62">#62</a> 是同一次修正順便補上的缺口。細節見 <a href="role-kubelet.html#version-hold">Role: kubelet</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-62">
+  <h4>#62 · oidc_auth 呼叫 crictl 時找不到指令</h4>
+  <ul>
+    <li><strong>症狀</strong>：<code>oidc_auth</code> role 要用 <code>crictl</code> 確認 kube-apiserver container 是否重建時，節點上找不到 <code>crictl</code>。</li>
+    <li><strong>根因</strong>：沒有任何 role 安裝 <code>cri-tools</code>，<code>crictl</code> 是到 <code>oidc_auth</code> 呼叫它時才發現缺少。</li>
+    <li><strong>修法</strong>：kubelet role 的套件清單加入 <code>cri-tools</code>。</li>
+    <li><strong>怎麼確認修好</strong>：新節點上 <code>crictl --version</code> 有輸出，<code>oidc_auth</code> 能逐台確認 container id 已更換。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-61">#61</a>。細節見 <a href="role-kubelet.html#config">Role: kubelet</a>。</li>
+  </ul>
+</section>
+
+<h3 id="phase-6">Phase 6</h3>
+<p><strong>Phase 6 · Dex、Keycloak 與 Cloudflare Access 的聯邦 PoC</strong>：本階段 9 筆。Dex、Keycloak 與 Cloudflare Access 串成的聯邦 PoC。設計見 <a href="role-keycloak-dex.html">Role: keycloak / dex</a>，登入流程見<a href="identity-federation-flow.html">身份聯邦登入流程</a>。</p>
+
+<section class="bug" id="bug-48">
+  <h4>#48 · Keycloak 26 容器一直 unhealthy，/health/ready 回 404</h4>
+  <ul>
+    <li><strong>症狀</strong>：容器起不來，<code>docker inspect</code> 顯示 healthcheck 持續失敗，打 <code>/health/ready</code> 一路 404。</li>
+    <li><strong>根因</strong>：第一版假設 <code>/health/ready</code> 掛在對外服務的同一個 port <code>8090</code>。Keycloak 26 把 health 與 metrics 端點移到獨立的 management port，預設 <code>9000</code>，而且要顯式開啟。</li>
+    <li><strong>修法</strong>：容器環境變數加 <code>KC_HEALTH_ENABLED=true</code>，healthcheck 改打 <code>keycloak_management_port</code>。</li>
+    <li><strong>怎麼確認修好</strong>：<code>curl http://&lt;fabric_ip&gt;:9000/health/ready</code> 回傳 <code>UP</code>。</li>
+    <li><strong>相關</strong>：完整故事見 <a href="role-keycloak-dex.html#bug-48">Role: keycloak / dex</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-49">
+  <h4>#49 · role 重跑後 Keycloak 的 Postgres 起不來</h4>
+  <ul>
+    <li><strong>症狀</strong>：Postgres 容器重啟後報 <code>FATAL: data directory "/var/lib/postgresql/data" has invalid permissions</code> 與 <code>could not open file "global/pg_filenode.map": Permission denied</code>。</li>
+    <li><strong>根因</strong>：第一版用同一個 <code>ansible.builtin.file</code> task 建 secrets 目錄與 Postgres 資料目錄，<code>owner: root</code>。容器內 Postgres 以 uid <code>999</code> 執行，首次啟動時自己 chown 所以正常。但 role 每次重跑，宣告式的 <code>file</code> task 都把 owner 蓋回 <code>root</code>，下次容器重啟就失敗。</li>
+    <li><strong>修法</strong>：Postgres 資料目錄拆成獨立 task，<code>owner: "999"</code>，用數字 uid，因為 bastion 上 uid 999 已被 Vault 的系統帳號佔用，用名稱會混淆。secrets 目錄維持 root。兩個目錄的所有權模型本來就不同，合併是最初的設計錯誤。</li>
+    <li><strong>怎麼確認修好</strong>：重跑 role 後重啟 Postgres 容器，不再報權限錯誤。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-54">#54</a> 同屬重跑才暴露的 Ansible 行為。完整故事見 <a href="role-keycloak-dex.html#bug-49">Role: keycloak / dex</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-50">
+  <h4>#50 · Dex 連 Keycloak 被 Cloudflare Access 擋住，拿到 HTML 登入頁</h4>
+  <ul>
+    <li><strong>症狀</strong>：Dex 的 connector 啟動時 discovery 失敗，收到的是 Access 的 HTML 登入頁，不是 JSON。</li>
+    <li><strong>根因</strong>：Dex 的 <code>oidc</code> connector 要對 issuer 做真正的 <code>.well-known</code> discovery，這是機器對機器的 HTTP 請求，沒有瀏覽器的 team session。<code>keycloak.dough-ops.com</code> 落在萬用字元 Access Application 底下，沒有互動登入的連線一律被擋。第一版嘗試用 <code>hostAliases</code> 讓 Dex 直連 Keycloak 的內部位址，但 Keycloak 沒有在那個位址監聽 TLS，這條路本身就不成立。</li>
+    <li><strong>修法</strong>：兩邊都繼續經過 Cloudflare，TLS 照樣在 Cloudflare 終止。另開一條範圍精準的 bypass policy，只放行 Dex 需要打的 Keycloak realm 路徑，定義在 <code>cloudflare/access.tf</code> 的 <code>keycloak_direct</code>。它是 <code>self_hosted</code> 類型，優先權高於萬用字元 Application。</li>
+    <li><strong>怎麼確認修好</strong>：<code>kubectl logs -n dex deploy/dex</code> 啟動時沒有 discovery 錯誤。</li>
+    <li><strong>相關</strong>：最早的版本放行整個 Keycloak hostname，等於把管理後台與 master realm 的 token 端點對整個網路開放，審查時才收斂到 realm 路徑。收窄後，登入頁的靜態主題資源在 realm 路徑之外，被 Access 攔下，瀏覽器出現 CORS 錯誤與整頁沒有 CSS，見 <a href="troubleshooting.html#bug-63">#63</a>。bypass 的設計原則見 <a href="cloudflare-manual-setup.html#access-rules">Cloudflare 設定清單</a>，完整故事見 <a href="role-keycloak-dex.html#bug-50">Role: keycloak / dex</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-51">
+  <h4>#51 · 每次登入都要在 Dex 按一次 Grant Access</h4>
+  <ul>
+    <li><strong>症狀</strong>：每次重新整理 <code>whoami.dough-ops.com</code>，都要在 Dex 的同意畫面按一次「Grant Access」，不會靜默通過。</li>
+    <li><strong>根因</strong>：Dex 對瀏覽器完全無狀態，沒有持久化的 SSO cookie（dexidp/dex#4560），每次新的 authorization request 都重跑 connector 流程。<code>oauth2.skipApprovalScreen: true</code> 對帶 <code>approval_prompt=force</code> 的請求無效，而 <code>oauth2-proxy</code> 的 <code>--approval-prompt</code> 預設正是 <code>force</code>，實測無法透過設定清空。上游 issue 是 oauth2-proxy/oauth2-proxy#3426，仍在開啟狀態。</li>
+    <li><strong>修法</strong>：目前沒有修法。這是外部限制，單靠改設定解決不了。程式碼註解保留了 <code>approval-prompt: ""</code>，作為已試過但無效的紀錄。</li>
+    <li><strong>怎麼確認修好</strong>：等上游修好後，登入一次再重新整理，不應再出現同意畫面。目前行為仍是每次都出現。</li>
+    <li><strong>相關</strong>：完整故事見 <a href="role-keycloak-dex.html#bug-51">Role: keycloak / dex</a>，登入流程見 <a href="identity-federation-flow.html">身份聯邦登入流程</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-52">
+  <h4>#52 · oauth2-proxy 回 500：email in id_token isn't verified</h4>
+  <ul>
+    <li><strong>症狀</strong>：<code>oauth2-proxy</code> 登入後回 500，<code>kubectl logs</code> 看到「email in id_token isn't verified」。Dex 的登入紀錄也印出 <code>email="...(unverified)"</code>。</li>
+    <li><strong>根因</strong>：Cloudflare Access → Keycloak → Dex 這條鏈組出的 id_token，<code>email_verified</code> 不是 <code>true</code>。身份來自 Cloudflare Access 這一層，不是 Keycloak 自己核發的帳號。oauth2-proxy 預設拒絕未驗證的 email。</li>
+    <li><strong>修法</strong>：extraArgs 加 <code>insecure-oidc-allow-unverified-email: "true"</code>，這是 oauth2-proxy 的標準開關。</li>
+    <li><strong>怎麼確認修好</strong>：登入後 <code>whoami</code> 顯示正確的請求 header。</li>
+    <li><strong>相關</strong>：ArgoCD 內建 Dex 遇到同類問題，見 <a href="troubleshooting.html#bug-71">#71</a>。完整故事見 <a href="role-keycloak-dex.html#bug-52">Role: keycloak / dex</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-63">
+  <h4>#63 · Keycloak 登入頁無 CSS，瀏覽器顯示 CORS 錯誤</h4>
+  <ul>
+    <li><strong>症狀</strong>：Keycloak 登入頁整頁沒有 CSS，瀏覽器 console 顯示 CORS 錯誤。</li>
+    <li><strong>根因</strong>：登入頁載入的靜態主題資源（<code>/resources/*</code>）位於 realm 路徑之外。#50 把 bypass 收斂到 realm 路徑後，這些資源落回萬用字元 Access Application，被 Access 攔下。</li>
+    <li><strong>修法</strong>：在 <code>cloudflare/access.tf</code> 為這類純靜態資源另加一條範圍收窄的 bypass。靜態資源沒有認證邏輯或使用者資料，風險等級與 token 端點不同。</li>
+    <li><strong>怎麼確認修好</strong>：重新載入 Keycloak 登入頁，樣式正常，console 不再出現 CORS 錯誤。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-50">#50</a>。bypass 的原則見 <a href="cloudflare-manual-setup.html#access-rules">Cloudflare 設定清單</a>，脈絡見 <a href="role-keycloak-dex.html#bug-50">Role: keycloak / dex</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-64">
+  <h4>#64 · Keycloak 呼叫 Cloudflare Access token 端點偶發 SocketTimeoutException</h4>
+  <ul>
+    <li><strong>症狀</strong>：Keycloak 向 Cloudflare Access 的 token 端點發出的呼叫偶發 <code>SocketTimeoutException</code>。</li>
+    <li><strong>根因</strong>：Keycloak 向 Cloudflare Access token 端點的呼叫要跨公網來回，預設的 HTTP client timeout 容不下偏慢的回應。</li>
+    <li><strong>修法</strong>：container 啟動時把 HTTP client timeout 調成 10 秒。這只緩解「會成功但較慢」的呼叫，不會讓真正掛掉的呼叫變快。docker run 參數只在首次建立 container 時生效，所以 role 會偵測舊 container 缺少這個設定並重建。</li>
+    <li><strong>怎麼確認修好</strong>：<code>docker inspect</code> 可看到 container 帶有 10 秒的 timeout 設定。這是緩解措施，偶發逾時是否完全消失需要靠長期觀察。</li>
+    <li><strong>相關</strong>：設計脈絡見 <a href="role-keycloak-dex.html#limits">Role: keycloak / dex 已知限制</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-65">
+  <h4>#65 · 手動送 form 時密碼含 +，Keycloak 回 invalid_grant</h4>
+  <ul>
+    <li><strong>症狀</strong>：取得 Keycloak admin token 時回 <code>invalid_grant</code>，帳密明明正確。</li>
+    <li><strong>根因</strong>：手動拼接 form body 時，密碼裡的 <code>+</code> 被當成空白，Keycloak 收到的是另一組密碼。</li>
+    <li><strong>修法</strong>：改用 <code>ansible.builtin.uri</code> 的 <code>body_format: form-urlencoded</code>，讓模組自己做 URL encoding。</li>
+    <li><strong>怎麼確認修好</strong>：含 <code>+</code> 的密碼可以正常取得 admin token，role 重跑不再卡在 <code>invalid_grant</code>。</li>
+    <li><strong>相關</strong>：取 token 的流程見 <a href="role-keycloak-dex.html#permanent-admin">Role: keycloak / dex</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-66">
+  <h4>#66 · Keycloak client 查詢的回應含明碼 secret，被印進 ansible log</h4>
+  <ul>
+    <li><strong>症狀</strong>：查詢 Keycloak client 的 task 輸出把明碼 client secret 印進 ansible log。</li>
+    <li><strong>根因</strong>：Keycloak client 查詢的回應本身就含 secret，task 漏了 <code>no_log</code>，ansible 預設會印出完整回應。</li>
+    <li><strong>修法</strong>：對所有會處理 admin 密碼、Postgres 密碼與 client secret 的 task 補上 <code>no_log: true</code>。</li>
+    <li><strong>怎麼確認修好</strong>：重跑 role，log 裡這些 task 只顯示 censored 提示，看不到 secret。</li>
+    <li><strong>相關</strong>：設計脈絡見 <a href="role-keycloak-dex.html#keycloak-on-bastion">Role: keycloak / dex</a>。</li>
+  </ul>
+</section>
+
+<h3 id="phase-7">Phase 7</h3>
+<p><strong>Phase 7 · 自架 GitLab CE 與 Runner</strong>：本階段 9 筆。自架 GitLab CE、Runner 與 CD repo。設計見 <a href="role-gitlab.html">Role: gitlab</a>。#38 發生在 GitHub Actions runner 首次跑 <code>run-playbook.yml</code> 的同一段時間，放在這個階段。</p>
+
+<section class="bug" id="bug-38">
+  <h4>#38 · GitHub runner 的 git fetch 反覆 Connection reset by peer</h4>
+  <ul>
+    <li><strong>症狀</strong>：GitHub Actions self-hosted runner（<code>github-runner</code> container）第一次跑 <code>run-playbook.yml</code>，<code>actions/checkout</code> 的 <code>git fetch</code> 反覆出現 <code>fatal: ... Recv failure: Connection reset by peer</code>，內建重試 3 次全部失敗。直接在 bastion 主機上 <code>git clone</code> 同一個 repo 完全正常，一開始被誤判成 GitHub 端的暫時性網路問題。</li>
+    <li><strong>根因</strong>：#10 的 MTU 修法只對 dockerd 自己建的 default bridge（<code>docker0</code>）生效。runner 執行 <code>container:</code> job 時，會自己 <code>docker network create</code> 一個新的 <code>github_network_&lt;hash&gt;</code>。dockerd log 的 <code>net=github_network_...</code> 可證實這點。這個網路沒有繼承 <code>daemon.json</code> 的 <code>"mtu": 1442</code>，落回 Docker 預設的 1500，與底層網卡的 1442 不符。<code>git fetch</code> 拉 pack data 這類大封包在半路被黑洞。既有的 <code>keycloak-net</code> 也有同樣的問題，只是流量都是小封包沒被注意到。主機上的 <code>git clone</code> 繞過所有 Docker network，所以沒事。</li>
+    <li><strong>修法</strong>：<code>daemon.json</code> 加上 Docker 23.0 起支援的 <code>"default-network-opts": {"bridge": {"com.docker.network.driver.mtu": "1442"}}</code>，讓之後所有 bridge driver 新建的 network 都繼承同一個 MTU，不必逐一補 <code>-o</code> 參數。同步補進 <code>openstack/templates/bastion-init.sh.tftpl</code>，避免 bastion 重建後又失效。</li>
+    <li><strong>怎麼確認修好</strong>：run-playbook 的 job 中 <code>git fetch</code> 順利完成。新建的 Docker network 以 <code>docker network inspect</code> 檢視，MTU 選項為 <code>1442</code>。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-10">#10</a>、<a href="troubleshooting.html#bug-45">#45</a> 是 Docker network 預設值的同類問題。設定位置見 <a href="infrastructure.html#docker-daemon">Terraform / OpenStack</a>，runner 設計見 <a href="role-github-runner.html">Role: github-runner</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-39">
+  <h4>#39 · gitlab-rails runner 報 LoadError，檔案明明存在</h4>
+  <ul>
+    <li><strong>症狀</strong>：第一次對真實 bastion 跑 <code>roles/gitlab_server</code>，<code>gitlab-rails runner /etc/gitlab/bootstrap_pat.rb</code> 報 <code>cannot load such file -- /etc/gitlab/bootstrap_pat.rb (LoadError)</code>。但 <code>docker exec gitlab ls -la</code> 看得到檔案，路徑也沒錯。</li>
+    <li><strong>根因</strong>：<code>docker exec</code> 預設以 root 執行，但官方 wrapper <code>/opt/gitlab/bin/gitlab-rails</code> 內部用 <code>chpst -u git:git</code> 降權成 <code>git</code> 使用者才跑 <code>bundle exec rails runner</code>。腳本原本是 <code>mode: "0600"</code>（root-only），<code>git</code> 讀不到，Ruby 的 <code>Kernel#load</code> 把 permission denied 誤報成檔案不存在。</li>
+    <li><strong>修法</strong>：改成 <code>mode: "0644"</code>。腳本是一次性的，執行完立刻刪除，世界可讀的時間窗很短，且仍在 <code>/userap</code> 這個已信任的磁碟邊界內。</li>
+    <li><strong>怎麼確認修好</strong>：bootstrap 腳本執行成功，自動化 PAT 建立完成，role 繼續往下。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-60">#60</a> 同屬「執行身分與檔案權限不一致」。細節見 <a href="role-gitlab.html">Role: gitlab</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-40">
+  <h4>#40 · https external_url 可能觸發 Let's Encrypt 並卡住 reconfigure</h4>
+  <ul>
+    <li><strong>症狀</strong>：預防性修正：<code>gitlab.rb</code> 的 <code>external_url</code> 是 <code>https</code>，但 bastion 沒有對外開放的 <code>:80</code> 可以應付 ACME <code>http-01</code> challenge。這項問題在整個分支的最終 review 時被抓到，尚未真的發作。</li>
+    <li><strong>根因</strong>：GitLab Omnibus 偵測到 <code>external_url</code> 是 <code>https</code> 且沒有另外設定憑證時，預設會自動啟用 Let's Encrypt，並在每次 <code>reconfigure</code> 嘗試續期。這個 lab 的 TLS 在 Cloudflare 邊緣終止，設定為 <code>nginx['listen_https'] = false</code>。憑證申請注定失敗，會拖慢甚至卡住 reconfigure。</li>
+    <li><strong>修法</strong>：明確加上 <code>letsencrypt['enable'] = false</code>。</li>
+    <li><strong>怎麼確認修好</strong>：<code>gitlab.rb</code> 內有 <code>letsencrypt['enable'] = false</code>，reconfigure 不再嘗試申請憑證。</li>
+    <li><strong>相關</strong>：細節見 <a href="role-gitlab.html">Role: gitlab</a>。預設值替你做事的同類問題見頁尾的模式分析。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-41">
+  <h4>#41 · 關掉 gitlab_signup_enabled 後 admin dashboard 仍警告</h4>
+  <ul>
+    <li><strong>症狀</strong>：<code>gitlab.rb</code> 設了 <code>gitlab_rails['gitlab_signup_enabled'] = false</code> 並重跑 reconfigure，admin dashboard 仍持續顯示「Check your sign-up restrictions」，註冊表單實際上沒有關掉。</li>
+    <li><strong>根因</strong>：這個設定只在 <code>ApplicationSettings</code> 資料表<strong>第一次被 seed 時</strong>生效（GitLab 的 <code>db:seed_fu</code> 行為）。既有安裝重跑 <code>reconfigure</code> 不會回頭覆蓋已存在的值。</li>
+    <li><strong>修法</strong>：額外加一個每次都執行的 <code>PUT /api/v4/application/settings</code>（<code>signup_enabled: false</code>）upsert，不依賴 seed 時機。這和 <code>oidc_admin_emails</code> allowlist 同樣是「每次都對一次」的做法。</li>
+    <li><strong>怎麼確認修好</strong>：admin dashboard 的警告消失，<code>GET /api/v4/application/settings</code> 回傳 <code>signup_enabled: false</code>，登入頁不再出現註冊表單。</li>
+    <li><strong>相關</strong>：細節見 <a href="role-gitlab.html">Role: gitlab</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-42">
+  <h4>#42 · docker login ghcr.io 成功，docker pull 私有 image 仍 denied</h4>
+  <ul>
+    <li><strong>症狀</strong>：GitLab CD repo 的 pipeline job 用 fine-grained GitHub PAT 當 <code>DOCKER_AUTH_CONFIG</code> 的憑證，<code>docker login ghcr.io</code> 成功，緊接著 <code>docker pull</code> 私有 image 卻回 <code>denied</code>。</li>
+    <li><strong>根因</strong>：fine-grained PAT 的 <code>Packages: Read-only</code> 權限目前只涵蓋 Packages REST API（列清單、看 metadata）。實際 pull 與 push container image 目前只認 classic PAT 的 <code>read:packages</code> scope。這是 GitHub 的產品限制，在 bastion 上手動 <code>docker login</code> 加 <code>docker pull</code> 重現同樣的「認證成功、授權失敗」才確認。</li>
+    <li><strong>修法</strong>：把 <code>ghcr.io/doughops/terraform-k8s-ansible-runner</code> 設成 public。這張 image 只有 ansible 執行環境，沒有程式碼或密鑰。pipeline 拉取不需要認證，<code>DOCKER_AUTH_CONFIG</code> 變數整個移除。</li>
+    <li><strong>怎麼確認修好</strong>：pipeline 不帶任何認證即可 <code>docker pull</code> 該 image，job 往下進入 ansible 階段。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-43">#43</a> 是修好這題後遇到的下一個問題。細節見 <a href="role-gitlab.html#cd-repo">Role: gitlab</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-43">
+  <h4>#43 · ansible-playbook 找不到 /ansible-key/vault-password</h4>
+  <ul>
+    <li><strong>症狀</strong>：GHCR image 問題修好後，pipeline 前進到下一步，<code>ansible-playbook</code> 報 <code>The vault password file /ansible-key/vault-password was not found</code>。</li>
+    <li><strong>根因</strong>：剛從 GitHub clone 下來的 <code>src/ansible/ansible.cfg</code> 把 <code>vault_password_file</code> 寫死為 <code>/ansible-key/vault-password</code>。這個路徑只有 <code>scripts/ansible.sh</code> 自己 <code>docker run</code> 時才會掛出來，CD repo 的 job container 沒有這個掛載。</li>
+    <li><strong>修法</strong>：比照 <code>.github/workflows/run-playbook.yml</code> 已驗證的做法：script 把 CI/CD 變數 <code>ANSIBLE_VAULT_PASSWORD</code> 寫成 <code>$CI_PROJECT_DIR/.vault-password</code>，再用 <code>ANSIBLE_VAULT_PASSWORD_FILE</code> 環境變數覆蓋 <code>ansible.cfg</code> 寫死的路徑，環境變數的優先權比 <code>ansible.cfg</code> 高。</li>
+    <li><strong>怎麼確認修好</strong>：pipeline 繼續執行 <code>ansible-playbook</code>，不再報找不到 vault password file。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-42">#42</a>。細節見 <a href="role-gitlab.html#cd-repo">Role: gitlab</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-44">
+  <h4>#44 · GitLab「Run pipeline」畫面沒有任何預設欄位或說明</h4>
+  <ul>
+    <li><strong>症狀</strong>：在 GitLab CD repo 按「Run pipeline」，畫面上沒有任何預設欄位或說明，不知道要填什麼。</li>
+    <li><strong>根因</strong>：<code>PLAYBOOK_PATH</code> 原本宣告在 <code>job.variables</code>。「Run pipeline」畫面只會預先列出宣告在頂層（pipeline 層級）<code>variables</code> 的變數，也只有頂層支援 <code>{description, value}</code> 擴充寫法，job 層級的變數完全不會出現在表單。</li>
+    <li><strong>修法</strong>：把 <code>PLAYBOOK_PATH</code> 搬到頂層 <code>variables</code> 並加上 <code>description</code>。頂層變數會自動傳給每個 job，不必重複宣告。同時新增頂層變數 <code>GIT_REF</code>（預設 <code>main</code>），讓你也能指定要 clone 的分支或 tag，方便在合併前先測 feature branch。</li>
+    <li><strong>怎麼確認修好</strong>：按「Run pipeline」，表單預先列出 <code>PLAYBOOK_PATH</code> 與說明。暫時放寬 <code>workflow.rules</code> 接受 <code>api</code> 來源，真實觸發一次測試 pipeline，語法正確且 <code>status: success</code>。</li>
+    <li><strong>相關</strong>：細節見 <a href="role-gitlab.html#cd-repo">Role: gitlab</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-72">
+  <h4>#72 · 新建 project 無法推送到 protected 的 main</h4>
+  <ul>
+    <li><strong>症狀</strong>：<code>doughops/gitops-demo</code> 直接建在 group 底下，第一次 commit 檔案到 protected 的 <code>main</code> 就被 GitLab 擋下，連自動化帳號（root）也被擋。</li>
+    <li><strong>根因</strong>：membership 迴圈原本只把每個使用者（含 root）升到 Developer。這是 access_level 30，而 protected branch 預設要 Maintainer（40）以上才能推。<code>doughops/k8s-central-cd</code> 之前沒撞到，因為它最初建在 root 個人 namespace，建立者自動是 Owner，事後搬進 group 也不動 project membership。</li>
+    <li><strong>修法</strong>：預設權限從 Developer 提升到 Owner（access_level 50），範圍只限 <code>doughops</code> group，不影響其他 group 與 instance-wide 設定。</li>
+    <li><strong>怎麼確認修好</strong>：<code>doughops</code> 底下新建的 project，自動化帳號可以直接 commit 到 <code>main</code>。</li>
+    <li><strong>相關</strong>：此修法擴大了預設權限，風險見 <a href="role-gitlab.html#known-limits">Role: gitlab 已知限制</a>。細節見 <a href="role-gitlab.html#bug-72">Role: gitlab</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-73">
+  <h4>#73 · sync 腳本把明碼 token 附加到密文後面</h4>
+  <ul>
+    <li><strong>症狀</strong>：<code>secrets.yml</code> 改成整檔 vault 加密後，執行 <code>scripts/sync-cloudflare-secrets.sh</code> 或 <code>make build</code> 會讓檔案損毀，明碼 token 也可能被提交。這是讀程式碼發現的，沒有在實際環境發生過。</li>
+    <li><strong>根因</strong>：腳本用 grep 和 sed 直接編輯檔案。密文裡比對不到 <code>key:</code>，就走「附加一行」的分支，把明碼寫到密文檔尾。</li>
+    <li><strong>修法</strong>：先讀完所有 Terraform output，解密到暫存區修改，重新加密並驗證後才換掉原檔。流程見 <a href="ansible-framework.html#sync-script-issue">Ansible 框架設計</a>。</li>
+    <li><strong>怎麼確認修好</strong>：尚未實際執行。第一次執行後確認 <code>head -n 1</code> 仍是 <code>$ANSIBLE_VAULT;1.1;AES256</code>，並能用 <code>ansible-vault view</code> 解開。</li>
+    <li><strong>相關</strong>：#72 之後的密鑰設計見 <a href="role-gitlab.html">Role: gitlab</a>。</li>
+  </ul>
+</section>
+
+<h3 id="phase-8">Phase 8</h3>
+<p><strong>Phase 8 · ArgoCD 串接自架 GitLab</strong>：本階段 8 筆。ArgoCD 串接自架 GitLab，並改走內建 Dex 登入。設計見 <a href="role-argocd.html">Role: argocd</a>。#45 到 #47 是驗證串接時挖出的網路問題，#67 到 #71 是 ArgoCD 登入設定，其中 #67、#68 發生在 ArgoCD 首次上線，其餘發生在改走內建 Dex 的同一天。</p>
+
+<section class="bug" id="bug-45">
+  <h4>#45 · ArgoCD 驗證時，新建 pod 連 apiserver 全部 Connection timed out</h4>
+  <ul>
+    <li><strong>症狀</strong>：驗證 ArgoCD 對接自架 GitLab 時，叢集內幾乎所有 pod 連 apiserver 一律 <code>Connection timed out</code>，不論目標是 ClusterIP <code>172.18.0.1:443</code> 或三台 master 的 <code>6443</code>。已經跑很久、沒重啟過的 pod（coredns、cilium-operator 等）完全正常。</li>
+    <li><strong>根因</strong>：bastion 的 <code>keycloak-net</code> 這個 Docker 自訂 network，Docker 會依序往上配發 /16 給新 network，順序是 <code>172.17</code>、<code>172.18</code>、<code>172.19</code>⋯⋯。它剛好落進 <code>172.18.0.0/16</code>，與叢集的 Service CIDR 完全重疊。bastion 同時有 <code>ip_forward=1</code> 又參與 BGP fabric，目的地在 <code>172.18.0.0/16</code> 的封包只要經過 bastion，就被導去本機的 <code>keycloak-net</code> bridge。這個重疊是真實存在的問題，但修好之後逾時依舊，真正的原因是 #47。</li>
+    <li><strong>修法</strong>：停用並移除 <code>keycloak-net</code> 與相關 container，資料留在 <code>/userap</code>。<code>/etc/docker/daemon.json</code> 加 <code>"default-address-pools": [{"base": "10.99.0.0/16", "size": 24}]</code>，讓之後所有新建的 Docker network 都落在與 k8s-net、pod CIDR、Service CIDR、mgmt-net 都不重疊的範圍。重跑 <code>keycloak.yml</code> 以 IaC 重建。同步補進 <code>openstack/templates/bastion-init.sh.tftpl</code>。</li>
+    <li><strong>怎麼確認修好</strong>：bastion 上 <code>docker network ls</code> 不再有落在 <code>172.18.0.0/16</code> 的 bridge，新建的 network 從 <code>10.99.0.0/16</code> 配發。但 pod 到 apiserver 的逾時沒有因此消失，見 #46、#47。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-46">#46</a>、<a href="troubleshooting.html#bug-47">#47</a>。<a href="troubleshooting.html#bug-10">#10</a>、<a href="troubleshooting.html#bug-38">#38</a> 是 Docker network 預設值的同類問題。網段規則見 <a href="network-architecture.html#ip-plan">網路架構總覽</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-46">
+  <h4>#46 · cilium-dbg 顯示 Host: Legacy、Masquerading: IPTables</h4>
+  <ul>
+    <li><strong>症狀</strong>：追查上面的逾時時發現，<code>cilium-dbg status --verbose</code> 顯示 <code>Routing: Host: Legacy</code>、<code>Masquerading: IPTables</code>。叢集已經移除 kube-proxy，全交給 Cilium eBPF，不應該還停在 legacy iptables masquerade。</li>
+    <li><strong>根因</strong>：<code>kubeProxyReplacement: true</code> 只決定 Service 負載平衡是否用 eBPF，不會連帶打開 <code>bpf.masquerade</code>。這是 chart 裡兩個獨立的開關，<code>cilium-values.yaml.j2</code> 從沒明確設過後者，預設值 <code>false</code> 就是 legacy 模式。kernel 6.8 與 Cilium 1.19.6 都超過 BPF host routing 要求的 5.10 以上，原本就具備條件。</li>
+    <li><strong>修法</strong>：<code>cilium-values.yaml.j2</code> 明確加 <code>bpf: {masquerade: true}</code>，重跑 <code>k8s/cilium.yml</code> 並重啟 daemonset。</li>
+    <li><strong>怎麼確認修好</strong>：<code>cilium-dbg status --verbose</code> 顯示 <code>Host: BPF</code> 與 <code>Masquerading: BPF</code>，不再出現 <code>Legacy</code>、<code>IPTables</code>。這是真實的設定缺口，但和 #45 一樣不是 apiserver 連線逾時的根因，修完逾時原封不動。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-45">#45</a>、<a href="troubleshooting.html#bug-47">#47</a>。細節見 <a href="role-cilium.html#bug-46">Role: cilium</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-47">
+  <h4>#47 · pod 連節點真實 IP 的新連線 100% 逾時（underlay 丟棄 pod-CIDR 來源）</h4>
+  <ul>
+    <li><strong>症狀</strong>：排除 #45、#46 之後，pod 連節點真實 IP 的新連線依然 100% 逾時。唯一會踩到的情境是 <code>kubernetes</code> service 直接指向三台 master 的 <code>6443</code>。一路查到 OpenStack Neutron OVS 與 hypervisor underlay，租戶身份查無可查。</li>
+    <li><strong>根因</strong>：pod-CIDR（<code>172.16.0.0/16</code>）來源的封包，在 OpenStack fabric 裡被靜默丟棄，但只限目的地不是 tor 的情況。pod 到 tor 本身、以及節點自己真實 IP 來源的封包（不論目的地是誰）都 100% 暢通。<code>cilium-dbg monitor</code> 證實 Cilium 每次都把 SYN 送上 <code>ens3</code>，結果是 <code>action: allow</code>，沒有 drop event。Neutron port 的 MAC 與 IP 也逐一查過沒有衝突，問題不在 Cilium 的 policy 與 datapath。同一個 project 下新增了 3 台不由這個 repo 管理的 VM，名稱是 <code>hw-k8s-1/2/3</code>，預設 <code>port_security_enabled: true</code> 並掛 security group。時間點吻合，但查不到 OVN Southbound DB 與 hypervisor 的 OVS flow table，只能證明相關，無法證明因果。</li>
+    <li><strong>修法</strong>：繞過底層問題，並沒有修好它。Cilium 有專門對付這個情境的旗標 <code>enable-remote-node-masquerade</code>。文件寫明 BPF masquerade 預設跳過對 remote-node 與 kube-apiserver identity 的 SNAT，且不受 <code>ipv4NativeRoutingCIDR</code> 控制。在 <code>cilium-values.yaml.j2</code> 用 <code>extraConfig</code> 打開，把 pod 連節點真實 IP 的流量來源強制 SNAT 成節點自己的 IP，在 fabric 眼裡就和一直暢通的節點對節點流量相同。改 <code>extraConfig</code> 只會更新 ConfigMap，<code>helm upgrade</code> 的 <code>kubectl rollout status</code> 會回報成功但沒有重啟任何 pod，BPF 程式不會重新載入，必須手動 <code>kubectl -n cilium rollout restart daemonset/cilium</code>。</li>
+    <li><strong>怎麼確認修好</strong>：改完並重啟 daemonset 後，<code>tcpdump</code> 看到 SYN 的來源位址變成節點 IP，三向交握成功，需要建立新連線的 pod 可以連上 apiserver，例如 <code>argocd-application-controller</code>。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-45">#45</a>、<a href="troubleshooting.html#bug-46">#46</a>。這是全專案唯一違背「pod 內部一律帶真實 IP，NAT 只在 tor 發生一次」的設定，取捨見 <a href="role-cilium.html#remote-node-masquerade">Role: cilium</a>，細節見 <a href="role-cilium.html#bug-47">Role: cilium</a>。</li>
+  </ul>
+</section>
+
+<div class="callout callout-tip">
+  <p><strong>#47 是 workaround，根因沒有解開</strong></p>
+  <p>#45 與 #46 都是真實存在、已修好的 bug。但修完之後，<code>argocd-application-controller</code> 這類需要對 apiserver 建立全新連線的 pod 仍然逾時，這才發現它們只是順路撞到的另外兩個坑。</p>
+  <p>分層測試收斂出唯一會壞的路徑。測試涵蓋 pod 與 pod 同節點和跨節點、pod 到一般 Service ClusterIP、pod 到 apiserver ClusterIP 或直接後端 IP。壞掉的是 pod 發起、目的地是節點真實 IP，也就是 k8s-net 上的 host IP，不是 pod IP。<code>kubernetes</code> 這個 service 沒有 selector，Endpoints 直接指向三台 master 的 <code>6443</code>，剛好命中這條路徑。</p>
+  <p>定位用 <code>cilium-dbg monitor</code> 加三點同步 <code>tcpdump</code>，三點是來源 pod 所在節點、收到連線的 master 和 tor。SYN 從 pod 以 <code>orig-ip 0.0.0.0</code> 直接從節點的 <code>ens3</code> 送出，native routing 下這是設計上正確的行為。master 準時收到，立刻回 SYN-ACK，並依標準 TCP 行為重傳 4 次。master 的路由 <code>via TOR dev ens3</code> 和 ARP 都正確，ARP 與 tor 自己回報的 MAC 完全吻合，不是快取過期。</p>
+  <p>但 tor 那端同步抓包，對這個目的地完全零封包。tcpdump 的抓包點在 kernel 網路層最前端，比 routing、iptables、rp_filter 都早。0 封包代表這個 SYN-ACK 在 master 的虛擬網卡到 tor 的虛擬網卡之間就消失了，不是任何一台 VM 內部的規則擋掉的。</p>
+  <p>已排除的可能如下：</p>
+  <ul>
+    <li>Cilium 的 masquerade 與 routing 設定（#46），行為符合設計。</li>
+    <li>bastion 的 Docker CIDR 衝突（#45）。</li>
+    <li>Cilium daemonset 本身狀態，以及 ARP 快取過期。</li>
+    <li>Terraform 宣告的 Neutron port security。<code>openstack/main.tf</code> 的 <code>openstack_networking_port_v2.fabric</code> 對所有節點都是 <code>port_security_enabled = false</code>，master 沒有被漏掉。</li>
+    <li>Neutron port 的 MAC 與 IP 衝突，已逐一查過 <code>k8s-net</code> 上所有 port。</li>
+    <li>跨租戶網路洩漏。<code>k8s-net</code> 沒有標成 shared，新增的 3 台 VM 屬於同一個 project。</li>
+  </ul>
+  <p>這也解釋了為什麼舊的 pod 都沒事。coredns、cilium-operator 這類已經跑了好幾天的 pod，對 apiserver 的長連線在問題出現前就建好了，連線沒斷就不需要重新握手。</p>
+  <p>真正的根因在 OpenStack Neutron OVS 與 hypervisor underlay 這一層。VM 內部已經無法再往下查，包含這個 repo 管得到的所有 Ansible 與 Terraform 設定。需要的資訊如下，都要 hypervisor 或 OpenStack 管理層權限，而這個共享雲（<code>openstack.cloudnative.tw</code>）只給一般 project 身份：</p>
+  <ul>
+    <li>master 與 tor 是否在同一台 compute host。</li>
+    <li><code>br-int</code> 的 OVS flow table，指令是 <code>ovs-ofctl dump-flows</code>。</li>
+    <li>OVN Southbound DB 裡每個 logical port 的 chassis binding。</li>
+    <li>compute host 上有沒有 Neutron security group 以外的防火牆機制，例如 ebtables 或 nftables。</li>
+  </ul>
+  <p><code>enable-remote-node-masquerade</code> 解決的是「pod 連不上 apiserver」這個症狀，沒有解決「pod-CIDR 來源的封包在 fabric 裡被吃掉」這個根因。雲的維運方若查出原因並修好 fabric，這段 <code>extraConfig</code> 可以拿掉，讓 pod 對 apiserver 的連線恢復帶真實 pod IP。目前的代價是 apiserver 的 audit log 與連線來源只看得到節點 IP，看不出是哪個 pod 發起的。</p>
+</div>
+
+<section class="bug" id="bug-67">
+  <h4>#67 · ArgoCD 的 oidc.config 內換行變成字面的 \n</h4>
+  <ul>
+    <li><strong>症狀</strong>：用 Jinja 字串串接組 ArgoCD 的 <code>oidc.config</code>，這是 ConfigMap 裡一個值本身是多行 YAML 的 key。結果字串裡的換行是字面上的兩個字元 <code>\</code> 加 <code>n</code>，套進 ArgoCD 會把它解析成壞掉的 YAML。</li>
+    <li><strong>根因</strong>：第一版用 <code>'name: ...\n' ~ 'issuer: ...' ~ ...</code> 這類字串串接，整個 <code>set_fact</code> 包在 <code>&gt;-</code> 折疊純量裡。折疊純量不會把 <code>\n</code> 轉成真正的換行字元。部署前在本機用 <code>ansible-playbook</code> 單獨測這一段才抓到，沒有直接套到叢集。</li>
+    <li><strong>修法</strong>：改用 YAML 的 <code>|</code> 區塊純量，裡面直接放真正的換行，搭配 <code>vars:</code> 與一般 YAML dict，再用 <code>combine(..., recursive=True)</code> 組完整的 helm values。</li>
+    <li><strong>怎麼確認修好</strong>：本機重新測試，結果是 <code>dict</code> 型別，換行是真正的換行字元，之後才套用到叢集。</li>
+    <li><strong>相關</strong>：與 <a href="troubleshooting.html#bug-13">#13</a>、<a href="troubleshooting.html#bug-17">#17</a>、<a href="troubleshooting.html#bug-22">#22</a> 同屬字串處理陷阱。ArgoCD 的設定見 <a href="role-argocd.html#config">Role: argocd</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-68">
+  <h4>#68 · ArgoCD 登入被 Cloudflare 拒絕：Invalid redirect URL</h4>
+  <ul>
+    <li><strong>症狀</strong>：登入被 Cloudflare 拒絕，訊息是 <code>Invalid redirect URL: the protocol and host (including port) must match and the path must be within allowed URLs if provided</code>。</li>
+    <li><strong>根因</strong>：ArgoCD 組 <code>redirect_uri</code> 時以 <code>configs.cm.url</code> 為底，不從 request 的 Host header 推。沒設這個值，送出的 <code>redirect_uri</code> 和 <code>cloudflare/access.tf</code> 的 <code>argocd_sso</code> 登記的清單對不起來。ArgoCD 這一側的 ConfigMap 逐項核對都正確，問題在 IdP 那一側的比對邏輯，光看 ConfigMap 看不出來。</li>
+    <li><strong>修法</strong>：base values 一律設 <code>configs.cm.url: https://{{ argocd_hostname }}</code>。這個值也影響 UI、CLI 與通知連結的對外網址，所以放在 base values，不只在 OIDC 疊加時加。</li>
+    <li><strong>怎麼確認修好</strong>：登入頁選 Cloudflare Access 後不再被 Cloudflare 擋下。</li>
+    <li><strong>相關</strong>：「設定值看起來都對」不能取代「真的登入一次」。細節見 <a href="role-argocd.html#bug-68">Role: argocd</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-69">
+  <h4>#69 · ArgoCD 登入後每 5 分鐘被登出</h4>
+  <ul>
+    <li><strong>症狀</strong>：ArgoCD 登入後不到半小時就被強制登出。同一套 Cloudflare Access SSO 的 Grafana 與 Vault 沒有這個問題。</li>
+    <li><strong>根因</strong>：Access for SaaS 核發的 id_token 固定 5 分鐘，而且不發 refresh_token。ArgoCD Web UI 在 id_token 到期時不會自動重新導向，所以每 5 分鐘要手動登入一次。這是已知行為，見 argoproj/argo-cd 的 issue #10126、#24807、#27041。第一版修法把 <code>access_token_lifetime</code> 拉到上限 <code>24h</code>，套用後症狀不變，直接看 argocd-server log 才確認 <code>exp - iat</code> 仍是 300 秒，這個欄位對 Access for SaaS 沒有作用。</li>
+    <li><strong>修法</strong>：改走 ArgoCD 內建 Dex，由 Dex 自己簽發 id_token，效期由 <code>argocd_dex_id_token_expiry</code> 控制（<code>8760h</code>）。代價是 token 外流後一年內有效，且權限是 admin，詳見 Role: argocd 的已知限制。</li>
+    <li><strong>怎麼確認修好</strong>：登入一次，在 argocd-server log 讀 Dex 簽發的 claims：<code>exp - iat</code> 等於 <code>31536000</code> 秒，<code>iss</code> 變成 <code>https://argocd.dough-ops.com/api/dex</code>。Settings → Accounts 等管理頁面可正常進入。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-70">#70</a>、<a href="troubleshooting.html#bug-71">#71</a> 是接上 Dex 後連續遇到的問題。登入設計見 <a href="role-argocd.html#login">Role: argocd</a>，排查過程見 <a href="role-argocd.html#history">演進歷史</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-70">
+  <h4>#70 · Dex 登入失敗：missing "name" claim</h4>
+  <ul>
+    <li><strong>症狀</strong>：第一次接上 Dex 登入就失敗，<code>argocd-dex-server</code> log 印 <code>failed to authenticate err="missing \"name\" claim"</code>。</li>
+    <li><strong>根因</strong>：Dex 的 oidc connector 預設要求 <code>name</code> claim，檢查寫在 <code>connector/oidc/oidc.go</code> 的 <code>createIdentity()</code>，沒有 skip 開關。Cloudflare 核發的 id_token 中，這個帳號的 <code>name</code> 是 null，因為 GitHub 帳號沒有設公開顯示名稱。</li>
+    <li><strong>修法</strong>：connector 設 <code>userNameKey: email</code>。<code>email</code> claim 一定有值，因為 Access policy 本來就用 email 過濾 org 成員。</li>
+    <li><strong>怎麼確認修好</strong>：重新登入，log 不再印這個錯誤，接著會遇到 #71。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-69">#69</a>、<a href="troubleshooting.html#bug-71">#71</a>。細節見 <a href="role-argocd.html#bug-70">Role: argocd</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-71">
+  <h4>#71 · Dex 登入失敗：missing "email_verified" claim</h4>
+  <ul>
+    <li><strong>症狀</strong>：修完 <code>name</code> 之後，log 換成 <code>failed to authenticate err="missing \"email_verified\" claim"</code>。</li>
+    <li><strong>根因</strong>：Dex 預設還要求 <code>email_verified</code> claim 存在且為 true。Cloudflare 的 id_token 只有 <code>email</code>，沒有這個 claim，無從映射。</li>
+    <li><strong>修法</strong>：connector 設 <code>insecureSkipEmailVerified: true</code>，略過整個檢查。oauth2-proxy 那邊為同樣原因加了對應的 flag。</li>
+    <li><strong>怎麼確認修好</strong>：重新登入成功，並完成 #69 的 <code>exp - iat</code> 驗證。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-52">#52</a> 是 oauth2-proxy 側的同類問題。細節見 <a href="role-argocd.html#bug-71">Role: argocd</a>。</li>
+  </ul>
+</section>
+
+<h3 id="patterns">看得出來的模式</h3>
+<p>把 bug 放在一起看，會出現重複的類型。下面是目前看得出來的共同點，括號內是相關編號。</p>
+<div class="card-grid">
+  <div class="card">
+    <div class="card-icon">🔁</div>
+    <h4>all/default 不追溯</h4>
+    <p>相關：#4、#5。同一個 kernel 網路設定的陷阱，在不同時間點被不同的 sysctl 參數各撞了一次。第一次修完之後應該要意識到這是通用模式，實際上卻是各自獨立發現的。</p>
+  </div>
+  <div class="card">
+    <div class="card-icon">🧩</div>
+    <h4>Ansible 字串處理陷阱</h4>
+    <p>相關：#13、#17、#22、#67。模板頭沒帶註解字元、YAML block 純量縮排、command 模組的 shlex 解析、折疊純量裡的 <code>\n</code>，都是「以為字串照抄就會照預期渲染」的案例。#67 靠部署前在本機單獨測那一段才抓到，值得養成「渲染完先看實際輸出」的習慣。</p>
+  </div>
+  <div class="card">
+    <div class="card-icon">🔬</div>
+    <h4>根因靠實測找到</h4>
+    <p>相關：#6、#8、#18、#19、#69。例子有 <code>tcpdump -e</code> 三點同時抓包、<code>terraform console</code> 加 <code>diff</code>、<code>ip route get</code>、<code>vtysh show ip route</code>，以及在 argocd-server log 讀 id_token 的 <code>exp - iat</code>。每個懷疑都有對應的驗證步驟，不是改完就假設好了。#69 的第一版修法調高 <code>access_token_lifetime</code> 沒有效果，直接看 token 才確認是平台硬限制。</p>
+  </div>
+  <div class="card">
+    <div class="card-icon">🔐</div>
+    <h4>憑證 SAN 不能頂替</h4>
+    <p>相關：#16、#23、#24。三次都是「以為某個中間位址可以頂替真正的權威來源」的假設。certificate-key 有一次性語意（#16）。<code>upload-certs</code> 單獨呼叫時猜錯 advertise address（#23）。Cilium 直連 tor 的 IP，而不是 <code>control-plane-endpoint</code> 的 hostname（#24）。</p>
+  </div>
+  <div class="card">
+    <div class="card-icon">👻</div>
+    <h4>手動修的 fix 沒回寫</h4>
+    <p>相關：#10、#34、#38、#45。Docker MTU（#10）第一次是手動改 <code>/etc/docker/daemon.json</code>，沒有補進 cloud-init。kubectl、kubeconfig 與 <code>k8s-api.internal</code> 記錄（#34）也是同樣的性質。bastion 一直被當成「裝一次就不會重建」的節點，直到為了加持久化資料碟而重建，這些只存在於某台機器上的手動修復才全部得重來。</p>
+    <p>#10 的修法後來補回 <code>bastion-init.sh.tftpl</code>，#34 拆成獨立 playbook 收進 <code>playbooks/bastion.yml</code>。通用原則是：任何「SSH 上去改一行設定」的修法，沒有回寫進 Terraform 或 Ansible，就等於沒修過，只是還沒遇到下一次重建。</p>
+    <p>#38 是同一個教訓的第三次，涵蓋範圍不同。#10 只讓 default bridge 的 MTU 正確，之後 Docker 新建的每個自訂 network 都不會繼承，包括 <code>github_network_*</code> 和 <code>keycloak-net</code>。#45 是第四次，Docker 依序配發位址而撞上 Service CIDR。兩次的修法都收進 <code>daemon.json</code> 的 <code>default-network-opts</code> 與 <code>default-address-pools</code>，並同步寫進 cloud-init。</p>
+  </div>
+  <div class="card">
+    <div class="card-icon">🌱</div>
+    <h4>沒人測過「從 0」</h4>
+    <p>相關：#34、#37。#34 把 kubeconfig 與 DNS 修好，前提是叢集本來就活著。#37 才發現同一份 playbook 在「叢集從未建立」這個更早的情境會直接硬失敗。兩個情境共用同一段程式碼，卻只有其中一個真的被跑過。修法是讓程式碼自己偵測叢集存不存在並各自安全跳過，不要求操作者記得兩種情境該用哪個順序。</p>
+  </div>
+  <div class="card">
+    <div class="card-icon">🕳️</div>
+    <h4>負面斷言缺正面對照</h4>
+    <p>相關：#36。驗證 network policy 時只測了「應該被擋的連線真的失敗」，沒有同時測「不該被擋的連線真的成功」。<code>egressDeny</code> 少了 <code>enableDefaultDeny: {egress: false}</code>，把幾乎全叢集的 pod egress 打成 default-deny。兩種情況下被擋的連線都會失敗，測試都顯示通過。</p>
+    <p>這次還疊加了 #34 記錄過的盲點。hostNetwork pod 不受影響，所以 bastion 自己的 ansible 與 kubectl 存取正常，看不出叢集其他地方已經斷線。問題撐了約 10 小時，是 code review 抓到的，不是監控或回報。通用原則：任何「擋住 X」的驗證，都要配一個「X 以外的東西還能通」的正面對照組。</p>
+  </div>
+  <div class="card">
+    <div class="card-icon">♻️</div>
+    <h4>重跑才暴露的行為</h4>
+    <p>相關：#49、#54、#56、#57、#59、#61。第一次執行都正常，第二次或換一台全新節點才出事。</p>
+    <p>宣告式的 <code>file</code> task 每次重跑都把 owner 蓋回 root（#49）。handler 拖到 play 結尾才重啟（#54）。環境變數只在 Pod 啟動時讀一次（#56）。非冪等指令用「檔案存在」當守衛（#57）。<code>docker inspect</code> 沒限定種類而永遠命中 image（#59）。對不存在的套件解除 hold（#61）。寫 role 時要同時驗證第一次、重跑、全新節點三種路徑。</p>
+  </div>
+  <div class="card">
+    <div class="card-icon">🧷</div>
+    <h4>預設值替你做事</h4>
+    <p>相關：#7、#14、#27、#40、#41、#46、#59。預設行為做了你沒要求的事，每一項的修法都是把行為明確寫出來。</p>
+    <p>ECMP 雜湊預設只看 IP（#7）。haproxy 沿用全域 <code>mode tcp</code>（#14）。CRI-O 預設 enforcing（#27）。GitLab 看到 https 就開 Let's Encrypt（#40）。GitLab 設定只在 seed 時生效（#41）。<code>kubeProxyReplacement</code> 不連帶打開 BPF masquerade（#46）。<code>docker inspect</code> 預設搜尋所有物件種類（#59）。</p>
+  </div>
+  <div class="card">
+    <div class="card-icon">🚧</div>
+    <h4>外部限制只能繞過</h4>
+    <p>相關：#42、#47、#51、#69。GitHub fine-grained PAT 無法 pull container image（#42）。OpenStack underlay 丟棄 pod-CIDR 封包（#47）。Dex 沒有 SSO cookie（#51）。Cloudflare Access for SaaS 的 id_token 固定 5 分鐘（#69）。</p>
+    <p>這四項都無法靠改自己的設定解決，做法分別是換成 public image、masquerade、接受每次同意畫面、多放一個 Dex。每個繞過都有代價，要寫在對應 role 頁的已知限制裡。</p>
+  </div>
+  <div class="card">
+    <div class="card-icon">🪪</div>
+    <h4>權限範圍事後才審</h4>
+    <p>相關：#58、#72。wildcard ClusterRole 放行 Secrets（#58）是部署前檢查發現的。GitLab 預設權限為 Developer 推不了 protected main（#72），修法是提升到 Owner，擴大了範圍。權限類的修法都要寫明影響到誰，再回頭檢查這個範圍是否過大。</p>
+  </div>
+</div>
 
     <div class="page-nav">
-      <a class="prev" href="cloudflare-manual-setup.html"><span class="dir">上一頁</span><span class="ttl">← Cloudflare 手動設定清單</span></a>
-      <a class="next" href="changelog.html"><span class="dir">下一頁</span><span class="ttl">Changelog →</span></a>
+      <a class="prev" href="internal-tools.html"><span class="dir">上一頁</span>
+        <span class="ttl">← 內部工具</span></a>
+      <a class="next" href="changelog.html"><span class="dir">下一頁</span>
+        <span class="ttl">Changelog →</span></a>
     </div>
 
     <footer class="page-footer">
-      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
-      <span>最後更新:2026-08-12</span>
+      <span>文件站原始碼：<a href="https://github.com/DoughOps/terraform-k8s-docs" target="_blank" rel="noopener">DoughOps/terraform-k8s-docs</a></span>
+      <span>最後更新：2026-11-01（對應 commit e91424f）</span>
     </footer>
   </div>
 </div>

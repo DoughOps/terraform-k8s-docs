@@ -292,3 +292,37 @@ td.mono, th.mono { font-family: var(--mono); font-size:12.5px; }
 }
 .menu-btn { display:none; background:none; border:none; color: var(--text); font-size:20px; cursor:pointer; padding:4px; }
 @media (max-width: 860px) { .menu-btn { display:block; } }
+
+/* ── 重構新增元件 ── */
+h3[id], h4[id], section[id] { scroll-margin-top: 72px; }
+
+/* ADR：決策／理由／替代方案／代價 */
+.adr { border:1px solid var(--border); border-radius:10px; padding:16px 18px; margin:16px 0 24px; background: var(--surface); }
+.adr p { margin-bottom:8px; }
+.adr p:last-child { margin-bottom:0; }
+.adr ul { margin-bottom:8px; }
+
+/* Bug 總表的單筆紀錄 */
+.bug { border-top:1px solid var(--border); padding:14px 0 6px; }
+.bug h4 { font-size:14.5px; color: var(--text); text-transform:none; letter-spacing:0; margin:0 0 8px; }
+.bug ul { margin-bottom:8px; }
+
+/* Changelog 一行一條 */
+.cl-list { list-style:none; padding:0; margin:0 0 24px; }
+.cl-list li { display:grid; grid-template-columns: 96px 64px 1fr; gap:10px; padding:7px 0; border-bottom:1px solid var(--border); font-size:13.5px; }
+.cl-list .d { font-family: var(--mono); font-size:12.5px; color: var(--muted); }
+.cl-list .k { font-family: var(--mono); font-size:12.5px; font-weight:700; color: var(--accent); }
+@media (max-width: 640px) { .cl-list li { grid-template-columns: 96px 1fr; } .cl-list li > span:last-child { grid-column: 1 / -1; } }
+
+/* 閱讀路線 */
+.path { display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; margin:0; }
+.path .arrow { color: var(--muted); }
+
+/* 手機寬度：長 inline code 換行，flex 子元素可縮小 */
+.content code, .content strong { overflow-wrap: anywhere; }
+.steps li div, .steps li > * { min-width: 0; }
+.term-bar { min-width: 0; }
+.term-title { min-width: 0; overflow-wrap: anywhere; }
+.term-title { white-space: normal; flex: 1 1 auto; }
+.term-bar { flex-wrap: nowrap; }
+.term-dot { flex: none; }

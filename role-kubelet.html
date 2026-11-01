@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Role: kubelet — k8s + BGP Lab 技術詳解</title>
+<title>Role: kubelet — k8s + BGP Lab 技術文件</title>
 <link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
@@ -12,16 +12,17 @@
   <div class="sidebar-logo">
     <a class="sidebar-logo-link" href="index.html">
       <h1>🛰️ k8s + BGP Lab</h1>
-      <span>OpenStack Lab · 技術詳解 v15</span>
+      <span>OpenStack Lab 技術文件</span>
     </a>
   </div>
   <nav>
     <div class="nav-group">
-      <div class="nav-group-label">總覽</div>
+      <div class="nav-group-label">開始</div>
       <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
       <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
       <a class="nav-link" href="user-guide.html"><span class="icon">🧑‍💻</span> 叢集使用手冊</a>
       <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+      <a class="nav-link" href="glossary.html"><span class="icon">📖</span> 術語表</a>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">網路架構</div>
@@ -32,36 +33,39 @@
       <div class="nav-group-label">基礎設施</div>
       <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
       <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
-      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
     </div>
     <div class="nav-group">
-      <div class="nav-group-label">Ansible 自動化</div>
-      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <div class="nav-group-label">叢集元件</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> Ansible 框架設計</a>
       <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
       <a class="nav-link active" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
       <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
       <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
       <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
       <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試與 smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">對外入口與身份驗證</div>
       <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
       <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">📋</span> Cloudflare 設定清單</a>
       <a class="nav-link" href="role-vault.html"><span class="icon">🔒</span> Role: vault</a>
       <a class="nav-link" href="role-keycloak-dex.html"><span class="icon">🪪</span> Role: keycloak / dex</a>
       <a class="nav-link" href="identity-federation-flow.html"><span class="icon">🧩</span> 身份聯邦登入流程</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">平台服務</div>
       <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
       <a class="nav-link" href="role-gitlab.html"><span class="icon">🦊</span> Role: gitlab</a>
       <a class="nav-link" href="role-argocd.html"><span class="icon">🐙</span> Role: argocd</a>
-      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
-      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
-    </div>
-    <div class="nav-group">
-      <div class="nav-group-label">Cloudflare 手動設定</div>
-      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具</a>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">專案紀錄</div>
       <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
-      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">🗒️</span> Changelog</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB 歷史</a>
     </div>
   </nav>
 </aside>
@@ -69,8 +73,9 @@
 <div class="main">
   <header class="topbar">
     <div class="topbar-left">
-      <button class="menu-btn" aria-label="Toggle menu">☰</button>
-      <span class="topbar-crumb">Lab Docs / <strong>Role: kubelet</strong></span>
+      <button class="menu-btn" aria-label="切換選單">☰</button>
+      <span class="topbar-crumb">叢集元件 /
+        <strong>Role: kubelet</strong></span>
     </div>
     <div class="topbar-right">
       <span class="topbar-badge">cloudnative.tw · AS 65000</span>
@@ -82,169 +87,136 @@
 
   <div class="content">
 
-    <h2><span class="eyebrow">Ansible 自動化</span>Role: kubelet</h2>
-    <p class="lede">在所有 <code>k8s_nodes</code> 上裝 kubeadm/kubelet/kubectl,
-      並確保三個前提條件:cgroup v2、無 swap、kubelet 用正確的網段當
-      node-ip。kubeadm init/join 的邏輯不在這裡,見
-      <a href="role-kubeadm.html">Role: kubeadm</a>——這個 role 只管
-      「裝好套件、裝好前提條件」。</p>
+    <h2><span class="eyebrow">叢集元件</span>
+    Role: kubelet</h2>
 
-    <h3>前提條件一:cgroup v2,用 assert 直接驗證,不是假設</h3>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/kubelet/tasks/main.yml</span></div>
-      <pre><span class="out">- command: stat -fc %T /sys/fs/cgroup
-  register: cgroup_fs_type
+<p class="lede">這個 role 在所有 <code>k8s_nodes</code> 上安裝 kubeadm、kubelet、kubectl 和 crictl，並備齊 kubeadm 的前提條件。前提包含 cgroup v2、無 swap、正確的 <code>node-ip</code>，以及一條 service CIDR 的靜態路由。它在 <code>playbooks/k8s/kubeadm.yml</code> 的第一個 play 執行，排在 <a href="role-crio.html">Role: crio</a> 之後、<a href="role-kubeadm.html">Role: kubeadm</a> 之前。</p>
+<p>role 在 <code>ansible/roles/kubelet/</code>，只負責「裝好套件、備好前提」。<code>kubeadm init</code> 和 <code>join</code> 的邏輯在 kubeadm role。</p>
 
-- assert:
-    that: cgroup_fs_type.stdout == "cgroup2fs"
-    fail_msg: "...不是 cgroup2fs,中止讓你確認..."</span></pre>
-    </div>
-    <p>使用者的原始需求就是「用 cgroup v2」——這裡沒有選擇默默假設
-      Ubuntu 24.04 一定是 cgroup v2(雖然實務上它就是),而是<strong>實際
-      查一次 <code>/sys/fs/cgroup</code> 的檔案系統類型</strong>,
-      <code>cgroup2fs</code> 才是真的 unified hierarchy。如果哪天 image
-      被客製化過導致不是 cgroup v2,這裡會直接中止並給出明確原因,不是讓
-      後面 kubelet/CRI-O 的 cgroup driver 設定在一個錯誤前提下繼續跑,
-      跑出更難追的間接錯誤。</p>
+<h3 id="config">現在的設定</h3>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>項目</th><th>值</th><th>為什麼</th></tr></thead>
+    <tbody>
+      <tr><td>cgroup v2 檢查</td><td><code>stat -fc %T /sys/fs/cgroup</code> 必須回 <code>cgroup2fs</code>，否則 <code>assert</code> 中止</td><td>實際查檔案系統型別，不假設 Ubuntu 24.04 一定是 cgroup v2。image 被改過時，在這裡就明確報錯，不會讓後面的 cgroup driver 設定在錯誤前提下跑出難追的間接錯誤</td></tr>
+      <tr><td>swap</td><td><code>swapoff -a</code>，並在 <code>/etc/fstab</code> 用 regex 註解掉 swap 那一行</td><td>kubeadm 預設要求無 swap。<code>swapoff</code> 只管當下，<code>fstab</code> 避免重開機後又掛回來。目前這批 VM 沒有 swap 分割區（<code>ansible_swaptotal_mb</code> 為 0），兩步都是 no-op，保留是為了換 image 後仍然正確且冪等</td></tr>
+      <tr><td>網路工具</td><td><code>conntrack</code>、<code>socat</code>、<code>ebtables</code>、<code>ethtool</code></td><td><code>conntrack</code> 是 kubeadm preflight 的硬性要求。其餘三個是官方列出的 kubelet 依賴，一次裝齊，避免每個 preflight 錯誤各修一次，見 <a href="troubleshooting.html#bug-15">Bug #15</a></td></tr>
+      <tr><td>apt repo</td><td><code>https://pkgs.k8s.io/core:/stable:/{{ kubernetes_minor_version }}/deb/</code></td><td>URL 綁定 minor 版本，目前是 <code>v1.34</code></td></tr>
+      <tr><td>套件</td><td><code>kubelet</code>、<code>kubeadm</code>、<code>kubectl</code>、<code>cri-tools</code>，<code>state: latest</code>，裝完 <code>dpkg_selections: hold</code></td><td><code>hold</code> 防止 <code>apt upgrade</code> 把它們升到別的 minor，和 CRI-O 錯開。<code>cri-tools</code> 提供 <code>crictl</code>，<code>oidc_auth</code> role 要用它確認 kube-apiserver container 是否重建</td></tr>
+      <tr><td><code>node-ip</code></td><td><code>/etc/default/kubelet</code> 寫 <code>KUBELET_EXTRA_ARGS=--node-ip=&lt;fabric_ip&gt;</code>，例如 <code>10.10.0.20</code></td><td>見下一節</td></tr>
+      <tr><td>service CIDR 路由</td><td>netplan <code>90-service-cidr-route.yaml</code>，<code>to: 172.18.0.0/16</code>、<code>scope: link</code></td><td>讓 kernel 為 ClusterIP 選對來源位址，見 <a href="#service-cidr-route">service-cidr 的靜態路由</a></td></tr>
+      <tr><td>服務狀態</td><td><code>systemctl enable --now kubelet</code></td><td>此時 kubelet 會 crashloop，屬於預期，見<a href="#crashloop">最後一節</a></td></tr>
+    </tbody>
+  </table>
+</div>
 
-    <h3>前提條件二:無 swap</h3>
-    <p>kubeadm 預設仍要求節點沒有 swap(kubelet 對 swap 的支援目前還是
-      alpha/beta 等級的 feature gate)。<code>swapoff -a</code> 只影響
-      當下的執行期,額外在 <code>/etc/fstab</code> 用 regex 註解掉
-      swap 掛載那一行,確保重開機後 swap 不會又被掛回來。實測這批
-      OpenStack VM 本身就沒有配置 swap 分割區(<code>ansible_swaptotal_mb</code>
-      是 0),這兩步在目前的環境下都是 no-op,但保留是為了讓這個 role
-      在任何(包含未來換了不同 image 的)環境下都是正確、冪等的。</p>
+<h4 id="node-ip">node-ip 明確指定</h4>
+<p>kubelet 沒指定 <code>--node-ip</code> 時，會選預設路由所在介面的位址。這些節點有兩張網卡：<code>k8s-net</code> 沒有預設路由，<code>mgmt-net</code> 有。kubelet 自己猜的話，一定會選到 <code>mgmt-net</code>。</p>
+<p>架構的前提是節點之間的流量走 <code>k8s-net</code>，<code>mgmt-net</code> 只供維運和對外使用（見<a href="network-architecture.html#two-networks">雙網卡模型</a>）。所以 role 透過 <code>/etc/default/kubelet</code> 指定 <code>--node-ip</code>，kubelet 的 systemd unit 會讀取這個檔案的 <code>KUBELET_EXTRA_ARGS</code>。值取自每個節點在 inventory 裡的 <code>fabric_ip</code>。</p>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">節點上的 /etc/default/kubelet</span></div>
+  <pre><span class="out">KUBELET_EXTRA_ARGS=--node-ip=10.10.0.20</span></pre>
+</div>
 
-    <h3>前提條件三:kubeadm preflight 需要的網路工具</h3>
-    <p><code>conntrack</code> 是 kubeadm preflight 檢查的<strong>硬性要求</strong>
-      ——第一次跑 <code>kubeadm init</code> 時實測直接撞到
-      <code>[ERROR FileExisting-conntrack]: conntrack not found in system path</code>,
-      preflight 檢查會直接 fatal error、拒絕繼續。<code>socat</code>/
-      <code>ebtables</code>/<code>ethtool</code> 是官方文件列出的
-      kubelet/kube-proxy 依賴,一次裝好,不要每個 preflight 錯誤各修一次
-      再重跑。</p>
+<h4 id="version-hold">版本鎖定與升級</h4>
+<p>每次執行都先對已安裝的套件做 <code>selection: install</code> 解除鎖定，再用 <code>state: latest</code> 安裝，最後重新 <code>hold</code>。<code>latest</code> 在這裡是安全的，因為 repo URL 已經綁定 minor 版本，只會抓同一個 minor 的最新 patch。</p>
+<p>解除鎖定只對 <code>ansible_facts.packages</code> 裡已有的套件執行。全新節點的 dpkg 選擇資料庫沒有這些套件，對不存在的套件設定 selection 會報 <code>Failed to find package 'X' to perform selection</code>。所以 role 先用 <code>package_facts</code> 判斷節點是否安裝過，見 <a href="troubleshooting.html#bug-61">Bug #61</a>。</p>
 
-    <h3>kubeadm/kubelet/kubectl 安裝 + 版本鎖定</h3>
-    <p>跟 <a href="role-crio.html">Role: crio</a> 一樣的 apt repo 模式
-      (<code>pkgs.k8s.io</code>,GPG key + keyring + apt source),
-      裝完之後對三個套件都下
-      <code>dpkg_selections: selection: hold</code>——避免任何一次
-      <code>apt upgrade</code> 意外把它們升級到不同的 minor version,
-      跟 CRI-O 版本錯開造成不相容。</p>
+<h3 id="service-cidr-route">service-cidr 的靜態路由</h3>
+<p>這個 role 在每個節點的 <code>fabric_iface</code> 上加一條 service CIDR 的 <code>scope link</code> 路由，唯一目的是讓 kernel 對 ClusterIP 選出 <code>k8s-net</code> 的來源位址。路由本身不轉送任何封包。為什麼 ClusterIP 會選錯來源位址，概念與完整解釋見<a href="network-architecture.html#service-cidr">網路架構總覽 § service-cidr</a>。這裡記錄 kubelet role 的實作和當初的除錯證據。</p>
 
-    <div class="callout callout-warn">
-      <p><strong>Bug:被 hold 鎖住的套件,即使改了
-      <code>kubernetes_minor_version</code>、repo URL 也指向新版本,
-      <code>state: present</code> 還是不會升級</strong>——第一次把
-      <code>kubernetes_minor_version</code> 從 <code>v1.31</code> 改成
-      <code>v1.34</code> 時,role 沒有跟著改,實測套件仍然停在
-      <code>v1.31</code>。根因是 <code>state: present</code> 的語意是
-      「有裝就好」,而 <code>dpkg_selections: hold</code> 讓 apt 更進一步
-      拒絕任何版本變動,兩個機制疊加的結果是「已經裝過的套件永遠不會被
-      這個 task 動到」,就算 repo URL 本身已經指向 v1.34 的 index 也一樣。
-      修法是在安裝前先解除鎖定(<code>selection: install</code>),再把
-      安裝 task 從 <code>state: present</code> 改成 <code>state:
-      latest</code>——這裡用 <code>state: latest</code> 是安全的,因為
-      repo URL 本身已經是版本綁定的(<code>.../v1.34/deb/</code>),
-      「latest」只會在同一個 minor version 底下抓最新 patch,不會意外
-      跳到不同的 minor version。</p>
-    </div>
-
-    <h3>node-ip:kubelet 要明確指定,不能讓它自己猜</h3>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">/etc/default/kubelet</span></div>
-      <pre><span class="out">KUBELET_EXTRA_ARGS=--node-ip=10.10.0.20</span></pre>
-    </div>
-    <p>不設的話,kubelet 會自動選「預設路由所在的介面」的位址當自己的
-      node-ip。這台機器有兩張網卡:k8s-net(<code>no_gateway=true</code>,
-      沒有預設路由)跟 mgmt-net(<strong>有</strong>預設路由)——kubelet
-      如果自己猜,一定會選到 mgmt-net 的位址,而這整個架構的設計前提是
-      「k8s 節點之間的流量走 k8s-net(資料平面),mgmt-net 只給操作/對外用」
-      (見 <a href="network-architecture.html">網路架構總覽</a>)。這裡
-      透過 <code>/etc/default/kubelet</code>(kubelet 的 systemd unit 會
-      source 這個檔案的 <code>KUBELET_EXTRA_ARGS</code>)明確指定
-      <code>--node-ip</code>,用每個節點各自的 <code>fabric_ip</code>
-      (從 ansible inventory 讀,見 <a href="ansible-framework.html">框架
-      設計</a>)。</p>
-
-    <h3>最大的一個 bug:service-cidr 需要一條靜態路由</h3>
-    <p>這是整個 native routing 落地過程中唯一一個純網路層級(不是
-      k8s 也不是 Cilium)的 bug,完整除錯過程值得記錄——裝 Cilium 時,
-      init container 卡在連 <code>10.96.0.1:443</code>(那時候還是預設
-      service-cidr,後來改成 <code>172.18.0.0/16</code>)逾時。</p>
-
-    <ol class="steps">
-      <li><div><strong>tcpdump 在受影響節點的 <code>ens3</code> 上抓包</strong>,
-        發現 SYN 封包的<strong>來源位址是 <code>192.168.200.x</code>
-        (mgmt_ip)</strong>,不是預期的 <code>10.10.0.x</code>(fabric_ip)
-        ——即使目的地已經被 kube-proxy 正確 DNAT 成某個真實 master 的
-        fabric_ip。</div></li>
-      <li><div><strong>用 <code>ip route get 10.96.0.1</code> 直接驗證</strong>:
-        kernel 回報會走 mgmt-net、來源選 <code>192.168.200.x</code>
-        ——因為 <code>10.96.0.0/12</code>(ClusterIP 網段)在 k8s-net
-        上完全沒有對應路由,查詢 fallback 到 mgmt-net 的預設路由。</div></li>
-      <li><div><strong>根因是 kernel 決定「來源位址」的時機</strong>:
-        Linux 對本機發起的連線,是先用<strong>原始</strong>目的地(改寫前的
-        ClusterIP)做一次路由查詢來決定來源位址,這個時機在 kube-proxy
-        的 DNAT 規則生效<strong>之前</strong>。ClusterIP 從來不是一個
-        「路由得到」的位址,DNAT 一定會先把它改寫成真實 backend——但
-        「決定來源位址」這件事發生得比 DNAT 早,如果 ClusterIP 網段
-        在本機路由表裡沒有任何專屬條目,就會被一般的 fallback 邏輯
-        (走預設路由)決定,選到錯的網段。</div></li>
-    </ol>
-
-    <h4>修法:netplan 加一條 scope link 的「假」路由</h4>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">/etc/netplan/90-service-cidr-route.yaml(範本渲染後)</span></div>
-      <pre><span class="out">network:
+<h4 id="route-impl">實作</h4>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">節點上的 /etc/netplan/90-service-cidr-route.yaml（範本渲染後）</span></div>
+  <pre><span class="out">network:
   version: 2
   ethernets:
     ens3:
       routes:
         - to: 172.18.0.0/16
           scope: link</span></pre>
-    </div>
-    <p>這條路由<strong>不會真的被拿去轉送任何封包</strong>(封包一定會先被
-      DNAT 成真實 backend,不會照著這條路由的字面意思去送)——它唯一的
-      作用是讓「決定來源位址」那次路由查詢,對
-      <code>172.18.0.0/16</code> 這個目的地能查到一個落在 k8s-net 上的
-      結果,連帶讓 kernel 選中 <code>10.10.0.x</code> 當來源位址。用
-      <code>scope: link</code>(不指定 gateway)是因為這個網段本來就不是
-      真的路由到哪裡去,只是要「佔住」這個路由表項目。</p>
+</div>
+<p>用 <code>scope: link</code> 且不指定 gateway，因為這個網段本來就不會路由到任何地方，只需要佔住路由表項目。封包一定先被 DNAT 成真實 backend，不會照這條路由的字面意思去送。</p>
+<p>介面名稱不寫死。實測每台的 fabric NIC 都是 <code>ens3</code>，由 Terraform 的 <code>network {}</code> block 順序決定。role 仍用 <code>ip -4 -o addr show | grep -F '&lt;fabric_ip&gt;/'</code> 查出對應的介面，再代入 netplan 範本。OpenStack 的 NIC 枚舉順序在某台機器不同時，也不會壞。</p>
+<p>修法放在 kubelet 這個通用 role，不放進 <a href="role-cilium.html">Role: cilium</a>。受影響的不只 Cilium，任何 hostNetwork 模式、需要連 ClusterIP 的元件都會撞到。</p>
 
-    <div class="callout callout-tip">
-      <p><strong>介面名稱不是寫死的 <code>ens3</code></strong>——雖然目前
-      每台機器實測下來 fabric NIC 確實都是 <code>ens3</code>
-      (Terraform 的 <code>network {}</code> block 順序決定),但 role
-      裡先用 <code>ip -4 -o addr show | grep -F '{{ fabric_ip }}/'</code>
-      實際查一次對應到哪個介面名稱,再把結果代入 netplan 範本——不假設
-      介面命名規則,萬一 OpenStack NIC 枚舉順序在某台機器上不一樣,
-      這裡不會壞。</p>
-    </div>
+<h3 id="limits">已知限制</h3>
+<ul>
+  <li>role 只支援 <code>apt</code> 系的節點，並要求 cgroup v2。不符合時，cgroup 檢查會中止，不會自動修改 kernel 參數或重開機。</li>
+  <li>kubelet 的 apt repo 使用已標示 deprecated 的 <code>apt_repository</code>，原因與 <a href="role-crio.html#apt-repository-deprecated">Role: crio</a> 相同。</li>
+</ul>
 
-    <p>這個 bug 影響的不只是 Cilium——任何跑在 hostNetwork 模式、需要連
-      ClusterIP 的元件都會撞到同樣的問題,所以修法放在
-      <code>kubelet</code> 這個通用 role 裡,不是塞進
-      <a href="role-cilium.html">Role: cilium</a>,即使它是在裝 Cilium
-      時才被實際發現的。</p>
+<h3 id="bugs">實測踩到的 bug</h3>
+<section class="bug" id="bug-15">
+  <h4>#15 · kubeadm init preflight 因缺少 conntrack 失敗</h4>
+  <ul>
+    <li><strong>症狀</strong>：第一次執行 <code>kubeadm init</code>，preflight 直接 fatal：<code>[ERROR FileExisting-conntrack]: conntrack not found in system path</code>。</li>
+    <li><strong>根因</strong>：節點 image 沒有 <code>conntrack</code>，而它是 kubeadm preflight 的硬性要求。</li>
+    <li><strong>修法</strong>：role 一次安裝 <code>conntrack</code>、<code>socat</code>、<code>ebtables</code>、<code>ethtool</code>。後三者是官方文件列出的 kubelet 依賴，一起裝可避免逐個 preflight 錯誤修了再重跑。</li>
+    <li><strong>怎麼確認修好</strong>：<code>kubeadm init</code> 的 preflight 階段通過。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-15">Bug 事後檢討 #15</a>。</li>
+  </ul>
+</section>
 
-    <h3>啟用 kubelet:此時預期會 crashloop</h3>
-    <p>role 的最後一步是 <code>systemctl enable --now kubelet</code>
-      的等價操作。這個階段還沒有 kubeadm init/join 產生的
-      <code>/var/lib/kubelet/config.yaml</code>,kubelet 會一直
-      crashloop,這是<strong>預期行為</strong>,跟官方 kubeadm 文件描述的
-      流程完全一致——真正讓 kubelet 穩定跑起來,要等
-      <a href="role-kubeadm.html">Role: kubeadm</a> 的 init/join 跑完。</p>
+<section class="bug" id="bug-18">
+  <h4>#18 · Cilium init container 連 ClusterIP 逾時</h4>
+  <ul>
+    <li><strong>症狀</strong>：安裝 Cilium 時，init container 卡在連 <code>10.96.0.1:443</code> 並逾時。當時還是預設 service CIDR，後來改成 <code>172.18.0.0/16</code>。這是 native routing 落地過程中，唯一純屬網路層的 bug，和 Kubernetes、Cilium 本身無關。</li>
+    <li><strong>根因</strong>：Linux 對本機發起的連線，先用改寫前的原始目的地（ClusterIP）做路由查詢決定來源位址，這發生在 kube-proxy 的 DNAT 之前。ClusterIP 網段在 <code>k8s-net</code> 上沒有路由，查詢 fallback 到 <code>mgmt-net</code> 的預設路由，選到 <code>mgmt-net</code> 的位址當來源。封包的目的地雖然已被 DNAT 成真實 master 的 <code>fabric_ip</code>，來源位址卻是 <code>192.168.200.x</code>，對方從 <code>mgmt-net</code> 回覆而連線逾時。</li>
+    <li><strong>修法</strong>：netplan 加一條 service CIDR 的 <code>scope: link</code> 路由，見<a href="#route-impl">上方實作</a>。</li>
+    <li><strong>怎麼確認修好</strong>：<code>ip route get</code> 對 service CIDR 內的位址，回報走 <code>k8s-net</code> 的介面，來源位址是 <code>10.10.0.x</code>。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-18">Bug 事後檢討 #18</a>、<a href="network-architecture.html#service-cidr">service-cidr 概念</a>。</li>
+  </ul>
+</section>
+
+<h4 id="bug-18-evidence">#18 的除錯證據</h4>
+<ol>
+  <li>在受影響節點的 <code>ens3</code> 上用 <code>tcpdump</code> 抓包，SYN 封包的來源位址是 <code>192.168.200.x</code>（<code>mgmt_ip</code>），不是預期的 <code>10.10.0.x</code>（<code>fabric_ip</code>）。此時目的地已被 kube-proxy 正確 DNAT 成某台 master 的 <code>fabric_ip</code>。</li>
+  <li>用 <code>ip route get 10.96.0.1</code> 驗證，kernel 回報走 <code>mgmt-net</code>、來源選 <code>192.168.200.x</code>。原因是 ClusterIP 網段 <code>10.96.0.0/12</code> 在 <code>k8s-net</code> 上沒有對應路由，所以 fallback 到 <code>mgmt-net</code> 的預設路由。</li>
+</ol>
+
+<section class="bug" id="bug-26">
+  <h4>#26 · 升級 kubernetes_minor_version 後套件版本沒變</h4>
+  <ul>
+    <li><strong>症狀</strong>：把 <code>kubernetes_minor_version</code> 從 <code>v1.31</code> 改成 <code>v1.34</code>，repo URL 也指向新版本，但 kubeadm、kubelet、kubectl 實測仍停在 <code>v1.31</code>。</li>
+    <li><strong>根因</strong>：<code>state: present</code> 的語意是「有裝就好」，加上 <code>dpkg_selections: hold</code> 讓 apt 拒絕任何版本變動。兩者疊加後，已安裝的套件永遠不會被這個 task 動到，即使 repo index 已經指向 v1.34。</li>
+    <li><strong>修法</strong>：安裝前先解除鎖定（<code>selection: install</code>），安裝 task 改為 <code>state: latest</code>，裝完再重新 <code>hold</code>。</li>
+    <li><strong>怎麼確認修好</strong>：升級 <code>kubernetes_minor_version</code> 後重跑 playbook，<code>kubelet --version</code> 顯示新的 minor。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-27">Bug #27</a> 是 CRI-O 同樣在升級 minor 時暴露的問題，見 <a href="role-crio.html#bug-27">Role: crio</a>。</li>
+  </ul>
+</section>
+
+<h3 id="crashloop">kubelet 啟動後 crashloop 是預期行為</h3>
+<p>role 最後一步等同 <code>systemctl enable --now kubelet</code>。這時還沒有 <code>kubeadm init</code> 或 <code>join</code> 產生的 <code>/var/lib/kubelet/config.yaml</code>，kubelet 會持續 crashloop。這與官方 kubeadm 文件描述的流程一致，不需要處理。等 <a href="role-kubeadm.html">Role: kubeadm</a> 的 init 和 join 完成後，kubelet 才會穩定運作。</p>
+
+<h3 id="verify">驗證方式</h3>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">在任一 k8s 節點上</span></div>
+  <pre><span class="prompt">$</span> <span class="cmd">stat -fc %T /sys/fs/cgroup</span>
+<span class="prompt">$</span> <span class="cmd">cat /etc/default/kubelet</span>
+<span class="prompt">$</span> <span class="cmd">ip route get 172.18.0.1</span>
+<span class="prompt">$</span> <span class="cmd">apt-mark showhold</span></pre>
+</div>
+<p><strong>預期結果</strong>：第一行輸出 <code>cgroup2fs</code>。第二行的 <code>--node-ip</code> 是該節點的 <code>10.10.0.x</code>。第三行走 <code>k8s-net</code> 的介面，來源位址是 <code>10.10.0.x</code>。第四行列出 <code>kubelet</code>、<code>kubeadm</code>、<code>kubectl</code>、<code>cri-tools</code>。</p>
+
+<h3 id="history">演進歷史</h3>
+<ul class="cl-list">
+  <li><span class="d">2026-07-26</span> <span class="k">feat</span> <span>kubelet role 隨 kubeadm 叢集建立，加入 conntrack 等網路工具（<a href="troubleshooting.html#bug-15">Bug #15</a>）</span></li>
+  <li><span class="d">2026-07-26</span> <span class="k">fix</span> <span>加入 service CIDR 的 <code>scope link</code> 路由（<a href="troubleshooting.html#bug-18">Bug #18</a>）</span></li>
+  <li><span class="d">2026-07-27</span> <span class="k">fix</span> <span>安裝 task 改 <code>state: latest</code>，安裝前先解除 hold（<a href="troubleshooting.html#bug-26">Bug #26</a>）</span></li>
+  <li><span class="d">2026-07-31</span> <span class="k">fix</span> <span>解除 hold 前先確認套件已安裝，並加入 <code>cri-tools</code>（<a href="troubleshooting.html#bug-61">Bug #61</a>、<a href="troubleshooting.html#bug-62">#62</a>）</span></li>
+</ul>
 
     <div class="page-nav">
-      <a class="prev" href="role-crio.html"><span class="dir">上一頁</span><span class="ttl">← Role: crio</span></a>
-      <a class="next" href="role-kubeadm.html"><span class="dir">下一頁</span><span class="ttl">Role: kubeadm →</span></a>
+      <a class="prev" href="role-crio.html"><span class="dir">上一頁</span>
+        <span class="ttl">← Role: crio</span></a>
+      <a class="next" href="role-kubeadm.html"><span class="dir">下一頁</span>
+        <span class="ttl">Role: kubeadm →</span></a>
     </div>
 
     <footer class="page-footer">
-      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
-      <span>最後更新:2026-07-27</span>
+      <span>文件站原始碼：<a href="https://github.com/DoughOps/terraform-k8s-docs" target="_blank" rel="noopener">DoughOps/terraform-k8s-docs</a></span>
+      <span>最後更新：2026-11-01（對應 commit e91424f）</span>
     </footer>
   </div>
 </div>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Role: keycloak / dex — k8s + BGP Lab 技術詳解</title>
+<title>Role: keycloak / dex — k8s + BGP Lab 技術文件</title>
 <link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
@@ -12,16 +12,17 @@
   <div class="sidebar-logo">
     <a class="sidebar-logo-link" href="index.html">
       <h1>🛰️ k8s + BGP Lab</h1>
-      <span>OpenStack Lab · 技術詳解 v15</span>
+      <span>OpenStack Lab 技術文件</span>
     </a>
   </div>
   <nav>
     <div class="nav-group">
-      <div class="nav-group-label">總覽</div>
+      <div class="nav-group-label">開始</div>
       <a class="nav-link" href="index.html"><span class="icon">🏠</span> 總覽</a>
       <a class="nav-link" href="getting-started.html"><span class="icon">🚀</span> 從零開始建置</a>
       <a class="nav-link" href="user-guide.html"><span class="icon">🧑‍💻</span> 叢集使用手冊</a>
       <a class="nav-link" href="teardown.html"><span class="icon">🧨</span> 全部拆除</a>
+      <a class="nav-link" href="glossary.html"><span class="icon">📖</span> 術語表</a>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">網路架構</div>
@@ -32,36 +33,39 @@
       <div class="nav-group-label">基礎設施</div>
       <a class="nav-link" href="infrastructure.html"><span class="icon">🖥️</span> Terraform / OpenStack</a>
       <a class="nav-link" href="bgp-fabric.html"><span class="icon">🧭</span> FRR / iBGP Fabric</a>
-      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB(歷史階段)</a>
     </div>
     <div class="nav-group">
-      <div class="nav-group-label">Ansible 自動化</div>
-      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> 框架設計</a>
+      <div class="nav-group-label">叢集元件</div>
+      <a class="nav-link" href="ansible-framework.html"><span class="icon">🤖</span> Ansible 框架設計</a>
       <a class="nav-link" href="role-crio.html"><span class="icon">📦</span> Role: crio</a>
       <a class="nav-link" href="role-kubelet.html"><span class="icon">⚙️</span> Role: kubelet</a>
       <a class="nav-link" href="role-kubeadm.html"><span class="icon">☸️</span> Role: kubeadm</a>
       <a class="nav-link" href="role-apiserver-lb.html"><span class="icon">🔁</span> Role: apiserver-lb</a>
       <a class="nav-link" href="role-cilium.html"><span class="icon">🐝</span> Role: cilium</a>
       <a class="nav-link" href="role-istio.html"><span class="icon">🕸️</span> Role: istio</a>
+      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試與 smoke-test</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">對外入口與身份驗證</div>
       <a class="nav-link" href="role-cloudflare-tunnel.html"><span class="icon">☁️</span> Role: cloudflare_tunnel</a>
       <a class="nav-link" href="role-cert-manager.html"><span class="icon">🔐</span> Role: cert_manager</a>
+      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">📋</span> Cloudflare 設定清單</a>
       <a class="nav-link" href="role-vault.html"><span class="icon">🔒</span> Role: vault</a>
       <a class="nav-link active" href="role-keycloak-dex.html"><span class="icon">🪪</span> Role: keycloak / dex</a>
       <a class="nav-link" href="identity-federation-flow.html"><span class="icon">🧩</span> 身份聯邦登入流程</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">平台服務</div>
       <a class="nav-link" href="role-github-runner.html"><span class="icon">🏃</span> Role: github_runner</a>
       <a class="nav-link" href="role-gitlab.html"><span class="icon">🦊</span> Role: gitlab</a>
       <a class="nav-link" href="role-argocd.html"><span class="icon">🐙</span> Role: argocd</a>
-      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具(Dashboard/Hubble/監控)</a>
-      <a class="nav-link" href="testing.html"><span class="icon">✅</span> 測試 / smoke-test</a>
-    </div>
-    <div class="nav-group">
-      <div class="nav-group-label">Cloudflare 手動設定</div>
-      <a class="nav-link" href="cloudflare-manual-setup.html"><span class="icon">☁️</span> 完整設定清單</a>
+      <a class="nav-link" href="internal-tools.html"><span class="icon">🧰</span> 內部工具</a>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">專案紀錄</div>
       <a class="nav-link" href="troubleshooting.html"><span class="icon">🐛</span> Bug 事後檢討</a>
-      <a class="nav-link" href="changelog.html"><span class="icon">📋</span> Changelog</a>
+      <a class="nav-link" href="changelog.html"><span class="icon">🗒️</span> Changelog</a>
+      <a class="nav-link" href="l4lb-history.html"><span class="icon">⚖️</span> DSR / L4LB 歷史</a>
     </div>
   </nav>
 </aside>
@@ -69,8 +73,9 @@
 <div class="main">
   <header class="topbar">
     <div class="topbar-left">
-      <button class="menu-btn" aria-label="Toggle menu">☰</button>
-      <span class="topbar-crumb">Lab Docs / <strong>Role: keycloak / dex</strong></span>
+      <button class="menu-btn" aria-label="切換選單">☰</button>
+      <span class="topbar-crumb">對外入口與身份驗證 /
+        <strong>Role: keycloak / dex</strong></span>
     </div>
     <div class="topbar-right">
       <span class="topbar-badge">cloudnative.tw · AS 65000</span>
@@ -82,185 +87,229 @@
 
   <div class="content">
 
-    <h2><span class="eyebrow">Ansible 自動化</span>Role: keycloak / dex</h2>
-    <p class="lede">一個 Dex → Keycloak → Cloudflare Access 的 OIDC 聯邦 PoC——
-      不是為了取代這個 lab 既有的 Cloudflare Access 驗證,而是模擬真實公司
-      環境常見的拓樸:<strong>Keycloak 是跨團隊共用的獨立 SSO 來源,Dex 是
-      每個叢集各自的 OIDC broker</strong>,叢集內的工具只認自己這個 Dex,
-      不用直接知道公司到底用哪套上游 IdP。三個 role 一起完成這個故事:
-      <code>roles/keycloak_server</code>(bastion 上的獨立 Keycloak,
-      Docker + Postgres)、<code>roles/dex</code>(叢集內的 Dex,broker 到
-      Keycloak)、<code>roles/dex_test_app</code>(<code>oauth2-proxy</code> +
-      <code>whoami</code>,拿來驗證整條鏈真的能靜默通過)。這頁記錄
-      <strong>為什麼這樣設計、過程中撞到的五個實測 bug</strong>,不是重講
-      OIDC 概念。</p>
+    <h2><span class="eyebrow">對外入口與身份驗證</span>
+    Role: keycloak / dex</h2>
 
-    <h3>為什麼中間要多一層 Dex,不是讓每個工具直接串 Keycloak</h3>
-    <p>如果叢集內的每個工具(Grafana、ArgoCD、自訂 app……)都各自去跟
-      Keycloak 註冊 OIDC client,Keycloak 那邊的 client 清單會隨著叢集數
-      量線性增長,而且每個叢集都要單獨管理一份「這個叢集可以用哪些
-      client」的權限。Dex 把這件事收斂成<strong>叢集只需要跟 Keycloak
-      談一次</strong>(Dex 自己是 Keycloak 眼中唯一的 client),叢集內部
-      再由 Dex 用 <code>staticClients</code> 分發給各個工具——對
-      Keycloak(跨團隊共用資源)來說,新增/淘汰一個叢集只是增減一個
-      client,不需要知道叢集內部裝了哪些工具。這個 PoC 只接了
-      <code>whoami</code> 一個測試 app,驗證的是這條鏈本身通不通,不是
-      Dex 的完整功能。</p>
+<p class="lede">這組 role 建出一條 Cloudflare Access → Keycloak → Dex → 應用程式 的 OIDC 聯邦鏈。它模擬真實公司常見的拓樸：Keycloak 是跨團隊共用的獨立 SSO 來源，Dex 是每個叢集自己的 OIDC broker，叢集內的工具只認自己的 Dex，不必知道公司用哪套上游 IdP。Keycloak 的相關 role 屬於 <code>bastion.yml</code>（接在 <code>vault.yml</code> 之後），Dex 和三個測試 app 屬於 <code>k8s.yml</code>，Keycloak 一定要先於 Dex 就位。登入流程全貌見<a href="identity-federation-flow.html">身份聯邦登入流程</a>，這頁說明部署設計與實測踩到的五個 bug。</p>
 
-    <h3>Keycloak 為什麼也跑在 bastion,不是叢集內</h3>
-    <p>跟 <a href="role-vault.html">Role: vault</a> 同一個理由:這個 PoC
-      裡 Keycloak 扮演「公司既有的 SSO 系統」,現實中它<strong>不會因為
-      某個叢集重建就跟著消失</strong>,所以資料要能在 bastion 重建之後
-      自動復原。直接沿用 bastion 那顆已經有 <code>prevent_destroy</code>
-      + <code>delete_on_termination = false</code> 保護的 <code>user-data</code>
-      持久化 volume,Postgres 資料放
-      <code>/userap/keycloak/pgdata</code>——bastion 被
-      <code>terraform destroy</code>/<code>apply</code> 重建之後,容器
-      重新啟動會直接接回既有資料,不需要重新建 realm/client。</p>
+<h3 id="roles">現在的設定</h3>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Role</th><th>位置</th><th>做什麼</th></tr></thead>
+    <tbody>
+      <tr><td><code>keycloak_server</code></td><td>bastion（Docker + Postgres）</td><td>獨立的 Keycloak，建 <code>doughops</code> realm 與 client，並建立永久管理員</td></tr>
+      <tr><td><code>dex</code></td><td>叢集內 <code>dex</code> namespace</td><td>OIDC broker，connector 指向 Keycloak</td></tr>
+      <tr><td><code>dex_test_app</code></td><td>叢集內</td><td><code>oauth2-proxy</code> + <code>whoami</code>，經 Dex 驗證整條鏈能通過</td></tr>
+      <tr><td><code>keycloak_test_app</code></td><td>叢集內</td><td>第二個 <code>oauth2-proxy</code> + <code>whoami</code>，不經 Dex、直接串 Keycloak</td></tr>
+      <tr><td><code>keycloak_native_app</code></td><td>叢集內</td><td>第三種：app 自己講 OIDC，不用任何 proxy</td></tr>
+    </tbody>
+  </table>
+</div>
 
-    <h3>Bug #1:Keycloak 26 的健康檢查在另一個 port,不是應用本身的 port</h3>
-    <p>第一版直覺假設 <code>/health/ready</code> 掛在 Keycloak 對外服務的
-      同一個 port(<code>8090</code>),容器一直起不來、<code>docker inspect</code>
-      顯示 healthcheck 持續失敗。查 <code>docker logs</code> 才發現
-      Keycloak 26 把 health/metrics 端點搬到獨立的 <strong>management
-      port(預設 <code>9000</code>)</strong>,而且要顯式打開:</p>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/keycloak_server/defaults/main.yml</span></div>
-      <pre><span class="out">keycloak_port: 8090
+<h4 id="why-dex">為什麼中間要多一層 Dex</h4>
+<p>如果叢集內每個工具都各自向 Keycloak 註冊 OIDC client，Keycloak 的 client 清單會隨叢集數量線性增長，每個叢集還要單獨管理自己能用哪些 client。Dex 把這件事收斂成叢集只跟 Keycloak 談一次：Dex 自己是 Keycloak 眼中唯一的 client，叢集內部再由 Dex 用 <code>staticClients</code> 分發給各個工具。對 Keycloak 這個跨團隊共用資源來說，新增或淘汰一個叢集，只是增減一個 client。</p>
+<p>這個 PoC 只接 <code>whoami</code> 一個 client，驗證的是整條鏈通不通，不是 Dex 的完整功能。</p>
+
+<h4 id="dex-config">Dex 的設定</h4>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>設定</th><th>值</th><th>為什麼</th></tr></thead>
+    <tbody>
+      <tr><td><code>issuer</code></td><td><code>https://dex.dough-ops.com</code></td><td>外部走 Cloudflare Tunnel 與 Istio</td></tr>
+      <tr><td><code>storage.type</code></td><td><code>memory</code></td><td>Dex 是無狀態的轉介層，connector 和 <code>staticClients</code> 每次都從 helm values 重新宣告，pod 重建不受影響</td></tr>
+      <tr><td><code>oauth2.skipApprovalScreen</code></td><td><code>true</code></td><td>減少「Grant Access」同意畫面，但對 <code>approval_prompt=force</code> 無效，見 <a href="#bug-51">#51</a></td></tr>
+      <tr><td>connector</td><td><code>oidc</code>，id <code>keycloak</code>，issuer 為 Keycloak 的 <code>doughops</code> realm 路徑</td><td>Dex 對 Keycloak 做真正的 discovery，經 Cloudflare 連線，見 <a href="#bug-50">#50</a></td></tr>
+      <tr><td><code>staticClients</code></td><td><code>whoami</code></td><td>測試 client</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h4 id="keycloak-on-bastion">Keycloak 跑在 bastion</h4>
+<p>理由和 <a href="role-vault.html#why-bastion">Vault</a> 相同。這個 PoC 中 Keycloak 扮演公司既有的 SSO 系統，現實中它不會因為某個叢集重建就消失，所以資料要在 bastion 重建後自動復原。Postgres 資料放 <code>/userap/keycloak/pgdata</code>，也就是 <code>user-data</code> 持久化 volume 上。bastion 重建後容器重啟，會直接接回既有資料，不必重建 realm 和 client。volume 的保護機制見 <a href="infrastructure.html#data-volumes">Terraform / OpenStack § 資料碟</a>。</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>設定</th><th>值</th></tr></thead>
+    <tbody>
+      <tr><td><code>keycloak_image</code></td><td><code>quay.io/keycloak/keycloak:26.5.2</code></td></tr>
+      <tr><td><code>keycloak_postgres_image</code></td><td><code>postgres:16</code></td></tr>
+      <tr><td><code>keycloak_port</code> / <code>keycloak_management_port</code></td><td><code>8090</code> / <code>9000</code></td></tr>
+      <tr><td><code>keycloak_pgdata_dir</code></td><td><code>/userap/keycloak/pgdata</code></td></tr>
+      <tr><td>Docker network</td><td><code>keycloak-net</code>。bastion 的 Docker 預設位址池設為 <code>10.99.0.0/16</code>，避開叢集 Service CIDR <code>172.18.0.0/16</code></td></tr>
+      <tr><td>上游 IdP</td><td>Cloudflare Access for SaaS，Keycloak 內的 broker alias 為 <code>cloudflare-access</code></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h4 id="permanent-admin">永久管理員</h4>
+<p>Keycloak 的 <code>KC_BOOTSTRAP_ADMIN_USERNAME</code> 與 <code>_PASSWORD</code> 建出來的一定是 temporary admin。官方文件明確記載這個行為，沒有繞過的啟動參數，正式流程是先建臨時帳號，登入後再手動升級成永久帳號。role 把這段流程自動化：</p>
+<ol>
+  <li>密碼不自動產生，而是讀 <code>secrets.yml</code> 的 <code>keycloak_permanent_admin_password</code>，帳號名稱是 <code>keycloak_permanent_admin_username</code>（預設 <code>keycloak-admin</code>）。</li>
+  <li>用 admin REST API 建立或更新永久帳號，並指派 <code>admin</code> realm role。</li>
+  <li>驗證能用新帳密登入之後，才刪除原本的 bootstrap temporary admin。</li>
+</ol>
+<p>取得 admin token 時，先試永久帳密，失敗再退回 bootstrap 帳密，並搭配 <code>ansible.builtin.assert</code> 兜底，確保 temporary admin 已被刪除後重跑也不會卡死。送出表單用 <code>body_format: form-urlencoded</code>，讓 <code>uri</code> 模組自己做 URL encoding。密碼若含 <code>+</code>，手動拼 body 會把它誤解成空白，Keycloak 會回 <code>invalid_grant</code>，見 <a href="troubleshooting.html#bug-65">Bug #65</a>。</p>
+
+<h4 id="test-apps">三個測試 app</h4>
+<p>三個 app 各自獨立，使用不同 namespace、client 和 secret，驗證三種接法。</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Role</th><th>接法</th><th>備註</th></tr></thead>
+    <tbody>
+      <tr><td><code>dex_test_app</code></td><td><code>oauth2-proxy</code> → Dex → Keycloak</td><td>用 <code>--skip-oidc-discovery</code>：Dex 的 hostname 沒有 Access 例外，discovery 在叢集內會被擋</td></tr>
+      <tr><td><code>keycloak_test_app</code></td><td><code>oauth2-proxy</code> → Keycloak</td><td>Keycloak realm 路徑已有 Access 例外，瀏覽器和叢集內呼叫都能直達，用標準 OIDC discovery</td></tr>
+      <tr><td><code>keycloak_native_app</code></td><td>app 自己對 Keycloak 做 authorization code 流程</td><td>單檔、只用標準函式庫的 Python（<code>files/app.py</code>），跑在 <code>python:3.13-slim</code>，不需 build 與 push image，顯示解碼後的 <code>id_token</code> claims</td></tr>
+    </tbody>
+  </table>
+</div>
+<p><code>keycloak_server</code> 在 bastion 的 <code>/userap</code> 下為 Dex 以及後兩個 app 各產生一份 client secret，再由各 role 讀取。所以 <code>dex_test_app</code> 另外依賴 <code>dex.yml</code>，後兩個只依賴 <code>bastion.yml</code> 和 <code>istio.yml</code>。</p>
+
+<h4 id="var-scope">跨 playbook 的變數作用域</h4>
+<p>這個 PoC 橫跨 <code>bastion.yml</code>（裝 Keycloak）和 <code>k8s.yml</code> 下多個獨立的 <code>ansible-playbook</code> 呼叫。Ansible role 的 <code>defaults/</code> 只在該 role 被載入的那個 play 裡有效。<code>dex_hostname</code>、<code>keycloak_secrets_dir</code>、<code>keycloak_realm</code> 在其他 play 都曾讀不到。跨 play 共用的變數一律放在 <code>group_vars/all/main.yml</code>，不放在個別 role 的 <code>defaults/</code>。</p>
+
+<h3 id="limits">已知限制與 workaround</h3>
+<ul>
+  <li><strong>每次登入都會看到 Dex 的同意畫面。</strong>Dex 對瀏覽器無狀態，<code>oauth2-proxy</code> 又固定送 <code>approval_prompt=force</code>。這是外部限制，要等上游修好，見 <a href="#bug-51">#51</a>。</li>
+  <li><strong>Keycloak 的 realm 路徑沒有 Cloudflare Access 保護。</strong>Dex 對 Keycloak 是機器對機器連線，沒有互動登入的 session，所以 Keycloak 的 realm 路徑與登入頁需要的靜態資源路徑獨立設成 bypass。這代表這些路徑只剩 Keycloak 自己的帳密與 OIDC 機制擋著，沒有多一層 Cloudflare 的檢查。範圍已縮到 realm 路徑，管理後台和 master realm 不在其中。bypass 的整體原則見 <a href="cloudflare-manual-setup.html#access-rules">Cloudflare 設定清單 § Access 規則</a>。</li>
+  <li><strong>oauth2-proxy 接受未驗證的 email。</strong><code>dex_test_app</code> 設了 <code>insecure-oidc-allow-unverified-email</code>，因為上游身份鏈本來就不提供 <code>email_verified</code>。這是 PoC 的設定。</li>
+  <li><strong>Keycloak client secret 放在檔案裡。</strong>Dex 與各 app 的 client secret 存在 bastion 的 <code>/userap</code>（root-only 目錄），保護靠 bastion 的存取控制。Keycloak 的 client 查詢回應本身含明碼 secret，相關 task 必須帶 <code>no_log</code>，否則每次重跑都會把 secret 印進 ansible log，見 <a href="troubleshooting.html#bug-66">Bug #66</a>。</li>
+  <li><strong>Keycloak HTTP client 逾時偶發。</strong>Keycloak 向 Cloudflare Access token 端點的呼叫要跨公網來回，偶發 <code>SocketTimeoutException</code>。container 啟動時把 HTTP client timeout 調成 10 秒，見 <a href="troubleshooting.html#bug-64">Bug #64</a>。這只緩解「會成功但較慢」的呼叫，不會讓真正掛掉的呼叫變快。docker run 參數只在首次建立 container 時生效，所以 role 會偵測舊 container 缺少這個設定並重建。</li>
+</ul>
+
+<h3 id="bugs">實測踩到的 bug</h3>
+
+<section class="bug" id="bug-48">
+  <h4>#48 · Keycloak 26 容器一直 unhealthy</h4>
+  <ul>
+    <li><strong>症狀</strong>：容器起不來，<code>docker inspect</code> 顯示 healthcheck 持續失敗，打 <code>/health/ready</code> 一路 404。</li>
+    <li><strong>根因</strong>：第一版假設 <code>/health/ready</code> 掛在對外服務的同一個 port <code>8090</code>。Keycloak 26 把 health 與 metrics 端點移到獨立的 management port，預設 <code>9000</code>，並且要顯式開啟。</li>
+    <li><strong>修法</strong>：容器環境變數加 <code>KC_HEALTH_ENABLED=true</code>，healthcheck 改打 <code>keycloak_management_port</code>。</li>
+    <li><strong>怎麼確認修好</strong>：<code>curl http://&lt;fabric_ip&gt;:9000/health/ready</code> 回傳 <code>UP</code>。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-48">Bug #48</a>。</li>
+  </ul>
+</section>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/keycloak_server/defaults/main.yml</span></div>
+  <pre><span class="out">keycloak_port: 8090
 keycloak_management_port: 9000</span></pre>
-    </div>
-    <p>容器環境變數要加 <code>KC_HEALTH_ENABLED=true</code>,healthcheck
-      改打 <code>keycloak_management_port</code> 而不是
-      <code>keycloak_port</code>,才拿得到正確的 <code>UP</code> 狀態。</p>
+</div>
 
-    <h3>Bug #2:Postgres 資料目錄的 owner 每次重跑都被 Ansible 蓋回 root</h3>
-    <p>第一版把 secrets 目錄跟 Postgres 資料目錄用同一個
-      <code>ansible.builtin.file</code> task 建,<code>owner: root</code>。
-      容器內的 Postgres 是用 uid <code>999</code> 跑的,第一次啟動能正常
-      init(容器自己 chown),但<strong>只要這個 role 重跑一次</strong>,
-      Ansible 的 <code>file</code> task 會把目錄 owner 宣告式地蓋回
-      <code>root</code>,下次容器重啟 Postgres 就炸開:</p>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">實測:keycloak-postgres 容器 log</span></div>
-      <pre><span class="bad">FATAL: data directory "/var/lib/postgresql/data" has invalid permissions
-could not open file "global/pg_filenode.map": Permission denied</span></pre>
-    </div>
-    <p>修法是把 Postgres 資料目錄拆成獨立的一個 task,<code>owner: "999"</code>
-      ——secrets 目錄仍然是 root(給 Ansible/root 讀寫,不給容器內非
-      root 使用者碰),兩個目錄的所有權模型本來就不該一樣,合併成同一個
-      task 是最初的設計錯誤。</p>
+<section class="bug" id="bug-49">
+  <h4>#49 · role 重跑後 Postgres 起不來</h4>
+  <ul>
+    <li><strong>症狀</strong>：Keycloak 的 Postgres 容器重啟後報 <code>FATAL: data directory "/var/lib/postgresql/data" has invalid permissions</code> 和 <code>could not open file "global/pg_filenode.map": Permission denied</code>。</li>
+    <li><strong>根因</strong>：第一版用同一個 <code>ansible.builtin.file</code> task 建 secrets 目錄與 Postgres 資料目錄，<code>owner: root</code>。容器內 Postgres 以 uid <code>999</code> 執行，首次啟動時容器自己會 chown，一切正常。但 role 每次重跑，宣告式的 <code>file</code> task 會把 owner 蓋回 <code>root</code>，下次容器重啟就炸開。</li>
+    <li><strong>修法</strong>：Postgres 資料目錄拆成獨立 task，<code>owner: "999"</code>，用數字 uid，因為 bastion 上 uid 999 已被 Vault 的系統帳號 <code>vault</code> 佔用，用名稱會混淆。secrets 目錄仍是 root，不給容器內非 root 使用者碰。兩個目錄的所有權模型本來就不同，合併成一個 task 是最初的設計錯誤。</li>
+    <li><strong>怎麼確認修好</strong>：重跑 role 後重啟 Postgres 容器，不再報權限錯誤。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-49">Bug #49</a>。</li>
+  </ul>
+</section>
 
-    <h3>Bug #3:Dex 打 Keycloak 被既有的萬用字元 Cloudflare Access 擋住</h3>
-    <p>Dex 的 <code>oidc</code> connector 要對 <code>issuer</code> 做真正的
-      <code>.well-known</code> discovery、走真實網路連線——不像瀏覽器
-      那樣有 team session 可以用,Dex 對 Keycloak 發的是<strong>
-      machine-to-machine</strong> 的 HTTP 請求。Keycloak 掛在
-      <code>keycloak.dough-ops.com</code>,而這個網域落在既有的萬用字元
-      Cloudflare Access Application(<code>*.dough-ops.com</code>)底下,
-      沒有互動式登入的機器連線一律被擋在 Access 的驗證頁前面,
-      discovery 直接失敗。第一版嘗試用 <code>hostAliases</code> 讓 Dex
-      直連 Keycloak 的內部位址繞過 DNS,結果卡在 Keycloak 沒有在那個
-      位址上監聽 TLS——這條路本質上就是錯的,不該讓 Dex 繞過 Cloudflare
-      去猜內部拓樸。</p>
-    <p>真正的修法來自使用者對架構的直接提問(「keycloak 不能經過
-      cloudflare 吧?」「dex 也要過 cloudflare?這樣不會卡住嗎?」)——
-      答案是<strong>兩邊都繼續經過 Cloudflare(TLS 照樣終止在
-      Cloudflare),只是額外開一條精準比對的 <code>bypass</code>
-      Access policy</strong>,只放行 Dex 需要打的那幾條路徑,不是整個
-      拿掉 Access 保護:</p>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">cloudflare/access.tf(keycloak_direct Application)</span></div>
-      <pre><span class="out">domain   = "${var.keycloak_hostname}/realms/${var.keycloak_realm}/*"
-decision = "bypass"</span></pre>
-    </div>
-    <div class="callout callout-warn">
-      <p><strong>精準比對範圍是後來收斂的</strong>——最早的版本直接放行
-      整個 <code>var.keycloak_hostname</code>,等於把 Keycloak 的 admin
-      console 跟 master realm 的 token 端點都對整個網路開放,在最終審查
-      階段被抓出來,改成只放行 <code>/realms/{realm}/*</code> 這個
-      Dex 實際需要打的子路徑。</p>
-    </div>
-    <p>精準比對的 Application(<code>type = "self_hosted"</code>,domain
-      直接寫完整路徑)優先權高於萬用字元 Application,不需要調整既有的
-      <code>*.dough-ops.com</code> policy。</p>
+<section class="bug" id="bug-50">
+  <h4>#50 · Dex 連 Keycloak 被 Cloudflare Access 擋住</h4>
+  <ul>
+    <li><strong>症狀</strong>：Dex 的 connector 啟動時 discovery 失敗，收到的是 Access 的 HTML 登入頁，不是 JSON。</li>
+    <li><strong>根因</strong>：Dex 的 <code>oidc</code> connector 要對 issuer 做真正的 <code>.well-known</code> discovery，是機器對機器的 HTTP 請求，沒有瀏覽器的 team session。而 <code>keycloak.dough-ops.com</code> 落在萬用字元 Access Application（<code>*.dough-ops.com</code>）底下，沒有互動登入的連線一律被擋。第一版嘗試用 <code>hostAliases</code> 讓 Dex 直連 Keycloak 的內部位址，結果 Keycloak 沒有在那個位址監聽 TLS，這條路本質上就錯，不該讓 Dex 繞過 Cloudflare 去猜內部拓樸。</li>
+    <li><strong>修法</strong>：兩邊都繼續經過 Cloudflare，TLS 照樣在 Cloudflare 終止。另外開一條範圍精準的 <code>bypass</code> Access policy，只放行 Dex 需要打的 Keycloak realm 路徑，定義在 <code>cloudflare/access.tf</code> 的 <code>keycloak_direct</code>。它是 <code>self_hosted</code> 類型，優先權高於萬用字元 Application，不必調整既有的 <code>*.dough-ops.com</code> policy。</li>
+    <li><strong>怎麼確認修好</strong>：<code>kubectl logs -n dex deploy/dex</code> 啟動時沒有 discovery 錯誤。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-50">Bug #50</a>。</li>
+  </ul>
+</section>
+<div class="callout callout-warn">
+  <p>最早的版本直接放行整個 Keycloak hostname，等於把管理後台與 master realm 的 token 端點對整個網路開放。最終審查抓到後，範圍收斂到 realm 路徑。收窄後又發現，登入頁載入的靜態主題資源位於 realm 路徑之外。它們被 Access 攔下後，瀏覽器端表現為 CORS 錯誤和整頁沒有 CSS，因此另外為這類純靜態資源加了一條 bypass，見 <a href="troubleshooting.html#bug-63">Bug #63</a>。靜態資源沒有認證邏輯或使用者資料，風險等級不同。精確的路徑比對規則見 <code>cloudflare/access.tf</code>。</p>
+</div>
 
-    <h3>Bug #4:Dex 沒有自己的瀏覽器 session,每次登入都跳 Keycloak 的同意畫面</h3>
-    <p>驗證階段發現每次重新整理 <code>whoami.dough-ops.com</code>,都要
-      重新在 Dex 面前按一次「Grant Access」,不是預期中「登入一次、之後
-      靜默通過」。追查後確認這是 Dex 本身的已知行為(見
-      <a href="https://github.com/dexidp/dex/issues/4560" target="_blank">dexidp/dex#4560</a>)
-      ——<strong>Dex 對瀏覽器完全是無狀態的,沒有持久化的 SSO cookie</strong>,
-      每次收到新的 authorization request 都會重新觸發 connector 流程。
-      加上 <code>oauth2.skipApprovalScreen: true</code> 有一定幫助,但這個
-      設定<strong>對帶著 <code>approval_prompt=force</code> 的請求無效</strong>
-      ——而 <code>oauth2-proxy</code> 的 <code>--approval-prompt</code> 預設
-      值正是 <code>force</code>,且經實測確認無法透過設定清空(對應
-      <a href="https://github.com/oauth2-proxy/oauth2-proxy/issues/3426" target="_blank">oauth2-proxy/oauth2-proxy#3426</a>
-      這個仍開著的上游 issue)。這是<strong>外部限制,目前無法單靠改設定
-      解決</strong>,直接在程式碼註解裡寫清楚,不假裝這是已修好的問題。</p>
+<section class="bug" id="bug-51">
+  <h4>#51 · 每次登入都要在 Dex 按 Grant Access</h4>
+  <ul>
+    <li><strong>症狀</strong>：每次重新整理 <code>whoami.dough-ops.com</code>，都要在 Dex 的同意畫面按一次「Grant Access」，不是預期的登入一次後靜默通過。</li>
+    <li><strong>根因</strong>：Dex 對瀏覽器完全無狀態，沒有持久化的 SSO cookie，見 <a href="https://github.com/dexidp/dex/issues/4560" target="_blank">dexidp/dex#4560</a>。每次新的 authorization request 都重新觸發 connector 流程。<code>oauth2.skipApprovalScreen: true</code> 有幫助，但對帶 <code>approval_prompt=force</code> 的請求無效。<code>oauth2-proxy</code> 的 <code>--approval-prompt</code> 預設正是 <code>force</code>，實測無法透過設定清空。對應的上游 issue 是 <a href="https://github.com/oauth2-proxy/oauth2-proxy/issues/3426" target="_blank">oauth2-proxy/oauth2-proxy#3426</a>，目前仍開著。</li>
+    <li><strong>修法</strong>：目前沒有。這是外部限制，單靠改設定解決不了。程式碼註解保留了 <code>approval-prompt: ""</code> 的設定，作為已試過但無效的紀錄。</li>
+    <li><strong>怎麼確認修好</strong>：等上游修好後，登入一次再重新整理，不再出現同意畫面。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-51">Bug #51</a>。</li>
+  </ul>
+</section>
 
-    <h3>Bug #5:oauth2-proxy 500——id_token 的 email 沒有 verified 旗標</h3>
-    <p><code>kubectl logs</code> 追出 <code>oauth2-proxy</code> 直接
-      500,訊息是「email in id_token isn't verified」。根因是
-      Cloudflare Access → Keycloak → Dex 這條鏈組出來的 id_token,
-      <code>email_verified</code> 沒有被設成 <code>true</code>(來源是
-      Cloudflare Access 這一層的身份,不是 Keycloak 自己核發的帳號),
-      oauth2-proxy 預設拒絕未驗證的 email claim。加一個 flag 解決:</p>
-    <div class="term">
-      <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/dex_test_app/tasks/main.yml(extraArgs)</span></div>
-      <pre><span class="out">insecure-oidc-allow-unverified-email: "true"</span></pre>
-    </div>
+<section class="bug" id="bug-52">
+  <h4>#52 · oauth2-proxy 回 500：email in id_token isn't verified</h4>
+  <ul>
+    <li><strong>症狀</strong>：<code>oauth2-proxy</code> 登入後回 500，<code>kubectl logs</code> 看到「email in id_token isn't verified」。Dex 的登入紀錄也印出 <code>email="...(unverified)"</code>。</li>
+    <li><strong>根因</strong>：Cloudflare Access → Keycloak → Dex 這條鏈組出的 id_token，<code>email_verified</code> 不是 <code>true</code>。身份來自 Cloudflare Access 這一層，不是 Keycloak 自己核發的帳號。oauth2-proxy 預設拒絕未驗證的 email。</li>
+    <li><strong>修法</strong>：extraArgs 加 <code>insecure-oidc-allow-unverified-email: "true"</code>。這是 oauth2-proxy 自己的標準開關。</li>
+    <li><strong>怎麼確認修好</strong>：登入後 <code>whoami</code> 顯示正確的請求 header。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-52">Bug #52</a>。ArgoCD 內建 Dex 遇到同類問題，見 <a href="role-argocd.html#bug-71">Role: argocd</a>。</li>
+  </ul>
+</section>
+<div class="term">
+  <div class="term-bar"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span><span class="term-title">roles/dex_test_app/tasks/main.yml（extraArgs）</span></div>
+  <pre><span class="out">insecure-oidc-allow-unverified-email: "true"</span></pre>
+</div>
 
-    <h3>跨 playbook 的變數作用域:role 的 defaults 不會自動跨 play 共用</h3>
-    <p>這個 PoC 橫跨 <code>bastion.yml</code>(裝 Keycloak)跟
-      <code>k8s.yml</code> 底下兩個完全獨立的 <code>ansible-playbook</code>
-      呼叫(<code>dex.yml</code>、<code>dex_test_app.yml</code>)。Ansible
-      的 role <code>defaults/</code> 只在該 role 實際被載入的那個 play
-      裡有效——這個限制在 Task 4/5 分別踩到兩次(<code>dex_hostname</code>
-      在 <code>dex_test_app.yml</code> 裡讀不到、<code>keycloak_secrets_dir</code>
-      /<code>keycloak_realm</code> 同理),修法是統一把跨 play 共用的
-      變數搬進 <code>group_vars/all/main.yml</code>,不是留在個別 role 的
-      <code>defaults/</code> 裡。</p>
+<section class="bug" id="bug-63">
+  <h4>#63 · Keycloak 登入頁無 CSS，瀏覽器顯示 CORS 錯誤</h4>
+  <ul>
+    <li><strong>症狀</strong>：登入頁整頁沒有 CSS，瀏覽器 console 顯示 CORS 錯誤。</li>
+    <li><strong>根因</strong>：登入頁載入的靜態主題資源（<code>/resources/*</code>）位於 realm 路徑之外。<a href="troubleshooting.html#bug-50">#50</a> 把 bypass 收斂到 realm 路徑後，這些資源落回萬用字元 Access Application，被 Access 攔下。</li>
+    <li><strong>修法</strong>：在 <code>cloudflare/access.tf</code> 為這類純靜態資源另加一條範圍收窄的 bypass。靜態資源沒有認證邏輯或使用者資料，風險與 token 端點不同。</li>
+    <li><strong>怎麼確認修好</strong>：重新載入登入頁，樣式正常，console 不再出現 CORS 錯誤。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-63">Bug #63</a>、<a href="troubleshooting.html#bug-50">#50</a>。</li>
+  </ul>
+</section>
 
-    <h3>永久管理員:Keycloak 沒有「安裝時直接建永久帳號」的官方作法</h3>
-    <p>Keycloak 的 <code>KC_BOOTSTRAP_ADMIN_USERNAME</code>/
-      <code>_PASSWORD</code> 建出來的一定是「temporary admin」——這是
-      Keycloak 官方文件明確記載的行為,沒有繞過的啟動參數,唯一的正式
-      流程是「先建臨時帳號,登入後再手動升級成永久帳號」。這個 role
-      把這段流程自動化:密碼<strong>不是自動產生</strong>,而是讀
-      <code>secrets.yml</code> 的 <code>keycloak_permanent_admin_password</code>
-      (使用者自己指定、可重跑更換),用 admin REST API 建立/更新永久
-      帳號、指派 <code>admin</code> realm role、驗證能用新帳密登入之後,
-      才刪除原本的 bootstrap temporary admin。取得 admin token 那段做了
-      「先試永久帳密、失敗再退回 bootstrap 帳密」的雙軌嘗試,搭配
-      <code>ansible.builtin.assert</code> 兜底,確保這段邏輯在
-      temporary admin 已經被刪除之後重跑也不會卡死。</p>
+<section class="bug" id="bug-64">
+  <h4>#64 · Keycloak 呼叫 Cloudflare Access token 端點偶發 SocketTimeoutException</h4>
+  <ul>
+    <li><strong>症狀</strong>：Keycloak 向 Cloudflare Access 的 token 端點發出的呼叫偶發 <code>SocketTimeoutException</code>。</li>
+    <li><strong>根因</strong>：呼叫要跨公網來回，預設的 HTTP client timeout 容不下偏慢的回應。</li>
+    <li><strong>修法</strong>：container 啟動時把 HTTP client timeout 調成 10 秒。這只緩解「會成功但較慢」的呼叫。<code>docker run</code> 參數只在首次建立 container 時生效，所以 role 會偵測舊 container 缺少這個設定並重建。</li>
+    <li><strong>怎麼確認修好</strong>：<code>docker inspect</code> 看到 container 帶有 10 秒的 timeout 設定。偶發逾時是否完全消失需要長期觀察。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-64">Bug #64</a>。</li>
+  </ul>
+</section>
 
-    <h3>驗證方式</h3>
-    <ul>
-      <li>Keycloak 健康狀態:<code>curl http://&lt;fabric_ip&gt;:9000/health/ready</code>
-        確認回傳 <code>UP</code>。</li>
-      <li>Keycloak OIDC discovery:<code>curl https://keycloak.dough-ops.com/realms/&lt;realm&gt;/.well-known/openid-configuration</code>
-        (從外部,走 Cloudflare)確認回傳合法的 endpoint 清單。</li>
-      <li>Dex → Keycloak 的 machine-to-machine 連線:<code>kubectl logs -n dex deploy/dex</code>
-        確認 connector 啟動時沒有 discovery 錯誤。</li>
-      <li>端對端瀏覽器驗證:開 <code>whoami.dough-ops.com</code>,依序過
-        Cloudflare Access → Dex(Keycloak connector)→ Keycloak 登入,
-        最後看到 <code>whoami</code> 印出的請求 header 含正確的
-        email/groups claim。</li>
-      <li>永久管理員:用 <code>secrets.yml</code> 設定的帳密登入
-        Keycloak admin console,確認沒有「temporary admin」警告,且
-        temporary 帳號已經不存在。</li>
-    </ul>
+<section class="bug" id="bug-65">
+  <h4>#65 · 手動送 form 時密碼含 +，Keycloak 回 invalid_grant</h4>
+  <ul>
+    <li><strong>症狀</strong>：取得 admin token 時回 <code>invalid_grant</code>，帳密明明正確。</li>
+    <li><strong>根因</strong>：手動拼接 form body 時，密碼裡的 <code>+</code> 被當成空白，Keycloak 收到另一組密碼。</li>
+    <li><strong>修法</strong>：改用 <code>ansible.builtin.uri</code> 的 <code>body_format: form-urlencoded</code>，讓模組做 URL encoding。</li>
+    <li><strong>怎麼確認修好</strong>：含 <code>+</code> 的密碼可取得 admin token，role 重跑不再卡住。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-65">Bug #65</a>。</li>
+  </ul>
+</section>
+
+<section class="bug" id="bug-66">
+  <h4>#66 · Keycloak client 查詢的回應含明碼 secret，被印進 ansible log</h4>
+  <ul>
+    <li><strong>症狀</strong>：查詢 client 的 task 輸出把明碼 client secret 印進 ansible log。</li>
+    <li><strong>根因</strong>：回應本身含 secret，task 漏了 <code>no_log</code>，ansible 預設印出完整回應。</li>
+    <li><strong>修法</strong>：所有處理 admin 密碼、Postgres 密碼與 client secret 的 task 補上 <code>no_log: true</code>。</li>
+    <li><strong>怎麼確認修好</strong>：重跑 role，這些 task 只顯示 censored 提示。</li>
+    <li><strong>相關</strong>：<a href="troubleshooting.html#bug-66">Bug #66</a>。</li>
+  </ul>
+</section>
+
+<h3 id="verify">驗證方式</h3>
+<ul>
+  <li>Keycloak 健康狀態：<code>curl http://&lt;fabric_ip&gt;:9000/health/ready</code>，確認回傳 <code>UP</code>。</li>
+  <li>Keycloak OIDC discovery：從外部走 Cloudflare，<code>curl https://keycloak.dough-ops.com/realms/&lt;realm&gt;/.well-known/openid-configuration</code>，確認回傳合法的 endpoint 清單。</li>
+  <li>Dex 連 Keycloak：<code>kubectl logs -n dex deploy/dex</code>，確認 connector 啟動時沒有 discovery 錯誤。</li>
+  <li>端對端：用瀏覽器開 <code>whoami.dough-ops.com</code>，依序通過 Cloudflare Access、Dex 和 Keycloak 登入。最後 <code>whoami</code> 印出的請求 header 應含正確的 email 與 groups claim。</li>
+  <li>永久管理員：用 <code>secrets.yml</code> 設定的帳密登入 Keycloak admin console，確認沒有「temporary admin」警告，temporary 帳號也已不存在。</li>
+</ul>
+
+<h3 id="history">演進歷史</h3>
+<p>這組 PoC 的第一版 Dex 對 Keycloak 使用 <code>hostAliases</code> 直連內部位址，後來改成經 Cloudflare 並加上精確的 bypass Application，細節見 <a href="#bug-50">#50</a>。Keycloak 的 bypass 範圍先是整個 hostname，後來收窄到 realm 路徑，再補上靜態資源。三個測試 app 依序加入：先是經 Dex 的 <code>dex_test_app</code>，接著是直接串 Keycloak 的 <code>keycloak_test_app</code>，最後是不用 proxy 的 <code>keycloak_native_app</code>。變更紀錄見 <a href="changelog.html">Changelog</a>。</p>
 
     <div class="page-nav">
-      <a class="prev" href="role-vault.html"><span class="dir">上一頁</span><span class="ttl">← Role: vault</span></a>
-      <a class="next" href="identity-federation-flow.html"><span class="dir">下一頁</span><span class="ttl">身份聯邦登入流程 →</span></a>
+      <a class="prev" href="role-vault.html"><span class="dir">上一頁</span>
+        <span class="ttl">← Role: vault</span></a>
+      <a class="next" href="identity-federation-flow.html"><span class="dir">下一頁</span>
+        <span class="ttl">身份聯邦登入流程 →</span></a>
     </div>
 
     <footer class="page-footer">
-      <span>Source: <a href="https://github.com/khchiang1121/terraform-k8s" target="_blank">github.com/khchiang1121/terraform-k8s</a></span>
-      <span>最後更新:2026-08-07</span>
+      <span>文件站原始碼：<a href="https://github.com/DoughOps/terraform-k8s-docs" target="_blank" rel="noopener">DoughOps/terraform-k8s-docs</a></span>
+      <span>最後更新：2026-11-01（對應 commit e91424f）</span>
     </footer>
   </div>
 </div>
